@@ -107,12 +107,8 @@ export default function Login() {
     <div style={{ minHeight:'100vh', background:'#f4f2ef', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Arial,sans-serif' }}>
       <div style={{ background:'#fff', borderRadius:16, padding:'40px 36px', width:380, boxShadow:'0 4px 32px rgba(0,0,0,.08)', border:'1px solid #ddd9d2' }}>
         <div style={{ textAlign:'center', marginBottom:32 }}>
-          <div style={{ width:64, height:64, borderRadius:'50%', background:'#1c1a16', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
-            <svg width="36" height="36" viewBox="0 0 20 20" fill="none">
-              <path d="M3 17V8.5l7-4 7 4V17" stroke="#b8892a" strokeWidth="1.6" strokeLinejoin="round"/>
-              <path d="M7.5 17v-5h5v5" stroke="#b8892a" strokeWidth="1.4" strokeLinejoin="round"/>
-              <circle cx="10" cy="6" r="1.4" fill="#b8892a"/>
-            </svg>
+          <div style={{ margin:'0 auto 14px', width:72, height:72, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <img src="/ip-logo.png" style={{ width:72, height:72, objectFit:'contain', borderRadius:'50%' }} alt="ImmoPixels" />
           </div>
           <div style={{ fontSize:22, fontWeight:700, color:'#1c1a16', marginBottom:4 }}>ImmoPixels</div>
           <div style={{ fontSize:13, color:'#8a8278' }}>

@@ -8,6 +8,16 @@ const DEFAULTS = {
   staff_roles: ['Fotograf','Videograf / Cutter','Drohnen Pilot','Backoffice','Social Media','Leiter / Fotograf'],
 }
 
+const BG_IMAGE_OPTIONS = [
+  { key:'bg_lv_green',     label:'Green',     src:'/bg/bg_lv_green.png' },
+  { key:'bg_lv_cream',     label:'Cream',     src:'/bg/bg_lv_cream.png' },
+  { key:'bg_lv_blue',      label:'Blue',      src:'/bg/bg_lv_blue.png' },
+  { key:'bg_lv_pink',      label:'Pink',      src:'/bg/bg_lv_pink.png' },
+  { key:'bg_wa_cream',     label:'Warm Cream',src:'/bg/bg_wa_cream.png' },
+  { key:'bg_wa_mint',      label:'Mint',      src:'/bg/bg_wa_mint.png' },
+  { key:'bg_wa_lightgray', label:'Light Gray',src:'/bg/bg_wa_lightgray.png' },
+]
+
 const BG_OPTIONS = [
   { key:'linen', color:'#f4f2ef', label:'Linen' },
   { key:'bluegray', color:'#f0f4f8', label:'Blaugrau' },
@@ -85,6 +95,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [bgColor, setBgColor] = useState('linen')
+  const [bgImage, setBgImage] = useState(null)
   const [fontSize, setFontSize] = useState('md')
   const [cardSize, setCardSize] = useState('standard')
 
@@ -103,9 +114,28 @@ export default function Settings() {
     }
     setCats(s)
     if (s.bg_color) setBgColor(s.bg_color)
+    if (s.bg_image) setBgImage(s.bg_image)
     if (s.font_size) setFontSize(s.font_size)
     if (s.card_size) setCardSize(s.card_size)
     setLoading(false)
+  }
+
+  async function saveBgImage(src) {
+    setBgImage(src)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: st } = await supabase.from('staff').select('id').eq('email', user.email).single()
+    if (!st?.id) return
+    await supabase.from('user_settings').upsert({ staff_id: st.id, bg_image: src }, { onConflict: 'staff_id' })
+    // Apply immediately
+    if (src) {
+      document.body.style.backgroundImage = 'url(' + src + ')'
+      document.body.style.backgroundSize = 'cover'
+      document.body.style.backgroundAttachment = 'fixed'
+    } else {
+      document.body.style.backgroundImage = 'none'
+    }
+    setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
   async function saveSetting(key, value) {
@@ -228,6 +258,29 @@ export default function Settings() {
                     </label>
                   </div>
                   <div style={{ fontSize:11, color:'#aaa8a0', marginTop:10 }}>Hintergrundfarbe wird nach Neuladen der Seite angewendet.</div>
+                </div>
+
+                {/* Háttérképek */}
+                <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginTop:12 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+                    <i className="ti ti-photo" style={{ fontSize:16, color:'#b8892a' }} /> Hintergrundbild
+                  </div>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:8 }}>
+                    <div onClick={()=>saveBgImage(null)}
+                      style={{ width:56, height:40, borderRadius:7, background:'var(--bg3)', border: !bgImage?'2px solid #b8892a':'1px solid #ddd9d2', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#8a8278', transition:'all .15s' }}>
+                      Keine
+                    </div>
+                    {BG_IMAGE_OPTIONS.map(bg => (
+                      <div key={bg.key} onClick={()=>saveBgImage(bg.src)} title={bg.label}
+                        style={{ width:56, height:40, borderRadius:7, backgroundImage:'url('+bg.src+')', backgroundSize:'cover', cursor:'pointer', border: bgImage===bg.src?'2px solid #b8892a':'1px solid #ddd9d2', boxShadow: bgImage===bg.src?'0 0 0 3px rgba(184,137,42,.2)':'none', transition:'all .15s', position:'relative' }}
+                        onMouseEnter={e=>e.currentTarget.style.transform='scale(1.05)'}
+                        onMouseLeave={e=>e.currentTarget.style.transform='none'}>
+                        {bgImage===bg.src && <div style={{ position:'absolute', top:2, right:2, width:14, height:14, borderRadius:'50%', background:'#b8892a', display:'flex', alignItems:'center', justifyContent:'center' }}><i className="ti ti-check" style={{fontSize:9,color:'#fff'}}/></div>}
+                        <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,.35)', borderRadius:'0 0 6px 6px', padding:'2px 4px', fontSize:8, color:'#fff', fontWeight:700, textAlign:'center' }}>{bg.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize:11, color:'#aaa8a0' }}>Bild wird nur für dich gespeichert.</div>
                 </div>
               </>
             )}
