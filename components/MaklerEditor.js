@@ -5,6 +5,28 @@ import { supabase } from '../lib/supabase'
 const IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
 const LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
 
+const MF_IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
+const MF_LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
+
+function MaklerForm({ form, setForm, onSave, onCancel }) {
+  return (
+    <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:12, marginTop:6 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+        <div><label style={MF_LS}>Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Max Mustermann" style={MF_IS}/></div>
+        <div><label style={MF_LS}>Position</label><input value={form.position} onChange={e=>setForm(p=>({...p,position:e.target.value}))} placeholder="Makler" style={MF_IS}/></div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10 }}>
+        <div><label style={MF_LS}>Email</label><input type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={MF_IS}/></div>
+        <div><label style={MF_LS}>Telefon</label><input value={form.tel} onChange={e=>setForm(p=>({...p,tel:e.target.value}))} style={MF_IS}/></div>
+      </div>
+      <div style={{ display:'flex', gap:7, justifyContent:'flex-end' }}>
+        <button onClick={onCancel} style={{ background:'none', border:'1.5px solid var(--brd2)', color:'var(--t2)', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}>Abbrechen</button>
+        <button onClick={onSave} style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}><i className="ti ti-device-floppy" style={{fontSize:12,marginRight:4}}/> Speichern</button>
+      </div>
+    </div>
+  )
+}
+
 export default function MaklerEditor({ clientId, maklers, onReload }) {
   const list = (clientId && maklers[clientId]) || []
   const [editingId, setEditingId] = useState(null)
@@ -44,24 +66,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
     onReload()
   }
 
-  function MaklerForm({ onSave, onCancel }) {
-    return (
-      <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:12, marginTop:6 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
-          <div><label style={LS}>Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Max Mustermann" style={IS}/></div>
-          <div><label style={LS}>Position</label><input value={form.position} onChange={e=>setForm(p=>({...p,position:e.target.value}))} placeholder="Makler" style={IS}/></div>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10 }}>
-          <div><label style={LS}>Email</label><input type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={IS}/></div>
-          <div><label style={LS}>Telefon</label><input value={form.tel} onChange={e=>setForm(p=>({...p,tel:e.target.value}))} style={IS}/></div>
-        </div>
-        <div style={{ display:'flex', gap:7, justifyContent:'flex-end' }}>
-          <button onClick={onCancel} style={{ background:'none', border:'1.5px solid var(--brd2)', color:'var(--t2)', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}>Abbrechen</button>
-          <button onClick={onSave} style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}><i className="ti ti-device-floppy" style={{fontSize:12,marginRight:4}}/> Speichern</button>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <div style={{ marginBottom: 14 }}>
@@ -72,6 +77,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
         <div key={m.id}>
           {editingId === m.id ? (
             <MaklerForm
+              form={form} setForm={setForm}
               onSave={() => saveMakler(m.id)}
               onCancel={() => setEditingId(null)}
             />
@@ -91,6 +97,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
 
       {adding ? (
         <MaklerForm
+          form={form} setForm={setForm}
           onSave={addMakler}
           onCancel={() => { setAdding(false); setForm({ name:'', email:'', tel:'', position:'' }) }}
         />

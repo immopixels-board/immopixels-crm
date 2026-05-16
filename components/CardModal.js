@@ -44,15 +44,16 @@ function CategoryPicker({ cardType, onChange }) {
   const t = TYPES_LIST.find(x => x.key === cardType) || TYPES_LIST[0]
   return (
     <div style={{ position:'relative', display:'inline-block' }}>
-      <span onClick={() => setOpen(p=>!p)}
+      <span onClick={e => { e.stopPropagation(); setOpen(p=>!p) }}
         style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:4, background:t.bg, color:t.c, border:'0.5px solid '+t.br, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4, userSelect:'none' }}>
         {t.label.toUpperCase()}
         <i className="ti ti-chevron-down" style={{ fontSize:9 }} />
       </span>
-      {open && (
+      {open && <>
+        <div onClick={e=>{e.stopPropagation();setOpen(false)}} style={{position:'fixed',inset:0,zIndex:9998}} />
         <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, background:'#fff', border:'1px solid #ddd9d2', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,.12)', zIndex:9999, minWidth:130, overflow:'hidden' }}>
           {TYPES_LIST.map(tp => (
-            <div key={tp.key} onClick={() => { onChange(tp.key); setOpen(false) }}
+            <div key={tp.key} onClick={e => { e.stopPropagation(); onChange(tp.key); setOpen(false) }}
               style={{ padding:'8px 12px', fontSize:12, fontWeight:600, cursor:'pointer', color: tp.key===cardType ? tp.c : '#1c1a16', background: tp.key===cardType ? tp.bg : 'none', display:'flex', alignItems:'center', gap:7 }}
               onMouseEnter={e => e.currentTarget.style.background=tp.bg}
               onMouseLeave={e => e.currentTarget.style.background=tp.key===cardType?tp.bg:'none'}>
@@ -61,7 +62,7 @@ function CategoryPicker({ cardType, onChange }) {
             </div>
           ))}
         </div>
-      )}
+      </>}
     </div>
   )
 }
