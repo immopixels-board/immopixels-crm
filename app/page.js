@@ -1989,6 +1989,8 @@ function CardItem({ card, staff, border, onNoteChange, onNoteEnter, onClick, onD
   const t = TYPES[card.card_type] || TYPES.foto
   const done = (card.checklist_items || []).filter(x => x.done).length
   const tot = (card.checklist_items || []).length
+  const [noteVal, setNoteVal] = React.useState(card.note || '')
+  React.useEffect(() => { setNoteVal(card.note || '') }, [card.id])
 
   function getStaffLocal(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', avatar_url: null } }
 
@@ -2029,8 +2031,9 @@ function CardItem({ card, staff, border, onNoteChange, onNoteEnter, onClick, onD
       {card.addr && <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 1 }}>📍 {card.addr}{card.client_name ? ' · ' + card.client_name : ''}</div>}
       {card.description && <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 2, lineHeight: 1.4 }}>{card.description}</div>}
       <div style={{ position:'relative' }}>
-        <textarea defaultValue={card.note || ''} placeholder="Schnellnotiz... (@name taggeléshez)" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} draggable={false}
+        <textarea value={noteVal} placeholder="Schnellnotiz... (@name taggeléshez)" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} draggable={false}
           onChange={e => {
+            setNoteVal(e.target.value)
             onNoteChange(card.id, e.target.value)
             e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'
             const val = e.target.value; const pos = e.target.selectionStart
