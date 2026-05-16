@@ -3,6 +3,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+const BG_IMAGE_OPTIONS = [
+  { key:'bg_lv_green', label:'Green', src:'/bg/bg_lv_green.png' },
+  { key:'bg_lv_cream', label:'Cream', src:'/bg/bg_lv_cream.png' },
+  { key:'bg_lv_blue',  label:'Blue',  src:'/bg/bg_lv_blue.png' },
+  { key:'bg_lv_pink',  label:'Pink',  src:'/bg/bg_lv_pink.png' },
+]
 const BG_OPTIONS = [
   { key:'linen', color:'#f4f2ef' }, { key:'bluegray', color:'#f0f4f8' },
   { key:'sand', color:'#f5f0eb' }, { key:'sage', color:'#eef4ee' },
@@ -527,8 +533,21 @@ export default function ProfilPage() {
                 </div>
               </div>
               <div style={{ marginTop:14 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:8 }}>Hintergrundbild</div>
-                <BgImageUploader staffId={me?.id} supabase={supabase} currentBgImage={userSettings.bg_image}
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:8 }}>Hintergrundbilder</div>
+                <div style={{ display:'flex', gap:7, flexWrap:'wrap', marginBottom:8 }}>
+                  <div onClick={()=>saveUserSetting('bg_image',null)}
+                    style={{ width:52, height:36, borderRadius:7, background:'var(--bg3)', border: !userSettings.bg_image?'2px solid var(--gold)':'1px solid var(--border)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'var(--t3)', transition:'all .15s' }}>
+                    Keine
+                  </div>
+                  {BG_IMAGE_OPTIONS.map(bg => (
+                    <div key={bg.key} onClick={()=>saveUserSetting('bg_image', bg.src)}
+                      style={{ width:52, height:36, borderRadius:7, backgroundImage:'url('+bg.src+')', backgroundSize:'cover', cursor:'pointer', border: userSettings.bg_image===bg.src?'2px solid var(--gold)':'1px solid var(--border)', transition:'all .15s', position:'relative' }}
+                      title={bg.label}>
+                      {userSettings.bg_image===bg.src && <div style={{ position:'absolute', top:2, right:2, width:12, height:12, borderRadius:'50%', background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center' }}><i className="ti ti-check" style={{fontSize:8,color:'#fff'}}/></div>}
+                    </div>
+                  ))}
+                </div>
+                <BgImageUploader staffId={me?.id} supabase={supabase} currentBgImage={userSettings.bg_image?.startsWith('/bg/')?null:userSettings.bg_image}
                   onUploaded={url => saveUserSetting('bg_image', url)}
                   onRemoved={() => saveUserSetting('bg_image', null)} />
               </div>

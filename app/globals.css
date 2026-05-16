@@ -209,3 +209,34 @@ body{background:var(--bg);font-family:Arial,sans-serif;color:var(--t1)}
   border: 2px solid var(--bg2);
   animation: dirty-pulse 1.2s ease-in-out infinite;
 }
+
+/* ─── Floating chat bg ─── */
+.floating-chat-bg {
+  background-image: url('/bg/bg_lv_green.png');
+  background-size: cover;
+  opacity: 0.1;
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  pointer-events: none;
+}
+
+/* ─── Avatar hover tooltip ─── */
+.av-tooltip {
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1a16;
+  color: #fff;
+  border-radius: 5px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 100;
+}
+.av-wrap:hover .av-tooltip { opacity: 1; }
