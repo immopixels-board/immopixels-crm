@@ -9,6 +9,65 @@ const BG_OPTIONS = [
   { key:'lavender', color:'#f8f0f5' }, { key:'dark', color:'#1c1a16' }, { key:'white', color:'#ffffff' },
 ]
 
+
+function BgImageUploader({ staffId, supabase, currentBgImage, onUploaded, onRemoved }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+  const inputRef = useRef(null)
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setSuccess(false)
+
+    // Max 1.5MB
+    if (file.size > 1.5 * 1024 * 1024) {
+      setError('Bild zu groß! Maximal 1,5 MB erlaubt.')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setError('Nur Bilddateien erlaubt (JPG, PNG, WebP).')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const path = `bg/${staffId}/${Date.now()}_${file.name}`
+      const { error: upErr } = await supabase.storage.from('user-backgrounds').upload(path, file, { upsert: true })
+      if (upErr) throw upErr
+      const { data } = supabase.storage.from('user-backgrounds').getPublicUrl(path)
+      onUploaded(data.publicUrl)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err) {
+      setError('Upload fehlgeschlagen: ' + (err.message || 'Unbekannter Fehler'))
+    }
+    setUploading(false)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  return (
+    <div>
+      {currentBgImage && (
+        <div style={{ marginBottom:8, position:'relative', display:'inline-block' }}>
+          <img src={currentBgImage} style={{ width:80, height:50, objectFit:'cover', borderRadius:6, border:'1px solid var(--border)' }} />
+          <button onClick={onRemoved} style={{ position:'absolute', top:-6, right:-6, width:18, height:18, borderRadius:'50%', background:'var(--red)', color:'#fff', border:'none', cursor:'pointer', fontSize:10, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display:'none' }} id="bg-img-input" />
+      <label htmlFor="bg-img-input" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 12px', background:'var(--bg3)', border:'1.5px dashed var(--border)', borderRadius:7, fontSize:12, fontWeight:600, color:'var(--t2)', cursor:'pointer' }}>
+        <i className="ti ti-photo-up" style={{ fontSize:14 }} />
+        {uploading ? 'Wird hochgeladen...' : currentBgImage ? 'Bild ändern' : 'Bild hochladen'}
+      </label>
+      <div style={{ fontSize:10, color:'var(--t3)', marginTop:4 }}>Max. 1,5 MB · JPG, PNG, WebP</div>
+      {error && <div style={{ fontSize:11, color:'var(--red)', marginTop:4, display:'flex', alignItems:'center', gap:4 }}><i className="ti ti-alert-circle" style={{ fontSize:12 }}/>{error}</div>}
+      {success && <div style={{ fontSize:11, color:'var(--green)', marginTop:4, display:'flex', alignItems:'center', gap:4 }}><i className="ti ti-check" style={{ fontSize:12 }}/>✓ Bild gespeichert!</div>}
+    </div>
+  )
+}
+
 export default function ProfilPage() {
   const [me, setMe] = useState(null)
   const [activeNav, setActiveNav] = useState('dashboard')
@@ -118,6 +177,12 @@ export default function ProfilPage() {
     const sid = me?.id
     if (!sid) return
     const next = { ...userSettings, [key]: value }
+    // bg_image: apply immediately
+    if (key === 'bg_image') {
+      document.body.style.backgroundImage = value ? 'url(' + value + ')' : 'none'
+      document.body.style.backgroundSize = 'cover'
+      document.body.style.backgroundAttachment = 'fixed'
+    }
     setUserSettings(next)
     await supabase.from('user_settings').upsert({ staff_id: sid, ...next }, { onConflict: 'staff_id' })
     applySettings(next)
@@ -439,6 +504,12 @@ export default function ProfilPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div style={{ marginTop:14 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:8 }}>Hintergrundbild</div>
+                <BgImageUploader staffId={me?.id} supabase={supabase} currentBgImage={userSettings.bg_image}
+                  onUploaded={url => saveUserSetting('bg_image', url)}
+                  onRemoved={() => saveUserSetting('bg_image', null)} />
               </div>
             </div>
           )}

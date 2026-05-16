@@ -171,6 +171,20 @@ export default function TeamChat({ supabase, currentUser, staff, onClose }) {
         reply_to_sender: replyTo?.sender_name || null,
       })
     }
+    // @all értesítés: minden staff-nak
+    if (text.includes('@all') || text.includes(staff.map(s=>'@'+s.name.split(' ')[0]).some(n=>text.includes(n)))) {
+      const mentionedAll = text.includes('@all')
+      if (mentionedAll) {
+        for (const s of staff) {
+          if (s.id !== me?.id) {
+            await supabase.from('notifications').insert({
+              recipient_id: s.id, sender_id: me?.id,
+              type: 'chat_mention', message: text.slice(0,80)
+            })
+          }
+        }
+      }
+    }
     setInput('')
     setReplyTo(null)
     setMentionList([])
@@ -375,14 +389,24 @@ export default function TeamChat({ supabase, currentUser, staff, onClose }) {
                 onChange={e => {
                   setInput(e.target.value)
                   const match = e.target.value.match(/@(\w*)$/)
-                  if (match) { const q = match[1].toLowerCase(); setMentionList(staff.filter(s => s.name.toLowerCase().includes(q) || s.init.toLowerCase().includes(q))); setMentionIdx(0) }
+                  if (match) { const q = match[1].toLowerCase(); const allOpt = 'all'.startsWith(q) ? [{ id:'__all__', name:'all', init:'ALL', color:'#b8892a', avatar_url:null }] : []; setMentionList([...allOpt, ...staff.filter(s => s.name.toLowerCase().includes(q) || s.init.toLowerCase().includes(q))].slice(0,7)); setMentionIdx(0) }
                   else setMentionList([])
                 }}
                 onKeyDown={e => {
                   if (mentionList.length > 0) {
                     if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i+1, mentionList.length-1)) }
                     else if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i-1, 0)) }
-                    else if (e.key === 'Enter') { e.preventDefault(); const s = mentionList[mentionIdx]; setInput(i => i.replace(/@\w*$/, '@' + s.name.split(' ')[0] + ' ')); setMentionList([]); setMentionIdx(0) }
+                    else if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const s = mentionList[mentionIdx]
+                      if (s.id === '__all__') {
+                        const names = staff.map(x=>'@'+x.name.split(' ')[0]).join(' ')
+                        setInput(i => i.replace(/@\w*$/, names + ' '))
+                      } else {
+                        setInput(i => i.replace(/@\w*$/, '@' + s.name.split(' ')[0] + ' '))
+                      }
+                      setMentionList([]); setMentionIdx(0)
+                    }
                     else if (e.key === 'Escape') { setMentionList([]); setMentionIdx(0) }
                     return
                   }

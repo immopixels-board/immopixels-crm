@@ -67,6 +67,44 @@ function CategoryPicker({ cardType, onChange }) {
   )
 }
 
+function PlacesAddrField({ value, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(value || '')
+  const ref = useRef(null)
+  useEffect(() => { setVal(value || '') }, [value])
+  useEffect(() => {
+    if (!editing || !ref.current) return
+    if (window.google?.maps?.places && !ref.current._ac) {
+      ref.current._ac = true
+      const ac = new window.google.maps.places.Autocomplete(ref.current, {
+        types: ['address'], componentRestrictions: { country: 'de' }
+      })
+      ac.addListener('place_changed', () => {
+        const p = ac.getPlace()
+        if (p.formatted_address) {
+          setVal(p.formatted_address)
+          onSave(p.formatted_address)
+          setEditing(false)
+        }
+      })
+    }
+    ref.current.focus()
+  }, [editing])
+  if (editing) return (
+    <input ref={ref} value={val} onChange={e=>setVal(e.target.value)}
+      onBlur={() => { setEditing(false); if(val !== value) onSave(val) }}
+      onKeyDown={e => { if(e.key==='Escape'){setVal(value||'');setEditing(false)} }}
+      placeholder="Adresse hinzufügen..." autoComplete="off"
+      style={{ width:'100%', background:'#fff', border:'1.5px solid #b8892a', borderRadius:6, padding:'3px 8px', fontSize:12, color:'#8a8278', fontFamily:'Arial', outline:'none' }} />
+  )
+  return (
+    <div onClick={()=>setEditing(true)} style={{ cursor:'pointer', fontSize:12, color:val?'#8a8278':'#bbb', display:'flex', alignItems:'center', gap:4 }}>
+      {val || 'Adresse hinzufügen...'}
+      <i className="ti ti-pencil" style={{ fontSize:10, color:'#ccc8c0' }} />
+    </div>
+  )
+}
+
 function NoteField({ value, onSave, staff }) {
   const [val, setVal] = useState(value || '')
   const [mention, setMention] = useState({ show: false, query: '', pos: 0 })
@@ -97,7 +135,13 @@ function NoteField({ value, onSave, staff }) {
     if (!ta) return
     const before = val.slice(0, mention.pos)
     const after = val.slice(ta.selectionStart)
-    const newVal = before + '@' + s.name + ' ' + after
+    let insert
+    if (s.id === '__all__') {
+      insert = (staff||[]).map(x=>'@'+x.name.split(' ')[0]).join(' ') + ' '
+    } else {
+      insert = '@' + s.name + ' '
+    }
+    const newVal = before + insert + after
     setVal(newVal)
     clearTimeout(timerRef.current)
     onSave(newVal)
@@ -348,7 +392,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               </div>
               <div style={{ fontSize: 12, color: '#8a8278', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <i className="ti ti-map-pin" style={{ fontSize: 11 }} />
-                <EditableField value={localCard.addr} onSave={v => save('addr', v)} placeholder="Adresse hinzufügen..." style={{ fontSize: 12, color: '#8a8278' }} />
+                <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
               </div>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 16, padding: 4, flexShrink: 0 }}>
