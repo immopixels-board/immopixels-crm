@@ -17,6 +17,10 @@ export default function ProfilPage() {
   const [fahrten, setFahrten] = useState([])
   const [userSettings, setUserSettings] = useState({ bg_color:'linen', font_size:'md', card_size:'standard' })
   const [saved, setSaved] = useState(false)
+  const [servicePrices, setServicePrices] = useState([])
+  const [clients, setClients] = useState([])
+  const [priceData, setPriceData] = useState({})
+  const [priceSaving, setPriceSaving] = useState(false)
   const [fahrtModal, setFahrtModal] = useState(false)
   const [uploadModal, setUploadModal] = useState(false)
   const [allStaff, setAllStaff] = useState([])
@@ -48,6 +52,39 @@ export default function ProfilPage() {
     setLoading(false)
   }
 
+  async function updateClientPrice(clientId, serviceId, value) {
+    const next = { ...priceData, [clientId]: { ...(priceData[clientId]||{}), [serviceId]: value } }
+    setPriceData(next)
+    setPriceSaving(true)
+    clearTimeout(window._priceSaveTimer)
+    window._priceSaveTimer = setTimeout(async () => {
+      await supabase.from('clients').update({ service_prices: next[clientId] }).eq('id', clientId)
+      setPriceSaving(false)
+    }, 800)
+  }
+  async function updateGrundpreis(serviceId, value) {
+    const next = servicePrices.map(s => s.id===serviceId ? {...s, grundpreis:value} : s)
+    setServicePrices(next)
+    clearTimeout(window._gpSaveTimer)
+    window._gpSaveTimer = setTimeout(async () => {
+      await supabase.from('settings').upsert({ key:'service_prices', value:JSON.stringify(next) },{ onConflict:'key' })
+    }, 800)
+  }
+  function exportCSV() {
+    const headers = ['Kunde', ...servicePrices.map(s=>s.label), 'Ø Preis']
+    const rows = clients.map(cl => {
+      const prices = servicePrices.map(s => priceData[cl.id]?.[s.id] || s.grundpreis || '')
+      const nums = prices.map(p=>parseFloat(p)).filter(n=>!isNaN(n))
+      const avg = nums.length ? (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2) : ''
+      return [cl.name, ...prices, avg]
+    })
+    const csv = [headers, ...rows].map(r=>r.join(';')).join('\n')
+    const a = document.createElement('a')
+    a.href = 'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv)
+    a.download = 'ImmoPixels_Preistabelle.csv'
+    a.click()
+  }
+
   async function loadData(staffMember) {
     const sid = staffMember?.id
     if (!sid) return
@@ -58,6 +95,22 @@ export default function ProfilPage() {
     ])
     setGehaltszettel(gz.data || [])
     setFahrten(fb.data || [])
+    // Load price data
+    const [spRes, clRes] = await Promise.all([
+      supabase.from('settings').select('value').eq('key','service_prices').maybeSingle(),
+      supabase.from('clients').select('id,name,color,service_prices').order('name'),
+    ])
+    if (spRes.data?.value) { try { setServicePrices(JSON.parse(spRes.data.value)) } catch(e){} }
+    else setServicePrices([
+      { id:'foto', label:'Fotoshooting', grundpreis:'199.00' },
+      { id:'fotodron', label:'Foto + Drohne', grundpreis:'349.00' },
+      { id:'dron', label:'Drohne', grundpreis:'179.00' },
+      { id:'reel', label:'Reel', grundpreis:'249.00' },
+    ])
+    setClients(clRes.data || [])
+    const pd = {}
+    for (const cl of clRes.data || []) pd[cl.id] = cl.service_prices || {}
+    setPriceData(pd)
     if (us.data) { setUserSettings(us.data); applySettings(us.data) }
   }
 
@@ -111,6 +164,7 @@ export default function ProfilPage() {
     { key:'gehaltszettel', label:'Gehaltszettel', icon:'ti-file-invoice' },
     { key:'fahrtenbuch', label:'Fahrtenbuch', icon:'ti-car' },
     { key:'aussehen', label:'Aussehen', icon:'ti-palette' },
+    { key:'preistabelle', label:'Preistabelle', icon:'ti-table' },
   ]
   const thisMonthFahrten = fahrten.filter(f => f.date?.startsWith(currentMonth))
   const totalKm = thisMonthFahrten.reduce((a,b) => a + (b.km||0), 0)
@@ -276,6 +330,75 @@ export default function ProfilPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+          {activeNav === 'preistabelle' && me?.role_level === 'admin' && (
+            <div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <div style={{ fontSize:16, fontWeight:700 }}>Preistabelle</div>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  {priceSaving && <span style={{ fontSize:10, color:'var(--t3)' }}>Speichert...</span>}
+                  {!priceSaving && <span style={{ fontSize:10, color:'var(--green)', display:'flex', alignItems:'center', gap:4 }}><i className="ti ti-cloud-check" style={{ fontSize:11 }} />Gespeichert</span>}
+                  <button onClick={exportCSV} style={{ background:'var(--gdbg)', border:'0.5px solid var(--gdbr)', color:'var(--gold)', borderRadius:7, padding:'5px 11px', fontSize:11, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                    <i className="ti ti-download" style={{ fontSize:11 }} />CSV
+                  </button>
+                </div>
+              </div>
+              <div style={{ overflowX:'auto', borderRadius:10, border:'0.5px solid var(--border)' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                  <thead>
+                    <tr style={{ background:'var(--t1)' }}>
+                      <th style={{ padding:'9px 14px', textAlign:'left', color:'var(--bg2)', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>Kunde</th>
+                      {servicePrices.map(s => (
+                        <th key={s.id} style={{ padding:'9px 10px', textAlign:'right', color:'var(--bg2)', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>{s.label}</th>
+                      ))}
+                      <th style={{ padding:'9px 10px', textAlign:'right', color:'#b8892a', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>Ø Preis</th>
+                    </tr>
+                    <tr style={{ background:'#fef3c7', borderBottom:'1px solid #fcd34d' }}>
+                      <td style={{ padding:'7px 14px', fontWeight:700, color:'#92400e', fontSize:11, whiteSpace:'nowrap' }}>⭐ Grundpreis</td>
+                      {servicePrices.map(s => (
+                        <td key={s.id} style={{ padding:'5px 8px', textAlign:'right' }}>
+                          <input type="number" step="0.01" value={s.grundpreis||''} onChange={e=>updateGrundpreis(s.id,e.target.value)}
+                            style={{ width:75, background:'rgba(255,255,255,.7)', border:'1px solid #fcd34d', borderRadius:4, padding:'3px 6px', fontSize:11, fontWeight:700, textAlign:'right', outline:'none', color:'#92400e' }} />
+                        </td>
+                      ))}
+                      <td style={{ padding:'7px 10px', textAlign:'right', fontWeight:700, color:'#92400e', fontSize:11 }}>
+                        {servicePrices.length ? (servicePrices.reduce((a,s)=>a+(parseFloat(s.grundpreis)||0),0)/servicePrices.length).toFixed(2)+' €' : '—'}
+                      </td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map((cl,ci) => {
+                      const cp = priceData[cl.id] || {}
+                      const vals = servicePrices.map(s=>parseFloat(cp[s.id]||s.grundpreis||0)).filter(n=>n>0)
+                      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : '—'
+                      return (
+                        <tr key={cl.id} style={{ background:ci%2===0?'var(--bg2)':'var(--bg3)', borderBottom:'0.5px solid var(--border)' }}>
+                          <td style={{ padding:'7px 14px', fontWeight:700, whiteSpace:'nowrap' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                              {cl.color && <div style={{ width:8, height:8, borderRadius:'50%', background:{'peach':'#FFBE98','sage':'#9CAF88','rose':'#D4A5A5','mocha':'#A67B5B','ciel':'#7BBFCB'}[cl.color]||'#ccc', flexShrink:0 }} />}
+                              {cl.name}
+                            </div>
+                          </td>
+                          {servicePrices.map(s => (
+                            <td key={s.id} style={{ padding:'5px 8px', textAlign:'right' }}>
+                              <input type="number" step="0.01" value={cp[s.id]||''} placeholder={s.grundpreis}
+                                onChange={e=>updateClientPrice(cl.id,s.id,e.target.value)}
+                                onKeyDown={e=>{ if(e.key==='Tab'||e.key==='Enter'){ e.preventDefault(); const inputs=document.querySelectorAll('.price-cell'); const idx=Array.from(inputs).indexOf(e.target); if(inputs[idx+1]) inputs[idx+1].focus() } }}
+                                className="price-cell"
+                                style={{ width:75, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:4, padding:'3px 6px', fontSize:11, fontWeight:600, textAlign:'right', outline:'none', color:'var(--t1)' }}
+                                onFocus={e=>e.currentTarget.style.borderColor='var(--gold)'}
+                                onBlur={e=>e.currentTarget.style.borderColor='var(--border)'} />
+                            </td>
+                          ))}
+                          <td style={{ padding:'7px 10px', textAlign:'right', fontWeight:700, fontSize:11 }}>{avg !== '—' ? avg+' €' : '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop:10, fontSize:10, color:'var(--t3)', fontStyle:'italic' }}>Tab / Enter → nächste Zelle · Änderungen werden automatisch gespeichert</div>
             </div>
           )}
           {activeNav === 'aussehen' && (
