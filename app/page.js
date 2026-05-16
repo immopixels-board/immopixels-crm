@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import AvatarCrop from '../components/AvatarCrop'
 import DebugPanel from '../components/DebugPanel'
 import MaklerEditor from '../components/MaklerEditor'
@@ -84,7 +84,7 @@ function MentionDropdown({ query, staff, onSelect, style }) {
 }
 
 function ClientPriceEditor({ servicePrices, clientPrices, onChange }) {
-  const [prices, setPrices] = React.useState(clientPrices || {})
+  const [prices, setPrices] = useState(clientPrices || {})
   function update(id, val) {
     const next = { ...prices, [id]: val }
     setPrices(next)
@@ -1989,8 +1989,8 @@ function CardItem({ card, staff, border, onNoteChange, onNoteEnter, onClick, onD
   const t = TYPES[card.card_type] || TYPES.foto
   const done = (card.checklist_items || []).filter(x => x.done).length
   const tot = (card.checklist_items || []).length
-  const [noteVal, setNoteVal] = React.useState(card.note || '')
-  React.useEffect(() => { setNoteVal(card.note || '') }, [card.id])
+  const [noteVal, setNoteVal] = useState(card.note || '')
+  useEffect(() => { setNoteVal(card.note || '') }, [card.id])
 
   function getStaffLocal(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', avatar_url: null } }
 

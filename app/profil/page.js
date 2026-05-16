@@ -164,7 +164,7 @@ export default function ProfilPage() {
     { key:'gehaltszettel', label:'Gehaltszettel', icon:'ti-file-invoice' },
     { key:'fahrtenbuch', label:'Fahrtenbuch', icon:'ti-car' },
     { key:'aussehen', label:'Aussehen', icon:'ti-palette' },
-    { key:'preistabelle', label:'Preistabelle', icon:'ti-table' },
+    ...(me?.role_level === 'admin' || me?.role_level === 'subadmin' ? [{ key:'preistabelle', label:'Preistabelle', icon:'ti-table' }] : []),
   ]
   const thisMonthFahrten = fahrten.filter(f => f.date?.startsWith(currentMonth))
   const totalKm = thisMonthFahrten.reduce((a,b) => a + (b.km||0), 0)
@@ -332,7 +332,7 @@ export default function ProfilPage() {
               ))}
             </div>
           )}
-          {activeNav === 'preistabelle' && me?.role_level === 'admin' && (
+          {activeNav === 'preistabelle' && (me?.role_level === 'admin' || me?.role_level === 'subadmin') && (
             <div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
                 <div style={{ fontSize:16, fontWeight:700 }}>Preistabelle</div>
