@@ -126,7 +126,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     if (!text || !currentStaff?.id) return
     const mentioned = parseMentionedStaffIds(text)
     const { error } = await supabase.from('card_comments').insert({ card_id: card.id, staff_id: currentStaff.id, message: text, mentioned_staff_ids: mentioned })
-    if (error) { alert('Kommentar konnte nicht gespeichert werden. Bitte card_comments SQL ausführen.'); return }
+    if (error) { console.error('Kommentar Fehler:', JSON.stringify(error)); return }
     setCommentText('')
     setCommentMentions([])
     loadComments()
