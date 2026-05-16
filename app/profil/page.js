@@ -73,6 +73,9 @@ export default function ProfilPage() {
   const [activeNav, setActiveNav] = useState('dashboard')
   const [loading, setLoading] = useState(true)
   const [gehaltszettel, setGehaltszettel] = useState([])
+  const [gzUploading, setGzUploading] = useState(false)
+  const [gzError, setGzError] = useState(null)
+  const [gzSuccess, setGzSuccess] = useState(null)
   const [fahrten, setFahrten] = useState([])
   const [userSettings, setUserSettings] = useState({ bg_color:'linen', font_size:'md', card_size:'standard' })
   const [saved, setSaved] = useState(false)
@@ -212,13 +215,31 @@ export default function ProfilPage() {
 
   async function uploadGehaltszettel(file, month, staffId) {
     if (!file) return
-    const path = `${staffId}/${month}_${Date.now()}_${file.name}`
-    const { error } = await supabase.storage.from('gehaltszettel').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('gehaltszettel').getPublicUrl(path)
-      await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
-      setUploadModal(false); loadData(selectedStaff || me)
+    setGzUploading(true)
+    setGzError(null)
+    try {
+      const path = `${staffId}/${month}_${Date.now()}_${file.name}`
+      const { error: upErr } = await supabase.storage.from('gehaltszettel').upload(path, file, { upsert: true })
+      if (upErr) {
+        // Bucket nem létezik? Próbálkozunk a profiles buckettel
+        const { error: upErr2 } = await supabase.storage.from('avatars').upload('gz/'+path, file, { upsert: true })
+        if (upErr2) throw new Error('Storage Fehler: ' + (upErr.message || upErr2.message))
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl('gz/'+path)
+        await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
+      } else {
+        const { data: urlData } = supabase.storage.from('gehaltszettel').getPublicUrl(path)
+        await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
+      }
+      setUploadModal(false)
+      setGzSuccess(staffId)
+      setTimeout(() => setGzSuccess(null), 4000)
+      // Frissítés annak a staffnak akihez feltöltöttük
+      const targetStaff = allStaff?.find(s => s.id === staffId)
+      loadData(targetStaff || selectedStaff || me)
+    } catch(err) {
+      setGzError(err.message || 'Upload fehlgeschlagen')
     }
+    setGzUploading(false)
   }
 
   const IS = { background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:8, padding:'8px 11px', fontSize:13, fontFamily:'Arial', outline:'none', width:'100%', color:'var(--t1)' }
@@ -550,15 +571,18 @@ export default function ProfilPage() {
             <div style={{ marginBottom:14 }}><label style={LS}>PDF-Datei</label>
               <input ref={fileRef} type="file" accept=".pdf" style={{ ...IS, padding:'5px 10px' }} />
             </div>
+            {gzError && <div style={{ fontSize:11, color:'var(--red)', marginBottom:8, padding:'6px 10px', background:'#fee2e2', borderRadius:6, display:'flex', alignItems:'center', gap:5 }}><i className="ti ti-alert-circle" style={{fontSize:12}}/>{gzError}</div>}
             <div style={{ display:'flex', gap:8 }}>
-              <button onClick={()=>setUploadModal(false)} style={{ flex:1, background:'none', border:'0.5px solid var(--border)', borderRadius:8, padding:8, fontSize:13, fontWeight:600, cursor:'pointer' }}>Abbrechen</button>
+              <button onClick={()=>{setUploadModal(false);setGzError(null)}} style={{ flex:1, background:'none', border:'0.5px solid var(--border)', borderRadius:8, padding:8, fontSize:13, fontWeight:600, cursor:'pointer' }}>Abbrechen</button>
               <button onClick={async()=>{
                 const file = fileRef.current?.files?.[0]
                 const staffId = document.getElementById('gz-staff')?.value
                 const month = document.getElementById('gz-month')?.value
                 if (file && staffId && month) await uploadGehaltszettel(file, month, staffId)
-              }} style={{ flex:2, background:'var(--gold)', color:'#fff', border:'none', borderRadius:8, padding:8, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-                <i className="ti ti-upload" style={{ fontSize:13 }} /> Hochladen
+                else setGzError('Bitte alle Felder ausfüllen und eine Datei wählen.')
+              }} disabled={gzUploading} style={{ flex:2, background: gzUploading ? '#ccc' : 'var(--gold)', color:'#fff', border:'none', borderRadius:8, padding:8, fontSize:13, fontWeight:700, cursor: gzUploading ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                <i className={'ti ' + (gzUploading ? 'ti-loader' : 'ti-upload')} style={{ fontSize:13 }} />
+                {gzUploading ? 'Wird hochgeladen...' : 'Hochladen'}
               </button>
             </div>
           </div>
