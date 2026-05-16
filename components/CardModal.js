@@ -30,6 +30,42 @@ function AutoSaveBadge({ show }) {
   )
 }
 
+const TYPES_LIST = [
+  { key:'foto',      label:'Foto',        c:'#b8892a', bg:'rgba(184,137,42,.12)', br:'rgba(184,137,42,.3)' },
+  { key:'foto-reel', label:'Foto+Reel',   c:'#6d28d9', bg:'rgba(109,40,217,.12)', br:'rgba(109,40,217,.3)' },
+  { key:'foto-dron', label:'Foto+Drohne', c:'#a16207', bg:'rgba(161,98,7,.12)',   br:'rgba(161,98,7,.3)' },
+  { key:'dron',      label:'Drohne',      c:'#15803d', bg:'rgba(21,128,61,.12)',  br:'rgba(21,128,61,.3)' },
+  { key:'reel',      label:'Reel',        c:'#6d28d9', bg:'rgba(109,40,217,.12)', br:'rgba(109,40,217,.3)' },
+  { key:'360',       label:'360°',        c:'#0891b2', bg:'rgba(8,145,178,.12)',  br:'rgba(8,145,178,.3)' },
+]
+
+function CategoryPicker({ cardType, onChange }) {
+  const [open, setOpen] = useState(false)
+  const t = TYPES_LIST.find(x => x.key === cardType) || TYPES_LIST[0]
+  return (
+    <div style={{ position:'relative', display:'inline-block' }}>
+      <span onClick={() => setOpen(p=>!p)}
+        style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:4, background:t.bg, color:t.c, border:'0.5px solid '+t.br, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4, userSelect:'none' }}>
+        {t.label.toUpperCase()}
+        <i className="ti ti-chevron-down" style={{ fontSize:9 }} />
+      </span>
+      {open && (
+        <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, background:'#fff', border:'1px solid #ddd9d2', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,.12)', zIndex:9999, minWidth:130, overflow:'hidden' }}>
+          {TYPES_LIST.map(tp => (
+            <div key={tp.key} onClick={() => { onChange(tp.key); setOpen(false) }}
+              style={{ padding:'8px 12px', fontSize:12, fontWeight:600, cursor:'pointer', color: tp.key===cardType ? tp.c : '#1c1a16', background: tp.key===cardType ? tp.bg : 'none', display:'flex', alignItems:'center', gap:7 }}
+              onMouseEnter={e => e.currentTarget.style.background=tp.bg}
+              onMouseLeave={e => e.currentTarget.style.background=tp.key===cardType?tp.bg:'none'}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:tp.c, flexShrink:0 }} />
+              {tp.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function NoteField({ value, onSave, staff }) {
   const [val, setVal] = useState(value || '')
   const [mention, setMention] = useState({ show: false, query: '', pos: 0 })
@@ -289,7 +325,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', gap: 5, marginBottom: 7, alignItems: 'center', flexWrap: 'wrap' }}>
-                {!localCard.is_todo && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(184,137,42,.12)', color: '#7a5a18', border: '0.5px solid rgba(184,137,42,.3)' }}>{localCard.card_type?.toUpperCase() || 'FOTO'}</span>}
+                {!localCard.is_todo && (
+                  <CategoryPicker cardType={localCard.card_type || 'foto'} onChange={v => save('card_type', v)} />
+                )}
                 {localCard.is_gcal && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(29,94,199,.08)', color: '#1d5ec7', border: '0.5px solid rgba(29,94,199,.2)' }}>● GCal</span>}
                 <AutoSaveBadge show={saved} />
                 {/* Color picker */}
