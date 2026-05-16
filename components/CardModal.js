@@ -30,6 +30,76 @@ function AutoSaveBadge({ show }) {
   )
 }
 
+function NoteField({ value, onSave, staff }) {
+  const [val, setVal] = useState(value || '')
+  const [mention, setMention] = useState({ show: false, query: '', pos: 0 })
+  const ref = useRef(null)
+  const timerRef = useRef(null)
+
+  useEffect(() => { setVal(value || '') }, [value])
+
+  function handleChange(e) {
+    const v = e.target.value
+    setVal(v)
+    // debounced save
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onSave(v), 800)
+    // @mention detection
+    const pos = e.target.selectionStart
+    const before = v.slice(0, pos)
+    const atIdx = before.lastIndexOf('@')
+    if (atIdx >= 0 && !before.slice(atIdx + 1).includes(' ')) {
+      setMention({ show: true, query: before.slice(atIdx + 1), pos: atIdx })
+    } else {
+      setMention(p => ({ ...p, show: false }))
+    }
+  }
+
+  function selectMention(s) {
+    const ta = ref.current
+    if (!ta) return
+    const before = val.slice(0, mention.pos)
+    const after = val.slice(ta.selectionStart)
+    const newVal = before + '@' + s.name + ' ' + after
+    setVal(newVal)
+    clearTimeout(timerRef.current)
+    onSave(newVal)
+    setMention(p => ({ ...p, show: false }))
+    setTimeout(() => ta.focus(), 0)
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <textarea
+        ref={ref}
+        value={val}
+        onChange={handleChange}
+        onKeyDown={e => { if (e.key === 'Escape') setMention(p => ({ ...p, show: false })) }}
+        onBlur={() => setTimeout(() => setMention(p => ({ ...p, show: false })), 150)}
+        placeholder="Notiz hinzufügen... (@name zum Taggen)"
+        rows={3}
+        style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#4a4540', fontFamily: 'Arial', outline: 'none', resize: 'vertical', minHeight: 60, boxSizing: 'border-box' }}
+        onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+      />
+      {mention.show && (
+        <div style={{ position: 'absolute', bottom: '100%', left: 0, zIndex: 9999, background: '#fff', border: '1px solid #ddd9d2', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', minWidth: 160, overflow: 'hidden' }}>
+          {(staff || []).filter(s => s.name && s.name.toLowerCase().includes(mention.query.toLowerCase())).slice(0, 5).map(s => (
+            <div key={s.id} onMouseDown={e => { e.preventDefault(); selectMention(s) }}
+              style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f4f2ef'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.color + '22', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+                {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
+              </div>
+              {s.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function EditableField({ value, onSave, style, multiline, placeholder }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(value || '')
@@ -337,7 +407,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           {/* Notiz */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Notiz</div>
-            <EditableField value={localCard.note} onSave={v => save('note', v)} multiline placeholder="Notiz hinzufügen..." style={{ fontSize: 12, color: '#4a4540', background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', minHeight: 60, display: 'block', width: '100%' }} />
+            <NoteField value={localCard.note} onSave={v => save('note', v)} staff={staff} />
           </div>
 
           {/* Kommentare */}
