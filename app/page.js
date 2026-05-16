@@ -664,14 +664,7 @@ export default function Home() {
     return staff.find(s => s.email === currentUser.email) || null
   }
 
-    function StaffAv({ id, size = 20 }) {
-    const s = getStaff(id)
-    return (
-      <div style={{ width: size, height: size, borderRadius: '50%', background: s.color + '22', color: s.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: size < 22 ? 7 : 9, fontWeight: 700, border: '2px solid var(--bg2)', overflow: 'hidden', flexShrink: 0 }}>
-        {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
-      </div>
-    )
-  }
+  // StaffAv moved to top-level
 
   function cardsForCol(colId) { return cards.filter(c => c.column_id === colId) }
 
@@ -2239,6 +2232,15 @@ export default function Home() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function StaffAv({ id, size = 20, staff = [] }) {
+  const s = staff?.find(x => x.id === id) || {}
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: (s.color||'#b8892a') + '22', color: s.color||'#b8892a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: size < 22 ? 7 : 9, fontWeight: 700, border: '2px solid var(--bg2)', overflow: 'hidden', flexShrink: 0 }}>
+      {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (s.init || '?')}
     </div>
   )
 }
