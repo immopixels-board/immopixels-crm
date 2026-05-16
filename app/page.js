@@ -4,7 +4,6 @@ import AvatarCrop from '../components/AvatarCrop'
 import DebugPanel from '../components/DebugPanel'
 import MaklerEditor from '../components/MaklerEditor'
 import TeamChat from '../components/TeamChat'
-import FloatingChatWindows from '../components/FloatingChatWindows'
 import CardModal from '../components/CardModal'
 import ColumnModal, { PANTONE, getColStyle, ConfirmDialog } from '../components/ColumnModal'
 import { supabase } from '../lib/supabase'
@@ -216,9 +215,6 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [dirtyCards, setDirtyCards] = useState({})
   const [editingCards, setEditingCards] = useState({}) // más userek editing jelzői
-  const [onlineUsers, setOnlineUsers] = useState({}) // staffId → status: 'online'|'away'|'offline'
-  const [openChats, setOpenChats] = useState([]) // nyitott chat ablakok: [{type:'team'}|{type:'private',staffId}]
-  const lastActivityRef = useRef(Date.now())
   const [noteMention, setNoteMention] = useState({ cardId:null, query:'', pos:0 })
   const [descMention, setDescMention] = useState({ query:'', pos:0, show:false })
   const [view, setView] = useState('board')
@@ -373,45 +369,7 @@ export default function Home() {
       }).catch(() => setWeatherData({ error: true }))
   }, [weatherCity])
 
-  // Online presence heartbeat
-  useEffect(() => {
-    if (!me?.id) return
-    const updatePresence = async (status) => {
-      await supabase.from('user_presence').upsert(
-        { staff_id: me.id, last_seen: new Date().toISOString(), status },
-        { onConflict: 'staff_id' }
-      )
-    }
-    updatePresence('online')
-    const interval = setInterval(() => {
-      const inactive = Date.now() - lastActivityRef.current > 5 * 60 * 1000
-      updatePresence(inactive ? 'away' : 'online')
-    }, 30000)
-    const loadPresence = async () => {
-      const { data } = await supabase.from('user_presence').select('staff_id,status,last_seen')
-      if (data) {
-        const map = {}
-        const now = Date.now()
-        data.forEach(p => {
-          const diff = now - new Date(p.last_seen).getTime()
-          map[p.staff_id] = diff > 2*60*1000 ? (diff > 10*60*1000 ? 'offline' : 'away') : p.status
-        })
-        setOnlineUsers(map)
-      }
-    }
-    loadPresence()
-    const presInterval = setInterval(loadPresence, 30000)
-    const onActivity = () => { lastActivityRef.current = Date.now() }
-    window.addEventListener('mousemove', onActivity)
-    window.addEventListener('keydown', onActivity)
-    return () => {
-      clearInterval(interval)
-      clearInterval(presInterval)
-      window.removeEventListener('mousemove', onActivity)
-      window.removeEventListener('keydown', onActivity)
-      updatePresence('offline')
-    }
-  }, [me?.id])
+
 
   // Google Maps Places API betöltése
   useEffect(() => {
@@ -1525,24 +1483,8 @@ export default function Home() {
         <span style={{ color: 'var(--t2)' }}>Diesen Monat: <strong style={{ color: 'var(--blue)', fontSize: 13 }}>{stats.month}</strong></span>
         <span style={{ color: 'var(--t2)' }}>Dieses Jahr: <strong style={{ color: 'var(--green)', fontSize: 13 }}>{stats.year}</strong></span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Privát chat avatárok a Chat gomb bal oldalán */}
-          {staff.filter(s=>s.id!==me?.id).filter(s=>{
-            // csak akikkel van olvasatlan üzenet vagy nyitott chat
-            return openChats.some(c=>c.type==='private'&&c.staffId===s.id)
-          }).map(s => (
-            <div key={s.id} onClick={()=>{ if(!openChats.find(c=>c.type==='private'&&c.staffId===s.id)) setOpenChats(p=>[...p,{type:'private',staffId:s.id}]) }}
-              title={s.name + ' · ' + (onlineUsers[s.id]==='online'?'Online':onlineUsers[s.id]==='away'?'Inaktiv':'Offline')}
-              style={{ position:'relative', cursor:'pointer', transition:'transform .15s cubic-bezier(.34,1.56,.64,1)' }}
-              onMouseEnter={e=>e.currentTarget.style.transform='scale(1.15)'}
-              onMouseLeave={e=>e.currentTarget.style.transform='none'}>
-              <div style={{ width:28, height:28, borderRadius:'50%', background:s.color+'22', color:s.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, border:'2px solid var(--border)', overflow:'hidden' }}>
-                {s.avatar_url?<img src={s.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:s.init}
-              </div>
-              <div style={{ position:'absolute', bottom:-1, right:-1, width:8, height:8, borderRadius:'50%', background:onlineUsers[s.id]==='online'?'#15803d':onlineUsers[s.id]==='away'?'#f59e0b':'#8a8278', border:'1.5px solid var(--bg2)' }} />
-            </div>
-          ))}
           {/* Team Chat gomb IP logóval */}
-          <div onClick={() => { if(!openChats.find(c=>c.type==='team')) setOpenChats(p=>[...p,{type:'team'}]); setUnreadChat(0) }}
+          <div onClick={() => { setChatOpen(p => !p); setUnreadChat(0) }}
             style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:6, background: openChats.find(c=>c.type==='team') ? 'var(--gdbg)' : 'var(--bg3)', border: unreadChat>0 ? '1px solid var(--red)' : '1px solid var(--border)', borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:600, color:'var(--t2)', position:'relative', transition:'all .15s' }}
             onMouseEnter={e=>{e.currentTarget.style.background='var(--gdbg)';e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.transform='scale(1.04)'}}
             onMouseLeave={e=>{e.currentTarget.style.background=openChats.find(c=>c.type==='team')?'var(--gdbg)':'var(--bg3)';e.currentTarget.style.borderColor=unreadChat>0?'var(--red)':'var(--border)';e.currentTarget.style.transform='none'}}>
@@ -1789,17 +1731,7 @@ export default function Home() {
       )}
 
       {/* ── CHAT ── */}
-      {/* Floating chat ablakok */}
-      <FloatingChatWindows
-        openChats={openChats}
-        setOpenChats={setOpenChats}
-        staff={staff}
-        me={me}
-        supabase={supabase}
-        onlineUsers={onlineUsers}
-        unreadChat={unreadChat}
-        setUnreadChat={setUnreadChat}
-      />
+
       {chatOpen && (
         <TeamChat
           supabase={supabase}
