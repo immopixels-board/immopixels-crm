@@ -39,7 +39,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
   }
 
   async function deleteMakler(id) {
-    if (!confirm('Törlöd ezt a Maklert?')) return
+    if (!confirm('Diesen Makler wirklich löschen?')) return
     await supabase.from('client_maklers').delete().eq('id', id)
     onReload()
   }
@@ -48,16 +48,16 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
     return (
       <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:12, marginTop:6 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
-          <div><label style={LS}>Név *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Max Mustermann" style={IS}/></div>
-          <div><label style={LS}>Beosztás</label><input value={form.position} onChange={e=>setForm(p=>({...p,position:e.target.value}))} placeholder="Makler" style={IS}/></div>
+          <div><label style={LS}>Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Max Mustermann" style={IS}/></div>
+          <div><label style={LS}>Position</label><input value={form.position} onChange={e=>setForm(p=>({...p,position:e.target.value}))} placeholder="Makler" style={IS}/></div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:10 }}>
           <div><label style={LS}>Email</label><input type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={IS}/></div>
           <div><label style={LS}>Telefon</label><input value={form.tel} onChange={e=>setForm(p=>({...p,tel:e.target.value}))} style={IS}/></div>
         </div>
         <div style={{ display:'flex', gap:7, justifyContent:'flex-end' }}>
-          <button onClick={onCancel} style={{ background:'none', border:'1.5px solid var(--brd2)', color:'var(--t2)', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}>Mégsem</button>
-          <button onClick={onSave} style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}>✓ Mentés</button>
+          <button onClick={onCancel} style={{ background:'none', border:'1.5px solid var(--brd2)', color:'var(--t2)', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}>Abbrechen</button>
+          <button onClick={onSave} style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:700, cursor:'pointer' }}><i className="ti ti-device-floppy" style={{fontSize:12,marginRight:4}}/> Speichern</button>
         </div>
       </div>
     )
@@ -66,7 +66,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
   return (
     <div style={{ marginBottom: 14 }}>
       {list.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>Még nincs makler hozzáadva</div>
+        <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>Noch kein Makler hinzugefügt</div>
       )}
       {list.map(m => (
         <div key={m.id}>
@@ -82,8 +82,8 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
                 {m.email && <div style={{ fontSize:11, color:'var(--blue)' }}>📧 {m.email}</div>}
                 {m.tel && <div style={{ fontSize:11, color:'var(--t2)' }}>📞 {m.tel}</div>}
               </div>
-              <button onClick={() => startEdit(m)} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:13, padding:'0 3px' }}>✏️</button>
-              <button onClick={() => deleteMakler(m.id)} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:16, padding:'0 3px' }}>×</button>
+              <button onClick={() => startEdit(m)} title="Bearbeiten" style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', padding:'4px 5px', borderRadius:5, display:'flex', alignItems:'center', transition:'color .12s' }} onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'} onMouseLeave={e=>e.currentTarget.style.color='var(--t3)'}><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+              <button onClick={() => deleteMakler(m.id)} title="Löschen" style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', padding:'4px 5px', borderRadius:5, display:'flex', alignItems:'center', transition:'color .12s' }} onMouseEnter={e=>e.currentTarget.style.color='var(--red)'} onMouseLeave={e=>e.currentTarget.style.color='var(--t3)'}><i className="ti ti-x" style={{fontSize:13}}/></button>
             </div>
           )}
         </div>
@@ -95,9 +95,9 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
           onCancel={() => { setAdding(false); setForm({ name:'', email:'', tel:'', position:'' }) }}
         />
       ) : (
-        <button onClick={() => { if(!clientId){alert('Előbb mentsd el az ügyfelet!');return}; setAdding(true); setEditingId(null); setForm({ name:'', email:'', tel:'', position:'' }) }}
+        <button onClick={() => { if(!clientId){alert('Bitte zuerst den Kunden speichern.');return}; setAdding(true); setEditingId(null); setForm({ name:'', email:'', tel:'', position:'' }) }}
           style={{ background:'none', border:'1.5px dashed var(--brd2)', color:'var(--t3)', borderRadius:7, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', marginTop:4 }}>
-          + Makler hozzáadása
+          <i className="ti ti-plus" style={{fontSize:11,marginRight:5}}/> Makler hinzufügen
         </button>
       )}
     </div>
