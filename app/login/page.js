@@ -11,6 +11,27 @@ export default function Login() {
   const [otp, setOtp] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
 
+  // Magic link + OTP token auto-login (Supabase redirect)
+  React.useEffect(() => {
+    async function handleRedirect() {
+      // Hash-alapú token (implicit flow)
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token')) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) { window.location.href = '/'; return }
+      }
+      // URL param alapú token (PKCE flow)
+      const params = new URLSearchParams(window.location.search)
+      const tokenHash = params.get('token_hash') || params.get('token')
+      const type = params.get('type')
+      if (tokenHash && type) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+        if (!error) { window.location.href = '/'; return }
+      }
+    }
+    handleRedirect()
+  }, [])
+
   async function login(e) {
     e.preventDefault()
     setLoading(true)
@@ -32,7 +53,10 @@ export default function Login() {
     await supabase.auth.signOut()
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false }
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: undefined,
+      }
     })
     if (error) {
       setError('OTP küldési hiba: ' + error.message)

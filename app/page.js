@@ -263,6 +263,8 @@ export default function Home() {
   const [mentionIdx, setMentionIdx] = useState(0)
   const [replyTo, setReplyTo] = useState(null)
   const [unreadChat, setUnreadChat] = useState(0)
+  const [chatMuted, setChatMuted] = useState(false)
+  const chatAudioRef = useRef(null)
   const [widgets, setWidgets] = useState(() => {
     if (typeof window === 'undefined') return []
     try { return JSON.parse(localStorage.getItem('ip-widgets') || 'null') || [
@@ -496,6 +498,11 @@ export default function Home() {
         // Csak ha nincs nyitva a chat
         if (!chatOpen) {
           setUnreadChat(p => p + 1)
+        }
+        // Hang lejátszása ha nincs némítva
+        if (!chatMuted && chatAudioRef.current) {
+          chatAudioRef.current.currentTime = 0
+          chatAudioRef.current.play().catch(()=>{})
         }
       })
       .subscribe()
@@ -1539,6 +1546,7 @@ export default function Home() {
             onMouseEnter={e=>{e.currentTarget.style.background='var(--gdbg)';e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.transform='scale(1.04)'}}
             onMouseLeave={e=>{e.currentTarget.style.background=openChats.find(c=>c.type==='team')?'var(--gdbg)':'var(--bg3)';e.currentTarget.style.borderColor=unreadChat>0?'var(--red)':'var(--border)';e.currentTarget.style.transform='none'}}>
             {unreadChat > 0 && <span className="chat-unread-dot" />}
+            <audio ref={chatAudioRef} src="/sounds/chat-pop.mp3" preload="auto" />
             <img src="/ip-logo.png" style={{ width:18, height:18, objectFit:'contain', borderRadius:'50%' }} alt="IP" />
             <span>Chat</span>
             {unreadChat > 0 && <span style={{ background:'var(--red)', color:'#fff', borderRadius:'50%', width:16, height:16, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>{unreadChat}</span>}
@@ -2461,28 +2469,28 @@ function FloatingChatWindows({ openChats, setOpenChats, staff, me, supabase, onl
 }
 
 function ChatWindowContent({ chat, staff, me, supabase, partner }) {
-  const [messages, setMessages] = React.useState([])
-  const bottomRef = React.useRef(null)
+  const [messages, setMessages] = useState([])
+  const bottomRef = useRef(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadMessages()
     const ch = supabase.channel('fw-'+(chat.type==='team'?'team':chat.staffId))
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages' }, () => loadMessages())
       .subscribe()
     return () => supabase.removeChannel(ch)
-  }, [chat.staffId])
+  }, [loadMessages])
 
-  React.useEffect(() => {
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior:'smooth' })
   }, [messages])
 
-  async function loadMessages() {
+  const loadMessages = React.useCallback(async () => {
     let q = supabase.from('chat_messages').select('*').order('created_at').limit(50)
     if (chat.type==='team') q = q.eq('channel','team')
     else q = q.or(`and(sender_id.eq.${me?.id},recipient_id.eq.${chat.staffId}),and(sender_id.eq.${chat.staffId},recipient_id.eq.${me?.id})`)
     const { data } = await q
     setMessages(data || [])
-  }
+  }, [chat.type, chat.staffId, me?.id])
 
   return (
     <div>
@@ -2521,7 +2529,7 @@ function ChatWindowContent({ chat, staff, me, supabase, partner }) {
 }
 
 function ChatWindowInput({ chat, me, supabase, partner }) {
-  const [text, setText] = React.useState('')
+  const [text, setText] = useState('')
 
   async function send() {
     if (!text.trim()) return
