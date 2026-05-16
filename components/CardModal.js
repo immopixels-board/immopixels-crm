@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 const CARD_COLORS = [
   { key: '', bg: '#fff', br: '#ccc8c0', label: 'Keine' },

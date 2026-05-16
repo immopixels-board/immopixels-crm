@@ -85,6 +85,7 @@ function MentionDropdown({ query, staff, onSelect, style }) {
 
 function ClientPriceEditor({ servicePrices, clientPrices, onChange }) {
   const [prices, setPrices] = useState(clientPrices || {})
+  useEffect(() => { setPrices(clientPrices || {}) }, [JSON.stringify(clientPrices)])
   function update(id, val) {
     const next = { ...prices, [id]: val }
     setPrices(next)

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 export const PANTONE = [
   { key:'peach',    color:'#FFBE98', bg:'rgba(255,190,152,.08)', br:'rgba(255,190,152,.35)', text:'#a05a20', label:'Peach Fuzz' },

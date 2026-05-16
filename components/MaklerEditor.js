@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 
 export default function AvatarCrop({ onDone, onCancel, initialSrc }) {
   const [img, setImg] = useState(null)

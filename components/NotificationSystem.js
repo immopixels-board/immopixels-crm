@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 export function NotificationBell({ supabase, currentStaff, onClick, count }) {
   return (
