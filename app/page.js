@@ -1485,9 +1485,9 @@ export default function Home() {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {/* Team Chat gomb IP logóval */}
           <div onClick={() => { setChatOpen(p => !p); setUnreadChat(0) }}
-            style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:6, background: openChats.find(c=>c.type==='team') ? 'var(--gdbg)' : 'var(--bg3)', border: unreadChat>0 ? '1px solid var(--red)' : '1px solid var(--border)', borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:600, color:'var(--t2)', position:'relative', transition:'all .15s' }}
+            style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:6, background: chatOpen ? 'var(--gdbg)' : 'var(--bg3)', border: unreadChat>0 ? '1px solid var(--red)' : '1px solid var(--border)', borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:600, color:'var(--t2)', position:'relative', transition:'all .15s' }}
             onMouseEnter={e=>{e.currentTarget.style.background='var(--gdbg)';e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.transform='scale(1.04)'}}
-            onMouseLeave={e=>{e.currentTarget.style.background=openChats.find(c=>c.type==='team')?'var(--gdbg)':'var(--bg3)';e.currentTarget.style.borderColor=unreadChat>0?'var(--red)':'var(--border)';e.currentTarget.style.transform='none'}}>
+            onMouseLeave={e=>{e.currentTarget.style.background=chatOpen?'var(--gdbg)':'var(--bg3)';e.currentTarget.style.borderColor=unreadChat>0?'var(--red)':'var(--border)';e.currentTarget.style.transform='none'}}>
             {unreadChat > 0 && <span className="chat-unread-dot" />}
             <audio ref={chatAudioRef} src="/sounds/chat-pop.mp3" preload="auto" />
             <img src="/ip-logo.png" style={{ width:18, height:18, objectFit:'contain', borderRadius:'50%' }} alt="IP" />
