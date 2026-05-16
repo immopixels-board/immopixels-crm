@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from 'react'
 
 const CARD_COLORS = [
-  { key: '', bg: '#e8e5e0', br: '#ccc8c0', label: 'Keine' },
-  { key: 'yellow', bg: '#fef08a', br: '#ca8a04', label: 'Gelb', cardBg: 'rgba(234,179,8,.12)', cardBr: 'rgba(202,138,4,.35)' },
-  { key: 'red', bg: '#fecaca', br: '#ef4444', label: 'Rot', cardBg: 'rgba(185,28,28,.10)', cardBr: 'rgba(185,28,28,.3)' },
-  { key: 'green', bg: '#bbf7d0', br: '#15803d', label: 'Grün', cardBg: 'rgba(21,128,61,.10)', cardBr: 'rgba(21,128,61,.3)' },
+  { key: '', bg: '#fff', br: '#ccc8c0', label: 'Keine' },
+  { key: 'peach', bg: '#FFBE98', br: '#FFBE98', label: 'Peach Fuzz', cardBg: 'rgba(255,190,152,.12)', cardBr: 'rgba(255,190,152,.4)' },
+  { key: 'sage', bg: '#9CAF88', br: '#9CAF88', label: 'Sage', cardBg: 'rgba(156,175,136,.12)', cardBr: 'rgba(156,175,136,.4)' },
+  { key: 'rose', bg: '#D4A5A5', br: '#D4A5A5', label: 'Mellow Rose', cardBg: 'rgba(212,165,165,.12)', cardBr: 'rgba(212,165,165,.4)' },
 ]
 
 const DAYS_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
@@ -141,7 +141,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   }
 
   async function save(field, value) {
-    await supabase.from('cards').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', card.id)
+    const upd = { [field]: value }
+    if (field !== 'card_color') upd.updated_at = new Date().toISOString()
+    await supabase.from('cards').update(upd).eq('id', card.id)
     setLocalCard(p => ({ ...p, [field]: value }))
     onUpdate()
     setSaved(true)
@@ -361,7 +363,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 )
               })}
               <div style={{ position:'relative', display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={commentText} placeholder='Kommentar schreiben... @Name' onChange={e => { const v=e.target.value; setCommentText(v); setCommentMentions(getMentionCandidates(v)); setCommentMentionIdx(0) }} onKeyDown={e => { if (commentMentions.length && (e.key==='ArrowDown' || e.key==='ArrowUp')) { e.preventDefault(); setCommentMentionIdx(i => e.key==='ArrowDown' ? (i+1)%commentMentions.length : (i-1+commentMentions.length)%commentMentions.length) } else if (commentMentions.length && e.key==='Enter' && !e.shiftKey) { e.preventDefault(); insertMention(commentMentions[commentMentionIdx]) } else if (e.key==='Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addComment() } }}
+                <textarea value={commentText} placeholder='Kommentar schreiben... @Name' onChange={e => { const v=e.target.value; setCommentText(v); setCommentMentions(getMentionCandidates(v)); setCommentMentionIdx(0) }} onKeyDown={e => { if (commentMentions.length && (e.key==='ArrowDown' || e.key==='ArrowUp')) { e.preventDefault(); setCommentMentionIdx(i => e.key==='ArrowDown' ? (i+1)%commentMentions.length : (i-1+commentMentions.length)%commentMentions.length) } else if (commentMentions.length && e.key==='Enter' && !e.shiftKey) { e.preventDefault(); insertMention(commentMentions[commentMentionIdx]) } else if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); addComment() } }}
                   style={{ flex:1, minHeight:54, background:'#fff', border:'1px solid #ddd9d2', borderRadius:9, padding:'9px 11px', fontSize:12, color:'#1c1a16', fontFamily:'Arial', outline:'none', resize:'vertical' }} />
                 <button onClick={addComment} disabled={!commentText.trim()} style={{ background:commentText.trim()?'#1c1a16':'#ddd9d2', color:'#fff', border:'none', borderRadius:8, padding:'9px 12px', fontSize:12, fontWeight:700, cursor:commentText.trim()?'pointer':'default' }}><i className='ti ti-send' /></button>
                 {commentMentions.length > 0 && (
