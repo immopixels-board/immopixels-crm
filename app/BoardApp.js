@@ -94,7 +94,6 @@ function MentionDropdown({ query, staff, onSelect, style }) {
 }
 
 function ClientPriceEditor({ servicePrices, clientPrices, onChange }) {
-  const safeServicePrices = Array.isArray(servicePrices) ? servicePrices : []
   const [prices, setPrices] = useState(clientPrices || {})
   useEffect(() => { setPrices(clientPrices || {}) }, [JSON.stringify(clientPrices)])
   function update(id, val) {
@@ -108,7 +107,7 @@ function ClientPriceEditor({ servicePrices, clientPrices, onChange }) {
         <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', padding:'0 4px' }}>Leistung</div>
         <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', textAlign:'right' }}>Preis (€)</div>
       </div>
-      {safeServicePrices.map(svc => (
+      {servicePrices.map(svc => (
         <div key={svc.id} style={{ display:'grid', gridTemplateColumns:'1fr 100px', gap:'4px 8px', marginBottom:5, alignItems:'center' }}>
           <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)', padding:'6px 10px', background:'var(--bg3)', borderRadius:6 }}>{svc.label}</div>
           <input
@@ -1347,7 +1346,7 @@ export default function Home() {
                         <div style={{ height: 1, background: 'var(--border)', margin: '0 10px' }} />
                         <div style={{ overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
                           {colCards.map(card => (
-                            <CardItem key={card.id} card={card} staff={staff} border={cardBorder(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={() => setDragging(card)} onSend={openSend} droppedId={droppedCard}
+                            <CardItem key={card.id} card={card} staff={staff} onlineUsers={onlineUsers} border={cardBorder(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={() => setDragging(card)} onSend={openSend} droppedId={droppedCard}
                             onCheck={async (card) => {
                               const fertig = cols.find(c => c.title.toLowerCase().includes('fertig') || c.title.toLowerCase().includes('kész'))
                               if (fertig) { await supabase.from('cards').update({column_id:fertig.id,updated_at:new Date().toISOString()}).eq('id',card.id); loadCards(); addLog('Fertig: '+card.title) }
@@ -2269,16 +2268,14 @@ function ClaudeAvatar({ size = 28 }) {
   )
 }
 
-function CardItem({ card, staff = [], border, onNoteChange, onNoteEnter, onClick, onDragStart, onSend, onCheck, onDelete, onColorChange, droppedId, noteMention, setNoteMention, dirtyCards, editingCards, onMoveUp, onMoveDown }) {
-  const safeStaff = Array.isArray(staff) ? staff : []
-  const safeTeam = Array.isArray(card?.card_team) ? card.card_team.filter(Boolean) : []
+function CardItem({ card, staff, border, onNoteChange, onNoteEnter, onClick, onDragStart, onSend, onCheck, onDelete, onColorChange, droppedId, noteMention, setNoteMention, dirtyCards, editingCards, onMoveUp, onMoveDown, onlineUsers }) {
   const t = TYPES[card.card_type] || TYPES.foto
   const done = (card.checklist_items || []).filter(x => x.done).length
   const tot = (card.checklist_items || []).length
   const [noteVal, setNoteVal] = useState(card.note || '')
   useEffect(() => { setNoteVal(card.note || '') }, [card.note])
 
-  function getStaffLocal(id) { return safeStaff.find(s => s.id === id) || { id: id || 'unknown', name: 'Unbekannt', init: '?', color: '#999', avatar_url: null } }
+  function getStaffLocal(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', avatar_url: null } }
 
   return (
     <div
@@ -2348,7 +2345,7 @@ function CardItem({ card, staff = [], border, onNoteChange, onNoteEnter, onClick
               const q = before.slice(atIdx+1)
               if (q === 'all') {
                 // @all: mindenki beillesztése
-                const names = safeStaff.filter(s => s?.name).map(s=>('@'+s.name.split(' ')[0])).join(' ')
+                const names = staff.map(s=>('@'+s.name.split(' ')[0])).join(' ')
                 const newVal = val.slice(0,atIdx) + names + ' ' + val.slice(pos)
                 onNoteChange(card.id, newVal)
                 const ta = document.getElementById('note-'+card.id)
@@ -2394,18 +2391,18 @@ function CardItem({ card, staff = [], border, onNoteChange, onNoteEnter, onClick
             <i className="ti ti-send" style={{ fontSize:11 }}></i>
           </span>
         )}
-        {safeTeam.length > 0 && (
+        {(card.card_team || []).length > 0 && (
           <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'row-reverse' }}>
-            {safeTeam.map((ct, idx) => {
+            {(card.card_team || []).map((ct, idx) => {
               const s = getStaffLocal(ct.staff_id)
               return (
                 <div key={ct.staff_id}
-                title={(s.name || 'Unbekannt') + ' · ' + (onlineUsers?.[s.id]==='online'?'Online':onlineUsers?.[s.id]==='away'?'Inaktiv':'Offline')}
+                title={s.name + ' · ' + (onlineUsers[s.id]==='online'?'Online':onlineUsers[s.id]==='away'?'Inaktiv':'Offline')}
                 style={{ width:22, height:22, borderRadius:'50%', background:s.color+'22', color:s.color, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, border:'2px solid var(--bg2)', overflow:'hidden', flexShrink:0, marginRight: idx>0?-7:0, position:'relative', transition:'transform .15s cubic-bezier(.34,1.56,.64,1)', cursor:'pointer' }}
                 onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.25)';e.currentTarget.style.zIndex='10';e.currentTarget.style.border='2px solid '+s.color}}
                 onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.zIndex='auto';e.currentTarget.style.border='2px solid var(--bg2)'}}>
                 {s.avatar_url ? <img src={s.avatar_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : s.init}
-                <div style={{ position:'absolute', bottom:-1, right:-1, width:7, height:7, borderRadius:'50%', background:onlineUsers?.[s.id]==='online'?'#15803d':onlineUsers?.[s.id]==='away'?'#f59e0b':'#8a8278', border:'1.5px solid var(--bg2)', pointerEvents:'none' }} />
+                <div style={{ position:'absolute', bottom:-1, right:-1, width:7, height:7, borderRadius:'50%', background:onlineUsers[s.id]==='online'?'#15803d':onlineUsers[s.id]==='away'?'#f59e0b':'#8a8278', border:'1.5px solid var(--bg2)', pointerEvents:'none' }} />
               </div>
               )
             })}
