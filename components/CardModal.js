@@ -291,15 +291,38 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     return parts.map((part, idx) => part.startsWith('@') ? <span key={idx} style={{ color:'#b8892a', fontWeight:700 }}>{part}</span> : part)
   }
 
+  async function gcalSyncCard(updatedCard) {
+    if (!updatedCard?.addr || !updatedCard?.card_date) return
+    try {
+      const teamData = await supabase.from('card_team').select('staff_id').eq('card_id', updatedCard.id)
+      const staffInits = (teamData.data || []).map(t => {
+        const s = (staff || []).find(x => x.id === t.staff_id)
+        return s?.init
+      }).filter(Boolean)
+      await fetch('/api/gcal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card: updatedCard, staffInits })
+      })
+    } catch (e) { /* silent */ }
+  }
+
+  const GCAL_SYNC_FIELDS = ['addr', 'card_date', 'card_time', 'title', 'description', 'client_name']
+
   async function save(field, value) {
     const upd = { [field]: value }
     if (field !== 'card_color') upd.updated_at = new Date().toISOString()
     await supabase.from('cards').update(upd).eq('id', card.id)
-    setLocalCard(p => ({ ...p, [field]: value }))
+    const updated = { ...localCard, [field]: value }
+    setLocalCard(updated)
     onUpdate()
     setSaved(true)
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => setSaved(false), 2500)
+    // Sync to GCal if relevant field changed
+    if (GCAL_SYNC_FIELDS.includes(field) && updated.addr && updated.card_date) {
+      gcalSyncCard(updated)
+    }
   }
 
   async function addTeam(staffId) {

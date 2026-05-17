@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/gcal-snapshot",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/gcal",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
