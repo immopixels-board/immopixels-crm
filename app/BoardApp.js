@@ -431,7 +431,7 @@ export default function Home() {
   // Chat handled by TeamChat component
 
 
-  const me = getMe()
+  const me = ((!currentUser || !staff.length) ? null : (staff.find(s => s.email === currentUser.email) || null))
   const isAdminOrSub = me?.role_level==='admin' || me?.role_level==='subadmin'
 
   // Notifications realtime
@@ -651,7 +651,7 @@ export default function Home() {
   }
 
   async function addLog(msg) {
-    const me = getMe()
+    const me = ((!currentUser || !staff.length) ? null : (staff.find(s => s.email === currentUser.email) || null))
     const entry = new Date().toLocaleTimeString('hu-HU') + ' — ' + (me?.name || '?') + ': ' + msg
     setDebugLog(prev => [entry, ...prev].slice(0, 200))
     // Save to Supabase
@@ -667,10 +667,7 @@ export default function Home() {
 
   function getStaff(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', name: '?', avatar_url: null } }
   function getStaffByInit(init) { return staff.find(s => s.init === init) }
-  function getMe() {
-    if (!currentUser || !staff.length) return null
-    return staff.find(s => s.email === currentUser.email) || null
-  }
+  // getMe inlined
 
   // StaffAv moved to top-level
 
@@ -939,7 +936,7 @@ export default function Home() {
 
   async function sendShooting() {
     if (!sendModal) return
-    const me = getMe()
+    const me = ((!currentUser || !staff.length) ? null : (staff.find(s => s.email === currentUser.email) || null))
     const templates = [
       'Hallo Zusammen,\n\nAnbei die fertigen Fotos zu ' + (sendModal.card.title) + ' 🏡\n\n' + sendModal.link + '\n\nBei Fragen stehe ich gerne zur Verfügung.\n\nViele Grüße,\n' + (me?.name || 'ImmoPixels'),
       'Hallo,\n\ndie Aufnahmen von ' + (sendModal.card.title) + ' sind fertig und stehen zum Download bereit:\n\n' + sendModal.link + '\n\nMit freundlichen Grüßen,\n' + (me?.name || 'ImmoPixels'),
@@ -1103,7 +1100,18 @@ export default function Home() {
     setTimeout(() => { setSyncTxt('✓'); setTimeout(() => setSyncTxt('GCal'), 2500) }, 900)
   }
 
-  const stats = getStats()
+  const stats = (() => {
+    const n = new Date()
+    const wk = new Date(n); wk.setDate(n.getDate() - n.getDay())
+    const mo = new Date(n.getFullYear(), n.getMonth(), 1)
+    const yr = new Date(n.getFullYear(), 0, 1)
+    const gc = cards.filter(c => c.is_gcal && c.card_date)
+    return {
+      week: gc.filter(c => new Date(c.card_date) >= wk).length,
+      month: gc.filter(c => new Date(c.card_date) >= mo).length,
+      year: gc.filter(c => new Date(c.card_date) >= yr).length,
+    }
+  })()
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 16, position: 'relative', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -1581,7 +1589,7 @@ export default function Home() {
               <div key={i} style={{ display:'flex', gap:8, flexDirection:msg.role==='user'?'row-reverse':'row', alignItems:'flex-start' }}>
                 <div style={{ width:28, height:28, borderRadius:'50%', overflow:'hidden', background:msg.role==='user'?'var(--gdbg)':'#1a1a1a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, flexShrink:0 }}>
                   {msg.role==='user'
-                    ? <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)' }}>{getMe()?.init||'CD'}</span>
+                    ? <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)' }}>{((!currentUser || !staff.length) ? null : (staff.find(s => s.email === currentUser.email) || null))?.init||'CD'}</span>
                     : <ClaudeAvatar size={28} />}
                 </div>
                 <div style={{ maxWidth:'82%', fontSize:13, background:msg.role==='user'?'var(--gold)':'var(--bg3)', color:msg.role==='user'?'#fff':'var(--t1)', borderRadius:msg.role==='user'?'12px 2px 12px 12px':'2px 12px 12px 12px', padding:'9px 12px', lineHeight:1.5, whiteSpace:'pre-wrap' }}>
@@ -1727,7 +1735,7 @@ export default function Home() {
               {w.type==='nexttermin' && (
                 <div>
                   {(() => {
-                    const me = getMe()
+                    const me = ((!currentUser || !staff.length) ? null : (staff.find(s => s.email === currentUser.email) || null))
                     const today = new Date().toISOString().slice(0,10)
                     const upcoming = cards
                       .filter(card => card.card_date >= today && !card.is_todo)
