@@ -215,7 +215,7 @@ function EditableField({ value, onSave, style, multiline, placeholder }) {
   )
 }
 
-export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification }) {
+export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig }) {
   const [saved, setSaved] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [localCard, setLocalCard] = useState(card)
@@ -390,10 +390,12 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               <div style={{ fontSize: 17, fontWeight: 700, color: '#1c1a16', lineHeight: 1.3, marginBottom: 4 }}>
                 <EditableField value={localCard.title} onSave={v => save('title', v)} style={{ fontSize: 17, fontWeight: 700, color: '#1c1a16' }} />
               </div>
-              <div style={{ fontSize: 12, color: '#8a8278', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <i className="ti ti-map-pin" style={{ fontSize: 11 }} />
-                <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
-              </div>
+              {!localCard.is_gcal && (
+                <div style={{ fontSize: 12, color: '#8a8278', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <i className="ti ti-map-pin" style={{ fontSize: 11 }} />
+                  <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
+                </div>
+              )}
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 16, padding: 4, flexShrink: 0 }}>
               <i className="ti ti-x" />
@@ -583,17 +585,55 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
         </div>
 
+        {/* Dropbox gomb — footer felett */}
+        {(() => {
+          const cl = clients.find(c => c.name === card.client_name || c.short_name === card.client_name)
+          return cl?.dropbox_link ? (
+            <div style={{ padding: '8px 20px', borderTop: '0.5px solid #eeeae6', background: '#faf9f7' }}>
+              <a href={cl.dropbox_link} target="_blank" rel="noopener noreferrer"
+                style={{ display:'flex', alignItems:'center', gap:10, background:'#e8f3ff', border:'1px solid #a8d0ff', borderRadius:8, padding:'9px 14px', textDecoration:'none', transition:'background .12s' }}
+                onMouseEnter={e => e.currentTarget.style.background='#d0e8ff'}
+                onMouseLeave={e => e.currentTarget.style.background='#e8f3ff'}>
+                <div style={{ width:28, height:28, borderRadius:6, background:'#0061fe', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M6 2L0 6l6 4-6 4 6 4 6-4-6-4 6-4zm12 0l-6 4 6 4-6 4 6 4 6-4-6-4 6-4zm-6 13l-6-4 6-4 6 4z"/></svg>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'#0061fe' }}>Fotos hochladen → {cl.name}</div>
+                  <div style={{ fontSize:10, color:'#3b82c4' }}>Dropbox öffnen</div>
+                </div>
+                <i className="ti ti-external-link" style={{ fontSize:13, color:'#0061fe' }} />
+              </a>
+            </div>
+          ) : null
+        })()}
+
         {/* Footer */}
         <div style={{ padding: '10px 20px', borderTop: '0.5px solid #eeeae6', display: 'flex', gap: 8, alignItems: 'center', background: '#faf9f7', flexShrink: 0 }}>
-          <button onClick={() => { /* open send modal */ }} style={{ background: '#c9a05a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <button onClick={() => { /* open send modal */ }} style={{ background: '#c9a05a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
             <i className="ti ti-send" style={{ fontSize: 13 }} /> Senden
+          </button>
+          <button onClick={async () => {
+            if (!onFertig) return
+            const fertigCol = cols.find(c => c.title.toLowerCase().includes('fertig') || c.title.toLowerCase().includes('kész'))
+            if (!fertigCol) { alert('Kein Fertig-Ordner gefunden'); return }
+            await supabase.from('cards').update({ column_id: fertigCol.id, updated_at: new Date().toISOString() }).eq('id', card.id)
+            onUpdate(); onClose()
+          }} style={{ background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <i className="ti ti-check" style={{ fontSize: 13 }} /> Fertig
           </button>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: saved ? '#15803d' : '#aaa8a0', gap: 4, transition: 'color .3s' }}>
             <i className={'ti ' + (saved ? 'ti-check' : 'ti-cloud')} style={{ fontSize: 12 }} />
-            {saved ? 'Automatisch gespeichert' : 'Änderungen werden automatisch gespeichert'}
+            {saved ? 'Gespeichert' : 'Wird gespeichert...'}
           </div>
+          <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }}
+            title="Manuell speichern"
+            style={{ background: 'none', border: '0.5px solid #ddd9d2', borderRadius: 8, padding: '8px 10px', color: '#8a8278', cursor: 'pointer', display: 'flex', alignItems: 'center', transition:'color .15s,border-color .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='#b8892a'; e.currentTarget.style.color='#b8892a' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='#ddd9d2'; e.currentTarget.style.color='#8a8278' }}>
+            <i className="ti ti-device-floppy" style={{ fontSize: 14 }} />
+          </button>
           <button onClick={async () => { if (!confirm('Karte wirklich löschen?')) return; await supabase.from('card_team').delete().eq('card_id', card.id); await supabase.from('checklist_items').delete().eq('card_id', card.id); await supabase.from('cards').delete().eq('id', card.id); onUpdate(); onClose() }}
-            style={{ background: 'none', border: '0.5px solid #f5c4c4', borderRadius: 8, padding: '8px 12px', color: '#b91c1c', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            style={{ background: 'none', border: '0.5px solid #f5c4c4', borderRadius: 8, padding: '8px 10px', color: '#b91c1c', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <i className="ti ti-trash" style={{ fontSize: 14 }} />
           </button>
         </div>
