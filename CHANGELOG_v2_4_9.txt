@@ -1,0 +1,16 @@
+ImmoPixels CRM — v2.4.9 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.8 → v2.4.9
+
+• Kártya törlés: nincs Google confirm dialog — saját ConfirmDialog
+• Kártya törlés: kártya "Archiviert" oszlopba kerül (automatikus létrehozás)
+• Archiviert-ben törölt kártya: hard delete saját dialóggal
+• Undo toast: 5mp visszaszámlálóval alul, minden törlés/archiválásnál
+• Naptár: nagyobb cellák, nagyobb felirat (alapértelmezett zoom 110%)
+• Naptár: betűméretek zoom-arányosak
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_4_9.zip && mv immopixels-crm-v2.4.9 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.9" && git push

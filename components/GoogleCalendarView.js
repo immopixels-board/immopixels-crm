@@ -152,7 +152,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState(false)
-  const [zoom, setZoom] = useState(100)
+  const [zoom, setZoom] = useState(110)
   const [filterStaff, setFilterStaff] = useState([]) // empty = show all
 
   useEffect(() => {
@@ -383,12 +383,12 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
       {/* Calendar grid */}
       <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
         {view === 'month' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, width: '100%', fontSize: zoom + '%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, width: '100%' }}>
             {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (
-              <div key={d} style={{ padding: '6px 8px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: (d==='Sa'||d==='So') ? 'var(--red)' : 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>{d}</div>
+              <div key={d} style={{ padding: '8px 10px', textAlign: 'center', fontSize: Math.round(11 * zoom / 100), fontWeight: 700, color: (d==='Sa'||d==='So') ? 'var(--red)' : 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>{d}</div>
             ))}
             {Array.from({ length: firstDay }, (_, i) => (
-              <div key={'empty-' + i} style={{ minHeight: Math.round(80 * zoom / 100), background: 'var(--bg3)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', opacity: 0.5 }} />
+              <div key={'empty-' + i} style={{ minHeight: Math.round(100 * zoom / 100), background: 'var(--bg3)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', opacity: 0.5 }} />
             ))}
             {Array.from({ length: daysInMonth }, (_, i) => {
               const day = i + 1
@@ -397,16 +397,16 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
               const isToday = dateStr === today
               const isWeekend = (new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6)
               return (
-                <div key={day} style={{ minHeight: Math.round(80 * zoom / 100), padding: '4px 5px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative' }}>
-                  <div style={{ width: isToday ? 22 : 'auto', height: isToday ? 22 : 'auto', borderRadius: isToday ? '50%' : 0, background: isToday ? 'var(--gold)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: isToday ? 700 : 600, color: isToday ? '#fff' : isWeekend ? 'var(--red)' : 'var(--t1)', marginBottom: 3 }}>{day}</div>
+                <div key={day} style={{ minHeight: Math.round(100 * zoom / 100), padding: '6px 7px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative' }}>
+                  <div style={{ width: isToday ? 24 : 'auto', height: isToday ? 24 : 'auto', borderRadius: isToday ? '50%' : 0, background: isToday ? 'var(--gold)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(12 * zoom / 100), fontWeight: isToday ? 700 : 600, color: isToday ? '#fff' : isWeekend ? 'var(--red)' : 'var(--t1)', marginBottom: 4 }}>{day}</div>
                   {dayEvents.slice(0, 3).map(ev => (
                     <div key={ev.id} onClick={() => setSelectedEvent(ev)}
-                      style={{ background: ev.color, color: '#fff', borderRadius: 3, padding: '1px 5px', fontSize: 9, fontWeight: 700, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                      style={{ background: ev.color, color: '#fff', borderRadius: 3, padding: '1px 5px', fontSize: Math.round(11 * zoom / 100), fontWeight: 700, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
                       {ev.time && <span style={{ opacity: 0.8 }}>{ev.time.slice(0,5)}</span>}
                       {ev.title}
                     </div>
                   ))}
-                  {dayEvents.length > 3 && <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>+{dayEvents.length - 3} mehr</div>}
+                  {dayEvents.length > 3 && <div style={{ fontSize: Math.round(10 * zoom / 100), color: 'var(--t3)', fontWeight: 600 }}>+{dayEvents.length - 3} mehr</div>}
                 </div>
               )
             })}
