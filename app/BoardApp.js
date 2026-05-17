@@ -558,6 +558,9 @@ export default function Home() {
       if (us) {
         const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
         const fsMap = { sm:'13px', md:'14px', lg:'16px' }
+        setBgColor(us.bg_color || 'linen')
+        setFontSize(us.font_size || 'md')
+        setCardSize(us.card_size || 'standard')
         document.documentElement.style.setProperty('--bg', bgMap[us.bg_color] || '#f4f2ef')
         document.documentElement.style.setProperty('--font-size-base', fsMap[us.font_size] || '14px')
         document.documentElement.style.setProperty('--card-padding', {compact:'7px 8px',standard:'9px 10px',large:'12px 13px'}[us.card_size] || '9px 10px')
@@ -567,9 +570,13 @@ export default function Home() {
           document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
           document.body.style.backgroundSize = 'cover'
           document.body.style.backgroundAttachment = 'fixed'
+          document.body.style.backgroundRepeat = 'no-repeat'
         } else {
           document.body.style.backgroundImage = 'none'
         }
+      } else {
+        document.body.style.backgroundImage = 'none'
+        document.documentElement.style.setProperty('--bg', '#f4f2ef')
       }
     }, 100)
   }
@@ -619,13 +626,7 @@ export default function Home() {
     if (s.photo_categories) setPhotoCats(s.photo_categories)
     if (s.client_categories) setClientCats(s.client_categories)
     if (s.staff_roles) setStaffRoles(s.staff_roles)
-    if (s.bg_color) setBgColor(s.bg_color)
-    if (s.bg_image) {
-      document.body.style.backgroundImage = 'url(' + s.bg_image + ')'
-      document.body.style.backgroundSize = 'cover'
-      document.body.style.backgroundAttachment = 'fixed'
-      document.body.style.backgroundRepeat = 'no-repeat'
-    }
+    // bg_color and bg_image are per-user → loaded from user_settings only
     if (s.font_size) setFontSize(s.font_size)
     if (s.card_size) setCardSize(s.card_size)
   }

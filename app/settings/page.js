@@ -121,13 +121,25 @@ export default function Settings() {
     setLoading(false)
   }
 
+  async function getStaffId() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data: st } = await supabase.from('staff').select('id').eq('email', user.email).single()
+    return st?.id || null
+  }
+
+  async function saveUserSetting(key, value) {
+    const sid = await getStaffId()
+    if (!sid) return
+    await supabase.from('user_settings').upsert({ staff_id: sid, [key]: value }, { onConflict: 'staff_id' })
+    setSaved(true); setTimeout(() => setSaved(false), 2000)
+  }
+
   async function saveBgImage(src) {
     setBgImage(src)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: st } = await supabase.from('staff').select('id').eq('email', user.email).single()
-    if (!st?.id) return
-    await supabase.from('user_settings').upsert({ staff_id: st.id, bg_image: src }, { onConflict: 'staff_id' })
+    const sid = await getStaffId()
+    if (!sid) return
+    await supabase.from('user_settings').upsert({ staff_id: sid, bg_image: src }, { onConflict: 'staff_id' })
     // Apply immediately
     if (src) {
       document.body.style.backgroundImage = 'url(' + src + ')'
@@ -246,7 +258,7 @@ export default function Settings() {
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
                     {BG_OPTIONS.map(bg => (
                       <div key={bg.key}
-                        onClick={() => { setBgColor(bg.key); setBgImage(null); saveSetting('bg_color', bg.key); saveBgImage(null) }}
+                        onClick={() => { setBgColor(bg.key); setBgImage(null); saveBgImage(null); saveUserSetting('bg_color', bg.key) }}
                         title={bg.label}
                         style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key && !bgImage ? '2px solid #b8892a' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key && !bgImage ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s', opacity: bgImage ? 0.45 : 1 }}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
