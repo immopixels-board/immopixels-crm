@@ -12,7 +12,7 @@ import { supabase } from '../lib/supabase'
 
 var CLAUDE_SVG = 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSJub25lIiBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9IjAgLS4wMSAzOS41IDM5LjUzIiB3aWR0aD0iMjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtNy43NSAyNi4yNyA3Ljc3LTQuMzYuMTMtLjM4LS4xMy0uMjFoLS4zOGwtMS4zLS4wOC00LjQ0LS4xMi0zLjg1LS4xNi0zLjczLS4yLS45NC0uMi0uODgtMS4xNi4wOS0uNTguNzktLjUzIDEuMTMuMSAyLjUuMTcgMy43NS4yNiAyLjcyLjE2IDQuMDMuNDJoLjY0bC4wOS0uMjYtLjIyLS4xNi0uMTctLjE2LTMuODgtMi42My00LjItMi43OC0yLjItMS42LTEuMTktLjgxLS42LS43Ni0uMjYtMS42NiAxLjA4LTEuMTkgMS40NS4xLjM3LjEgMS40NyAxLjEzIDMuMTQgMi40MyA0LjEgMy4wMi42LjUuMjQtLjE3LjAzLS4xMi0uMjctLjQ1LTIuMjMtNC4wMy0yLjM4LTQuMS0xLjA2LTEuNy0uMjgtMS4wMmMtLjEtLjQyLS4xNy0uNzctLjE3LTEuMmwxLjIzLTEuNjcuNjgtLjIyIDEuNjQuMjIuNjkuNiAxLjAyIDIuMzMgMS42NSAzLjY3IDIuNTYgNC45OS43NSAxLjQ4LjQgMS4zNy4xNS40MmguMjZ2LS4yNGwuMjEtMi44MS4zOS0zLjQ1LjM4LTQuNDQuMTMtMS4yNS42Mi0xLjUgMS4yMy0uODEuOTYuNDYuNzkgMS4xMy0uMTEuNzMtLjQ3IDMuMDUtLjkyIDQuNzgtLjYgMy4yaC4zNWwuNC0uNCAxLjYyLTIuMTUgMi43Mi0zLjQgMS4yLTEuMzUgMS40LTEuNDkuOS0uNzFoMS43bDEuMjUgMS44Ni0uNTYgMS45Mi0xLjc1IDIuMjItMS40NSAxLjg4LTIuMDggMi44LTEuMyAyLjI0LjEyLjE4LjMxLS4wMyA0LjctMSAyLjU0LS40NiAzLjAzLS41MiAxLjM3LjY0LjE1LjY1LS41NCAxLjMzLTMuMjQuOC0zLjguNzYtNS42NiAxLjM0LS4wNy4wNS4wOC4xIDIuNTUuMjQgMS4wOS4wNmgyLjY3bDQuOTcuMzcgMS4zLjg2Ljc4IDEuMDUtLjEzLjgtMiAxLjAyLTIuNy0uNjQtNi4zLTEuNS0yLjE2LS41NGgtLjN2LjE4bDEuOCAxLjc2IDMuMyAyLjk4IDQuMTMgMy44NC4yMS45NS0uNTMuNzUtLjU2LS4wOC0zLjYzLTIuNzMtMS40LTEuMjMtMy4xNy0yLjY3aC0uMjF2LjI4bC43MyAxLjA3IDMuODYgNS44LjIgMS43OC0uMjguNTgtMSAuMzUtMS4xLS4yLTIuMjYtMy4xNy0yLjMzLTMuNTctMS44OC0zLjItLjIzLjEzLTEuMTEgMTEuOTUtLjUyLjYxLTEuMi40Ni0xLS43Ni0uNTMtMS4yMy41My0yLjQzLjY0LTMuMTcuNTItMi41Mi40Ny0zLjEzLjI4LTEuMDQtLjAyLS4wNy0uMjMuMDMtMi4zNiAzLjI0LTMuNTkgNC44NS0yLjg0IDMuMDQtLjY4LjI3LTEuMTgtLjYxLjExLTEuMDkuNjYtLjk3IDMuOTMtNSAyLjM3LTMuMSAxLjUzLTEuNzktLjAxLS4yNmgtLjA5bC0xMC40NCA2Ljc4LTEuODYuMjQtLjgtLjc1LjEtMS4yMy4zOC0uNCAzLjE0LTIuMTZ6IiBmaWxsPSIjZDk3NzU3Ii8+PC9zdmc+'
 var LOGO = 'data:image/png;base64,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'
-var VER = 'v2.4.9'
+var VER = 'v2.5.1'
 
 
 
@@ -217,6 +217,15 @@ export default function Home() {
   const [dragging, setDragging] = useState(null)
   const [dragOver, setDragOver] = useState(null)
   const [droppedCard, setDroppedCard] = useState(null)
+  const dragFlyRef = React.useRef(null)
+  const dragGhostRef = React.useRef(null)
+  const dragPhRef = React.useRef(null)
+  const dragOffRef = React.useRef({ x: 0, y: 0 })
+  const dragTiltRef = React.useRef(0)
+  const dragLastXRef = React.useRef(0)
+  const dragCardRef = React.useRef(null)
+  const isDraggingRef = React.useRef(false)
+  const dragDidMoveRef = React.useRef(false)
   const [modal, setModal] = useState(null)
   const [newCardColId, setNewCardColId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -629,6 +638,188 @@ export default function Home() {
     undoTimerRef.current = setTimeout(() => { setUndoToast(null) }, 5100)
   }
 
+  // ─── Custom Drag Engine (mouse + touch) ───────────────────────
+  function getDragItemBelow(x, y, listEl) {
+    const cards = [...listEl.querySelectorAll('.board-card:not(.drag-ghost)')]
+    return cards.reduce((closest, c) => {
+      const r = c.getBoundingClientRect()
+      const offset = y - r.top - r.height / 2
+      if (offset < 0 && offset > closest.offset) return { offset, el: c }
+      return closest
+    }, { offset: -Infinity, el: null }).el
+  }
+
+  function getColListAt(x, y) {
+    const els = document.elementsFromPoint(x, y)
+    return els.find(e => e.classList.contains('bcol-cards'))
+  }
+
+  function initDragPh(height) {
+    let ph = dragPhRef.current
+    if (!ph) {
+      ph = document.createElement('div')
+      ph.style.cssText = 'border-radius:9px;background:rgba(184,137,42,.1);border:1.5px dashed #b8892a;overflow:hidden;transition:height .2s cubic-bezier(.34,1.56,.64,1),margin-bottom .2s,opacity .15s;opacity:0;height:0;margin-bottom:0;pointer-events:none'
+      dragPhRef.current = ph
+    }
+    ph.dataset.height = height
+    return ph
+  }
+
+  function showDragPh(list, before, height) {
+    const ph = initDragPh(height)
+    if (before) list.insertBefore(ph, before)
+    else list.appendChild(ph)
+    requestAnimationFrame(() => {
+      ph.style.height = (height || 52) + 'px'
+      ph.style.marginBottom = '6px'
+      ph.style.opacity = '1'
+    })
+    document.querySelectorAll('.bcol').forEach(c => {
+      c.style.borderColor = c.contains(ph) ? 'var(--gold)' : ''
+      c.style.boxShadow = c.contains(ph) ? '0 0 0 2px rgba(184,137,42,.15)' : ''
+    })
+  }
+
+  function removeDragPh() {
+    const ph = dragPhRef.current
+    if (!ph || !ph.parentNode) return
+    ph.style.opacity = '0'
+    ph.style.height = '0'
+    ph.style.marginBottom = '0'
+    setTimeout(() => { if (ph.parentNode) ph.parentNode.removeChild(ph) }, 220)
+  }
+
+  function startCustomDrag(clientX, clientY, cardEl, card) {
+    if (!clientX || !clientY) return
+    const r = cardEl.getBoundingClientRect()
+    dragOffRef.current = { x: clientX - r.left, y: clientY - r.top }
+    dragLastXRef.current = clientX
+    dragTiltRef.current = 0
+    dragCardRef.current = card
+    isDraggingRef.current = true
+    dragDidMoveRef.current = false
+
+    // Ghost (faded original)
+    cardEl.classList.add('drag-ghost')
+    cardEl.dataset.dragged = '0'
+    dragGhostRef.current = cardEl
+
+    // Flying clone
+    const fly = document.createElement('div')
+    fly.style.cssText = `position:fixed;pointer-events:none;z-index:9999;width:${r.width}px;left:${clientX - dragOffRef.current.x}px;top:${clientY - dragOffRef.current.y}px;background:#fff;border:1px solid #b8892a;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700;color:#1c1a16;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:transform .06s linear;will-change:transform`
+    fly.innerHTML = cardEl.innerHTML
+    document.body.appendChild(fly)
+    dragFlyRef.current = fly
+
+    // Placeholder
+    const ph = initDragPh(r.height)
+    cardEl.parentNode.insertBefore(ph, cardEl.nextSibling)
+    requestAnimationFrame(() => { ph.style.height = r.height + 'px'; ph.style.marginBottom = '6px'; ph.style.opacity = '1' })
+
+    setDragging(card)
+  }
+
+  function moveCustomDrag(clientX, clientY) {
+    const fly = dragFlyRef.current
+    if (!fly || !isDraggingRef.current) return
+    dragDidMoveRef.current = true
+    if (dragGhostRef.current) dragGhostRef.current.dataset.dragged = '1'
+    fly.style.left = (clientX - dragOffRef.current.x) + 'px'
+    fly.style.top = (clientY - dragOffRef.current.y) + 'px'
+
+    // Tilt
+    const vx = clientX - dragLastXRef.current
+    dragLastXRef.current = clientX
+    dragTiltRef.current = dragTiltRef.current * 0.7 + vx * 0.5
+    const t = Math.max(-14, Math.min(14, dragTiltRef.current))
+    fly.style.transform = `rotate(${t}deg)`
+
+    // Placeholder position
+    const list = getColListAt(clientX, clientY)
+    if (list) {
+      const ph = dragPhRef.current
+      const before = getDragItemBelow(clientX, clientY, list)
+      if (before) list.insertBefore(ph, before)
+      else list.appendChild(ph)
+      requestAnimationFrame(() => {
+        ph.style.height = (ph.dataset.height || 52) + 'px'
+        ph.style.marginBottom = '6px'
+        ph.style.opacity = '1'
+      })
+      document.querySelectorAll('.bcol').forEach(c => {
+        c.style.borderColor = c.contains(ph) ? 'var(--gold)' : ''
+        c.style.boxShadow = c.contains(ph) ? '0 0 0 2px rgba(184,137,42,.15)' : ''
+      })
+    }
+  }
+
+  async function endCustomDrag(clientX, clientY) {
+    const fly = dragFlyRef.current
+    const ghost = dragGhostRef.current
+    const ph = dragPhRef.current
+    const card = dragCardRef.current
+
+    isDraggingRef.current = false
+    if (!fly || !ghost || !card) return
+
+    // Animate fly to placeholder position
+    const phR = ph?.getBoundingClientRect()
+    if (phR && fly) {
+      fly.style.transition = 'left .18s cubic-bezier(.34,1.56,.64,1), top .18s cubic-bezier(.34,1.56,.64,1), transform .18s, opacity .15s'
+      fly.style.left = phR.left + 'px'
+      fly.style.top = phR.top + 'px'
+      fly.style.transform = 'rotate(0deg) scale(1)'
+      fly.style.opacity = '0'
+    }
+
+    // Find target col
+    const list = ph?.parentNode
+    const colEl = list?.closest('.bcol')
+    const colId = colEl?.dataset.colid
+
+    // Move ghost to where ph is
+    if (ph && ph.parentNode) {
+      ph.parentNode.insertBefore(ghost, ph)
+    }
+
+    setTimeout(() => {
+      if (fly) fly.remove()
+      dragFlyRef.current = null
+    }, 200)
+
+    removeDragPh()
+    ghost.classList.remove('drag-ghost')
+    dragGhostRef.current = null
+    dragCardRef.current = null
+
+    document.querySelectorAll('.bcol').forEach(c => { c.style.borderColor = ''; c.style.boxShadow = '' })
+
+    // Save position and/or column
+    if (colId && dragDidMoveRef.current) {
+      const targetColId = colId
+      const colChanged = targetColId !== card.column_id
+      // Calculate new position based on DOM order
+      const listEl = ph?.parentNode || list
+      const siblings = listEl ? [...listEl.querySelectorAll('.board-card')] : []
+      const newPos = siblings.indexOf(ghost)
+
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, column_id: targetColId } : c))
+      await supabase.from('cards').update({
+        column_id: targetColId,
+        position: newPos >= 0 ? newPos : 9999,
+        updated_at: new Date().toISOString()
+      }).eq('id', card.id)
+      broadcastChange('cards_changed')
+      if (colChanged) addLog('Karte verschoben: ' + card.title)
+      setDroppedCard(card.id)
+      setTimeout(() => setDroppedCard(null), 600)
+    }
+
+    dragDidMoveRef.current = false
+    setDragging(null)
+  }
+  // ─── End Custom Drag Engine ────────────────────────────────────
+
   async function ensureGCalImportCol() {
     const meNow = getMe()
     if (!meNow) return
@@ -704,6 +895,35 @@ export default function Home() {
     loadNotifications()
   }, [staff])
 
+  const moveCustomDragRef = React.useRef(null)
+  const endCustomDragRef = React.useRef(null)
+  moveCustomDragRef.current = moveCustomDrag
+  endCustomDragRef.current = endCustomDrag
+
+  useEffect(() => {
+    function onMove(e) {
+      if (!isDraggingRef.current) return
+      if (e.cancelable) e.preventDefault()
+      const c = e.touches ? e.touches[0] : e
+      moveCustomDragRef.current?.(c.clientX, c.clientY)
+    }
+    function onUp(e) {
+      if (!isDraggingRef.current) return
+      const c = e.changedTouches ? e.changedTouches[0] : e
+      endCustomDragRef.current?.(c.clientX, c.clientY)
+    }
+    window.addEventListener('mousemove', onMove, { passive: false })
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+  }, [])
+
   async function logUserAction(action) {
     const meNow = getMe()
     if (!meNow) return
@@ -725,6 +945,9 @@ export default function Home() {
     setBgColor(us.bg_color || 'linen')
     setFontSize(us.font_size || 'md')
     setCardSize(us.card_size || 'standard')
+    if (us.bg_color || us.bg_image) {
+      addLog('Hintergrund: ' + (us.bg_image ? us.bg_image.split('/').pop() : us.bg_color))
+    }
     if (us.bg_image) {
       document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
       document.body.style.backgroundSize = 'cover'
@@ -823,8 +1046,13 @@ export default function Home() {
       setDirtyCards(p => { const n={...p}; delete n[cardId]; return n })
       broadcastChange('card_editing', { cardId, editing: false, userId: mySessionId.current })
       broadcastChange('cards_changed')
-      // Értesítés küldése a kártya többi tagjának
+      // Log note change
       const meNow = getMe()
+      if (meNow && val) {
+        const card = cards.find(c => c.id === cardId)
+        addLog('Schnellnotiz zu "' + (card?.title || cardId) + '": ' + val.slice(0, 40))
+      }
+      // Értesítés küldése a kártya többi tagjának
       if (meNow && val) {
         const card = cards.find(c => c.id === cardId)
         if (card) {
@@ -1324,6 +1552,7 @@ export default function Home() {
         }
         body { font-size: var(--font-size-base) !important; }
         .board-card { padding: var(--card-padding) !important; }
+        .drag-ghost { opacity: 0.2 !important; pointer-events: none !important; }
         .card-title-main { font-size: var(--card-title-size) !important; }
       `}</style>
       {/* ── TOPBAR ── */}
@@ -1514,11 +1743,12 @@ export default function Home() {
                   <div key={col.id} className="bcol"
                     draggable={!isCollapsed}
                     style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default' }}
-                    onDragStart={e => { if(isCollapsed) return; e.dataTransfer.setData('colId', col.id); e.currentTarget.style.opacity='0.5' }}
+                    onDragStart={e => { if(isCollapsed) return; if(dragging) { e.preventDefault(); return } e.dataTransfer.setData('colId', col.id); e.dataTransfer.setData('type', 'column'); e.currentTarget.style.opacity='0.5' }}
                     onDragEnd={e => { e.currentTarget.style.opacity='1' }}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); if(!dragging) return; e.currentTarget.style.borderColor='var(--gold)'; e.currentTarget.style.boxShadow='0 0 0 2px var(--gdbg)' }}
                     onDragLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = '' }}
-                    onDrop={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.classList.remove('col-drop-active'); const colId = e.dataTransfer.getData('colId'); if(colId && colId !== col.id) { moveColumn(colId, col.id) } else { onDrop(e, col.id) } }}
+                    data-colid={col.id}
+                    onDrop={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.classList.remove('col-drop-active'); const colId = e.dataTransfer.getData('colId'); const dragType = e.dataTransfer.getData('type'); if(colId && colId !== col.id && dragType === 'column') { moveColumn(colId, col.id) } else if(dragging) { onDrop(e, col.id) } }}
                       onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('col-drop-active') }}
                       onDragLeave={e => { e.currentTarget.classList.remove('col-drop-active') }}>
                     {isCollapsed ? (
@@ -1538,9 +1768,9 @@ export default function Home() {
                           <button onClick={() => deleteCol(col.id)} title="Löschen" style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '2px 3px', display:'flex', alignItems:'center' }}><i className="ti ti-trash" style={{ fontSize:13 }}></i></button>
                         </div>
                         <div style={{ height: 1, background: 'var(--border)', margin: '0 10px' }} />
-                        <div style={{ overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                        <div className="bcol-cards" data-colid={col.id} style={{ overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
                           {colCards.map(card => (
-                            <CardItem key={card.id} card={card} staff={staff} onlineUsers={onlineUsers} fontSize={fontSize} dragging={dragging} clients={clients} border={cardBorder(card)} overdueDays={cardOverdueDays(card)} overdueBg={cardOverdueBg(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={() => setDragging(card)} onSend={openSend} droppedId={droppedCard}
+                            <CardItem key={card.id} card={card} staff={staff} onlineUsers={onlineUsers} fontSize={fontSize} dragging={dragging} clients={clients} border={cardBorder(card)} overdueDays={cardOverdueDays(card)} overdueBg={cardOverdueBg(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={(e, cardEl) => startCustomDrag(e.clientX || e.touches?.[0]?.clientX, e.clientY || e.touches?.[0]?.clientY, cardEl, card)} onSend={openSend} droppedId={droppedCard}
                             onCheck={async (card) => {
                               const fertig = cols.find(c => c.title.toLowerCase().includes('fertig') || c.title.toLowerCase().includes('kész'))
                               if (fertig) { await supabase.from('cards').update({column_id:fertig.id,updated_at:new Date().toISOString()}).eq('id',card.id); loadCards(); addLog('Fertig: '+card.title) }
@@ -2739,9 +2969,10 @@ function CardItem({ card, staff, border, overdueDays = 0, overdueBg, onNoteChang
   return (
     <div
       draggable
-      onDragStart={e => { onDragStart(); e.currentTarget.style.opacity='0.5' }}
-      onDragEnd={e => { e.currentTarget.style.opacity='1'; e.currentTarget.classList.remove('dragging-active','drag-placeholder') }}
-      onClick={onClick}
+      draggable={false}
+      onMouseDown={e => { if (e.button !== 0) return; if (e.target.closest('button,input,textarea,a')) return; e.currentTarget.dataset.dragged = '0'; onDragStart(e, e.currentTarget) }}
+      onTouchStart={e => { if (e.target.closest('button,input,textarea,a')) return; e.preventDefault(); e.currentTarget.dataset.dragged = '0'; onDragStart(e, e.currentTarget) }}
+      onClick={e => { if (e.currentTarget.dataset.dragged === '1') { e.currentTarget.dataset.dragged = '0'; return } onClick(e) }}
       className={'board-card' + (droppedId===card.id ? ' card-drop-animation' : '')}
       style={{ background: card.card_color ? {'peach':'rgba(255,190,152,.12)','sage':'rgba(156,175,136,.12)','rose':'rgba(212,165,165,.12)'}[card.card_color] || 'var(--bg2)' : (overdueBg || 'var(--bg2)'), border: card.card_color ? '0.5px solid '+({'peach':'rgba(255,190,152,.4)','sage':'rgba(156,175,136,.4)','rose':'rgba(212,165,165,.4)'}[card.card_color]||'var(--border)') : (border || '0.5px solid var(--border)'), borderRadius: 9, padding: '9px 10px', cursor: 'grab', boxShadow: 'var(--sh)', position: 'relative' }}>
       {(dirtyCards?.[card.id] || editingCards?.[card.id]) && <span className="dirty-dot" title={dirtyCards?.[card.id] ? 'Wird gespeichert...' : 'Wird bearbeitet...'} />}

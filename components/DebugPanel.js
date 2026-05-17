@@ -2,12 +2,21 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
-  { ver: 'v2.4.2', date: '2026-05-17', items: ['Soft-delete kártyák (visszaállítható)', 'Auto ügyfél felismerés kártya névből', 'Napi automatikus backup (Supabase)', 'Óránkénti GCal snapshot', 'Debug panel: Changelog + Backup + Törölt kártyák fül', 'GCal token mentés Supabase-be (cron)', 'Ügyfél statisztika oldal (admin)'] },
-  { ver: 'v2.4.1', date: '2026-05-17', items: ['Dropbox gomb CardModal footer felett', 'Fertig gomb a Senden mellett', 'Manuális mentés gomb (floppy)', 'GCal kártyákon addr nem jelenik meg külön'] },
-  { ver: 'v2.4.0', date: '2026-05-17', items: ['Telefonbuch fül', 'Board kereső', 'Dropbox badge kártyákon', 'Kunde form bővítés (Vorname/Nachname/Tel2/Dropbox)', 'Drag: egész kártya húzható', 'Claude gomb törölve'] },
-  { ver: 'v2.3.9', date: '2026-05-16', items: ['Google Naptár integráció (OAuth)', 'Oszlop láthatóság (Nur für mich)', 'Drive/WeTransfer link mező', 'Build fix: page.js → BoardApp.js'] },
-  { ver: 'v2.3.8', date: '2026-05-16', items: ['7 háttérkép Settings-ben', 'Online státusz pötty avatarokon', 'Chat némítás gomb', 'Email OTP 2FA login', 'React #423 fix'] },
-  { ver: 'v2.3.7', date: '2026-05-16', items: ['Team Chat újraépítés', 'Online státusz (zöld/narancs/szürke)', 'Link előnézet chatben', '@All taggelés javítás', '4 háttérkép', 'Drag & Drop fix'] },
+  { ver: 'v2.5.0', date: '2026-05-17', items: ['Debug: minden változás rögzítve', 'Debug: Archiviert kártyák Törölt fülön', 'Debug: per-user filter javítva', 'Changelog frissítve minden verzióhoz'] },
+  { ver: 'v2.4.9', date: '2026-05-17', items: ['Kártya törlés: Archiviert oszlopba kerül', 'Undo toast 5mp visszaszámlálóval', 'Naptár: nagyobb cellák, zoom 110%', 'Confirm dialóg saját design'] },
+  { ver: 'v2.4.8', date: '2026-05-17', items: ['Kártya: piros keret 2+ nap lejárt', '5+ nap: piros háttér', 'Fertig/terminieren kizárva', 'Note broadcast javítva', 'Naptár header + zoom gombok'] },
+  { ver: 'v2.4.7', date: '2026-05-17', items: ['Oszlop: Nur für mich sichtbar toggle', 'GCal: több naptár (CD/DB/EL/NS)', 'GCal: Dr./orvos/kávé szűrés', 'Importált kártyához fotós'] },
+  { ver: 'v2.4.6b', date: '2026-05-17', items: ['GCal: Auf Board importieren gomb', 'GCal Import oszlop automatikus', 'Szülinapoknál import rejtve'] },
+  { ver: 'v2.4.6', date: '2026-05-17', items: ['Stats: havi bontás 12 hónap', 'Stats: célkörök (Umsatz/Aufnahmen/Instagram)', 'Stats: Instagram manuális'] },
+  { ver: 'v2.4.5', date: '2026-05-17', items: ['Stats: Umsatz Kundenkártyából (service_prices)', 'Stats: teljes német fordítás', 'Debug: per-user filter'] },
+  { ver: 'v2.4.4', date: '2026-05-17', items: ['Stats auth fix (email alapú)', 'Háttérképek frissítve'] },
+  { ver: 'v2.4.3', date: '2026-05-17', items: ['Per-user háttér izoláció fix', 'Kép/szín kizárás', 'Cron fix Hobby plan'] },
+  { ver: 'v2.4.2', date: '2026-05-17', items: ['Soft-delete kártyák', 'Auto ügyfél felismerés', 'Napi backup', 'GCal token mentés', 'Statisztika oldal'] },
+  { ver: 'v2.4.1', date: '2026-05-17', items: ['Dropbox gomb', 'Fertig gomb', 'Manuális mentés'] },
+  { ver: 'v2.4.0', date: '2026-05-17', items: ['Telefonbuch', 'Board kereső', 'Dropbox badge', 'Kunde form bővítés'] },
+  { ver: 'v2.3.9', date: '2026-05-16', items: ['Google Naptár integráció', 'Oszlop láthatóság', 'Drive link mező'] },
+  { ver: 'v2.3.8', date: '2026-05-16', items: ['7 háttérkép', 'Online státusz', 'Chat némítás', 'Email OTP 2FA'] },
+  { ver: 'v2.3.7', date: '2026-05-16', items: ['Team Chat újraépítés', 'Online státusz', '@All taggelés', 'Drag & Drop fix'] },
 ]
 
 const INIT_COLORS = { 'CD': '#b8892a', 'DB': '#1d5ec7', 'EL': '#15803d', 'NS': '#6d28d9', 'CA': '#b91c1c' }
@@ -45,12 +54,21 @@ export default function DebugPanel({ supabase, localLog, me }) {
   }
 
   async function loadDeleted() {
-    const [{ data: cards }, { data: columns }] = await Promise.all([
-      supabase.from('cards').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+    const [{ data: columns }] = await Promise.all([
       supabase.from('columns').select('*')
     ])
-    setDeleted(cards || [])
     setCols(columns || [])
+    // Archiviert column cards
+    const archCol = (columns || []).find(c => c.title === 'Archiviert')
+    let allDeleted = []
+    if (archCol) {
+      const { data: archCards } = await supabase.from('cards').select('*').eq('column_id', archCol.id).order('updated_at', { ascending: false })
+      allDeleted = [...(archCards || [])]
+    }
+    // Hard-deleted cards
+    const { data: hardDeleted } = await supabase.from('cards').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
+    allDeleted = [...allDeleted, ...(hardDeleted || [])]
+    setDeleted(allDeleted)
   }
 
   async function loadBackups() {
