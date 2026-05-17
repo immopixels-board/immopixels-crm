@@ -143,13 +143,15 @@ function DayView({ currentDate, getEventsForDate, today, onEventClick }) {
   )
 }
 
-export default function GoogleCalendarView({ staff, me, supabase }) {
+export default function GoogleCalendarView({ staff, me, supabase, cols, onImported }) {
   const [view, setView] = useState('month') // 'month' | 'week' | 'day'
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [gcalConnected, setGcalConnected] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState(false)
   const [filterStaff, setFilterStaff] = useState([]) // empty = show all
 
   useEffect(() => {
@@ -394,6 +396,41 @@ export default function GoogleCalendarView({ staff, me, supabase }) {
                 <i className="ti ti-brand-google" style={{fontSize:12}}/>
                 In Google Calendar öffnen
               </a>
+            )}
+            {selectedEvent.source === 'gcal' && (
+              <button onClick={async () => {
+                setImporting(true)
+                const importCol = cols?.find(c => c.title === 'GCal Import' && c.visible_to?.includes(me?.id))
+                  || cols?.find(c => c.title === 'GCal Import')
+                if (!importCol) { alert('Kein "GCal Import" Spalte gefunden. Bitte erst erstellen.'); setImporting(false); return }
+                const ev = selectedEvent.gcalEvent
+                const title = ev.summary || ''
+                const date = (ev.start?.dateTime || ev.start?.date || '').slice(0,10)
+                const time = ev.start?.dateTime ? new Date(ev.start.dateTime).toTimeString().slice(0,5) : null
+                const desc = ev.description || ''
+                await supabase.from('cards').insert({
+                  column_id: importCol.id,
+                  title,
+                  addr: ev.location || '',
+                  description: desc,
+                  card_date: date,
+                  card_time: time,
+                  is_gcal: true,
+                  card_type: 'foto',
+                  is_todo: false,
+                  price: 0,
+                  position: 9999,
+                  note: '',
+                })
+                setImporting(false)
+                setImported(true)
+                setTimeout(() => setImported(false), 2000)
+                setSelectedEvent(null)
+                if (onImported) onImported()
+              }} disabled={importing} style={{ display:'flex', alignItems:'center', gap:6, marginTop:10, background: imported ? '#15803d' : '#b8892a', color:'#fff', border:'none', borderRadius:7, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', justifyContent:'center' }}>
+                <i className="ti ti-download" style={{fontSize:12}}/>
+                {importing ? 'Wird importiert...' : imported ? '✓ Importiert' : 'Auf Board importieren'}
+              </button>
             )}
           </div>
         </div>
