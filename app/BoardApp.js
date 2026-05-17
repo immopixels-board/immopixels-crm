@@ -683,6 +683,8 @@ export default function Home() {
     dragCardElRef.current = cardEl
     isDraggingRef.current = true
     dragDidMoveRef.current = false
+    document.body.style.userSelect = 'none'
+    document.body.style.webkitUserSelect = 'none'
 
     // Flying clone
     const fly = document.createElement('div')
@@ -725,6 +727,8 @@ export default function Home() {
     const fly = dragFlyRef.current
     const card = dragCardRef.current
 
+    document.body.style.userSelect = ''
+    document.body.style.webkitUserSelect = ''
     if (fly) {
       fly.style.transition = 'transform .15s, opacity .15s'
       fly.style.transform = 'rotate(0deg) scale(1)'
@@ -765,7 +769,7 @@ export default function Home() {
   }
 
   function startColDrag(e, colEl, col) {
-    if (isDraggingRef.current) return
+    if (isDraggingRef.current || isColDraggingRef.current) return
     const clientX = e.touches?.[0]?.clientX ?? e.clientX
     if (!clientX) return
     const r = colEl.getBoundingClientRect()
@@ -774,8 +778,8 @@ export default function Home() {
     colDragTiltRef.current = 0
     colDragRef.current = col
     isColDraggingRef.current = true
-    // Pointer capture ensures mouseup always fires on window
-    try { colEl.setPointerCapture && colEl.releasePointerCapture(e.pointerId) } catch(e) {}
+    document.body.style.userSelect = 'none'
+    document.body.style.webkitUserSelect = 'none'
 
     const fly = document.createElement('div')
     fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
@@ -801,6 +805,8 @@ export default function Home() {
   async function endColDrag() {
     if (!isColDraggingRef.current) return
     isColDraggingRef.current = false
+    document.body.style.userSelect = ''
+    document.body.style.webkitUserSelect = ''
     const fly = colDragFlyRef.current
     const col = colDragRef.current
     if (fly) {
@@ -809,11 +815,12 @@ export default function Home() {
       setTimeout(() => { try { fly.remove() } catch(e){} }, 160)
       colDragFlyRef.current = null
     }
-    if (col && colDragOverIndex !== null) {
-      await moveColumnToIndex(col.id, colDragOverIndex)
-    }
+    const targetIdx = colDragOverIndex
     colDragRef.current = null
     setColDragOverIndex(null)
+    if (col && targetIdx !== null) {
+      await moveColumnToIndex(col.id, targetIdx)
+    }
   }
   // ─── End Custom Drag Engine ────────────────────────────────────
 
@@ -1836,7 +1843,7 @@ export default function Home() {
                 return (
                   <div key={col.id} className="bcol"
                     draggable={false}
-                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default', opacity: isColDragged ? 0.6 : 1 }}
+                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default', opacity: isColDragged ? 0.5 : 1 }}
                     data-colid={col.id}
 >
                     {isCollapsed ? (
@@ -1849,9 +1856,18 @@ export default function Home() {
                       <>
                         <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           <div
-                            onMouseDown={e => { if(e.button !== 0) return; startColDrag(e, e.currentTarget.closest('.bcol'), col) }}
-                            onTouchStart={e => { e.preventDefault(); startColDrag(e, e.currentTarget.closest('.bcol'), col) }}
-                            style={{ cursor: 'grab', padding: '2px 2px', color: 'var(--t3)', display:'flex', alignItems:'center', touchAction:'none' }}
+                            onMouseDown={e => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              if(e.button !== 0) return
+                              startColDrag(e, e.currentTarget.closest('.bcol'), col)
+                            }}
+                            onTouchStart={e => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              startColDrag(e, e.currentTarget.closest('.bcol'), col)
+                            }}
+                            style={{ cursor: 'grab', padding: '4px 4px', color: 'var(--t3)', display:'flex', alignItems:'center', touchAction:'none', userSelect:'none', WebkitUserSelect:'none' }}
                             title="Spalte verschieben">
                             <i className="ti ti-grip-vertical" style={{ fontSize:14 }}></i>
                           </div>
