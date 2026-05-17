@@ -235,6 +235,16 @@ export default function GoogleCalendarView({ staff, me, supabase }) {
         setGcalConnected(true)
         loadEvents(e.data.token)
         window.removeEventListener('message', handler)
+        // Save token to Supabase for cron jobs
+        if (me?.id) {
+          const exp = new Date(); exp.setHours(exp.getHours() + 1)
+          supabase.from('gcal_tokens').upsert({
+            staff_id: me.id,
+            access_token: e.data.token,
+            expires_at: exp.toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'staff_id' }).then(() => {})
+        }
       }
     }
     window.addEventListener('message', handler)
