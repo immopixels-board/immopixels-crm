@@ -192,34 +192,84 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
     setLoading(false)
   }
 
+  // Calendar name → staff init mapping
+  const CAL_STAFF_MAP = {
+    'immopixels': 'CD',
+    'd - terminen': 'DB',
+    'e - terminen': 'EL',
+    'n - terminen': 'NS',
+    'geburtstage': 'BDAY',
+  }
+  const SKIP_KEYWORDS = ['dr.', 'dr ', 'orvos', 'kaffee', 'kávé', 'kave', 'café', 'cafe', 'minup', 'geburtstag']
+
+  function getStaffForCal(calName) {
+    const lower = (calName || '').toLowerCase()
+    for (const [key, init] of Object.entries(CAL_STAFF_MAP)) {
+      if (lower.includes(key)) return staff.find(s => s.init === init) || me
+    }
+    return me
+  }
+
+  function shouldSkipEvent(title) {
+    const lower = (title || '').toLowerCase()
+    return SKIP_KEYWORDS.some(k => lower.includes(k))
+  }
+
   async function loadEvents(token) {
     try {
       const now = new Date(currentDate)
       const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
-      const resp = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start}&timeMax=${end}&singleEvents=true&orderBy=startTime`,
+
+      // 1. Get calendar list
+      const calListResp = await fetch(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
         { headers: { Authorization: 'Bearer ' + token } }
       )
-      if (resp.status === 401) {
+      if (calListResp.status === 401) {
         localStorage.removeItem('gcal_token')
         setGcalConnected(false)
         return
       }
-      const data = await resp.json()
-      const gcalEvents = (data.items || []).map(ev => ({
-        id: 'gcal-' + ev.id,
-        title: ev.summary || '(Kein Titel)',
-        date: (ev.start.dateTime || ev.start.date || '').slice(0, 10),
-        time: ev.start.dateTime ? new Date(ev.start.dateTime).toTimeString().slice(0, 5) : null,
-        color: me?.color || '#b8892a',
-        staffList: [me].filter(Boolean),
-        source: 'gcal',
-        gcalEvent: ev,
-      }))
+      const calList = await calListResp.json()
+      const cals = (calList.items || []).filter(c => {
+        const n = (c.summary || '').toLowerCase()
+        return !n.includes('minup') && !n.includes('kontakte') && !n.includes('contact')
+      })
+
+      // 2. Fetch events from each calendar
+      const allEvents = []
+      for (const cal of cals) {
+        try {
+          const resp = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${start}&timeMax=${end}&singleEvents=true&orderBy=startTime`,
+            { headers: { Authorization: 'Bearer ' + token } }
+          )
+          if (!resp.ok) continue
+          const data = await resp.json()
+          const calStaff = getStaffForCal(cal.summary)
+          const isBday = (cal.summary || '').toLowerCase().includes('geburtstag')
+
+          for (const ev of (data.items || [])) {
+            if (!isBday && shouldSkipEvent(ev.summary)) continue
+            allEvents.push({
+              id: 'gcal-' + ev.id,
+              title: ev.summary || '(Kein Titel)',
+              date: (ev.start?.dateTime || ev.start?.date || '').slice(0, 10),
+              time: ev.start?.dateTime ? new Date(ev.start.dateTime).toTimeString().slice(0, 5) : null,
+              color: calStaff?.color || me?.color || '#b8892a',
+              staffList: [calStaff].filter(Boolean),
+              source: 'gcal',
+              gcalEvent: { ...ev, calendarName: cal.summary, calendarId: cal.id },
+              isBday,
+            })
+          }
+        } catch(e) { /* skip this calendar */ }
+      }
+
       setEvents(prev => {
         const cardEvts = prev.filter(e => e.source === 'card')
-        return [...cardEvts, ...gcalEvents]
+        return [...cardEvts, ...allEvents]
       })
     } catch(e) { console.warn('GCal load error:', e) }
   }
@@ -372,6 +422,9 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
               <div style={{ width:12, height:12, borderRadius:'50%', background:selectedEvent.color, flexShrink:0 }} />
               <div style={{ fontSize:15, fontWeight:700, flex:1 }}>{selectedEvent.title}</div>
+              {selectedEvent.gcalEvent?.calendarName && (
+                <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg3)', borderRadius:4, padding:'2px 6px' }}>{selectedEvent.gcalEvent.calendarName}</span>
+              )}
               <button onClick={()=>setSelectedEvent(null)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--t3)' }}>×</button>
             </div>
             <div style={{ fontSize:13, color:'var(--t2)', marginBottom:8 }}>
@@ -397,7 +450,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
                 In Google Calendar öffnen
               </a>
             )}
-            {selectedEvent.source === 'gcal' && (
+            {selectedEvent.source === 'gcal' && !selectedEvent.isBday && (
               <button onClick={async () => {
                 setImporting(true)
                 const importCol = cols?.find(c => c.title === 'GCal Import' && c.visible_to?.includes(me?.id))
@@ -408,7 +461,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
                 const date = (ev.start?.dateTime || ev.start?.date || '').slice(0,10)
                 const time = ev.start?.dateTime ? new Date(ev.start.dateTime).toTimeString().slice(0,5) : null
                 const desc = ev.description || ''
-                await supabase.from('cards').insert({
+                const { data: newCard } = await supabase.from('cards').insert({
                   column_id: importCol.id,
                   title,
                   addr: ev.location || '',
@@ -421,7 +474,12 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
                   price: 0,
                   position: 9999,
                   note: '',
-                })
+                }).select().single()
+                // Add photographer to card_team based on calendar
+                if (newCard?.id && selectedEvent.staffList?.length) {
+                  const sid = selectedEvent.staffList[0]?.id
+                  if (sid) await supabase.from('card_team').insert({ card_id: newCard.id, staff_id: sid })
+                }
                 setImporting(false)
                 setImported(true)
                 setTimeout(() => setImported(false), 2000)

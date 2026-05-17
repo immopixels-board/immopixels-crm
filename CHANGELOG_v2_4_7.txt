@@ -1,0 +1,18 @@
+ImmoPixels CRM — v2.4.7 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.6b → v2.4.7
+
+• Oszlop: "Nur für mich sichtbar" toggle admin+subadmin számára
+• Oszlop: Privát beállítás mentve új oszlop létrehozásánál is
+• GCal: Több naptár betöltése (ImmoPixels, D/E/N - Terminen, Geburtstage)
+• GCal: Naptár alapján automatikus fotós azonosítás (CD/DB/EL/NS)
+• GCal: Dr./orvos/kávé események kiszűrve importnál
+• GCal: Szülinapoknál import gomb rejtve
+• GCal: Importált kártyához automatikusan hozzárendeli a fotóst
+• GCal: Esemény részleteinél naptár neve badge-ként látható
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_4_7.zip && mv immopixels-crm-v2.4.7 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.7" && git push
