@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: { unoptimized: true },
-  productionBrowserSourceMaps: true,
-  swcMinify: false,
+  productionBrowserSourceMaps: false,
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js'],
   },
