@@ -7,13 +7,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
+const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
+
 export default function StatsPage() {
-  const [me, setMe] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [clients, setClients] = useState([])
   const [cards, setCards] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('aufnahmen')
+  const [goals, setGoals] = useState({ umsatz: 500000, aufnahmen: 300, instagram: 5000 })
+  const [goalsInput, setGoalsInput] = useState({ umsatz: '', aufnahmen: '', instagram: '' })
+  const [igFollowers, setIgFollowers] = useState(0)
+  const [igInput, setIgInput] = useState('')
+  const [savingGoals, setSavingGoals] = useState(false)
+  const [year] = useState(new Date().getFullYear())
 
   useEffect(() => { init() }, [])
 
@@ -22,135 +27,260 @@ export default function StatsPage() {
     if (!user) { window.location.href = '/login'; return }
     const { data: staff } = await supabase.from('staff').select('*').eq('email', user.email).single()
     if (!staff || staff.role_level !== 'admin') { window.location.href = '/'; return }
-    setMe(staff)
 
-    const [{ data: cls }, { data: cds }] = await Promise.all([
+    const [{ data: cls }, { data: cds }, { data: gs }] = await Promise.all([
       supabase.from('clients').select('*').order('name'),
       supabase.from('cards').select('*').is('deleted_at', null),
+      supabase.from('settings').select('value').eq('key', 'annual_goals').maybeSingle(),
     ])
     setClients(cls || [])
     setCards(cds || [])
+    if (gs?.value) {
+      try {
+        const g = JSON.parse(gs.value)
+        setGoals(g)
+        setGoalsInput({ umsatz: g.umsatz || '', aufnahmen: g.aufnahmen || '', instagram: g.instagram || '' })
+        setIgFollowers(g.ig_current || 0)
+        setIgInput(g.ig_current || '')
+      } catch(e) {}
+    }
     setLoading(false)
   }
 
-  function getStats(client) {
-    const name = client.short_name || client.name
-    const clientCards = cards.filter(c =>
-      c.client_name && (
-        c.client_name.toLowerCase() === name.toLowerCase() ||
-        c.client_name.toLowerCase() === client.name.toLowerCase()
-      )
-    )
-    // Revenue from client.service_prices (sum of all entered prices)
-    const sp = client.service_prices || {}
-    const revenue = Object.values(sp).reduce((s, v) => s + (parseFloat(v) || 0), 0)
-    const last = clientCards.filter(c => c.card_date).sort((a, b) => b.card_date.localeCompare(a.card_date))[0]
-    return { count: clientCards.length, revenue, lastDate: last?.card_date || null }
+  async function saveGoals() {
+    setSavingGoals(true)
+    const newGoals = {
+      umsatz: parseFloat(goalsInput.umsatz) || goals.umsatz,
+      aufnahmen: parseInt(goalsInput.aufnahmen) || goals.aufnahmen,
+      instagram: parseInt(goalsInput.instagram) || goals.instagram,
+      ig_current: parseInt(igInput) || igFollowers,
+    }
+    await supabase.from('settings').upsert({ key: 'annual_goals', value: JSON.stringify(newGoals) }, { onConflict: 'key' })
+    setGoals(newGoals)
+    setIgFollowers(newGoals.ig_current)
+    setSavingGoals(false)
   }
 
-  const statsData = clients.map(c => ({ ...c, ...getStats(c) }))
-  const filtered = statsData.filter(c =>
-    !search || c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.short_name || '').toLowerCase().includes(search.toLowerCase())
-  )
-  const sorted = [...filtered].sort((a, b) =>
-    sortBy === 'aufnahmen' ? b.count - a.count :
-    sortBy === 'umsatz' ? b.revenue - a.revenue :
-    a.name.localeCompare(b.name)
-  )
+  // Calculations
+  const yearCards = cards.filter(c => c.card_date?.startsWith(year + ''))
+  const totalAufnahmen = yearCards.length
+  const totalUmsatz = clients.reduce((s, c) => s + Object.values(c.service_prices || {}).reduce((a, v) => a + (parseFloat(v) || 0), 0), 0)
 
-  const totalCards = cards.length
-  const totalRevenue = clients.reduce((s, c) => s + Object.values(c.service_prices || {}).reduce((a, v) => a + (parseFloat(v) || 0), 0), 0)
-  const totalClients = clients.length
+  const monthlyData = MONTHS.map((m, i) => ({
+    month: m,
+    count: yearCards.filter(c => new Date(c.card_date).getMonth() === i).length
+  }))
+  const maxMonth = Math.max(...monthlyData.map(m => m.count), 1)
+  const curMonth = new Date().getMonth()
 
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Arial', color: '#8a8278' }}>
-      Wird geladen...
-    </div>
-  )
+  function clientMonthCount(client, monthIdx) {
+    const name = client.short_name || client.name
+    return yearCards.filter(c =>
+      new Date(c.card_date).getMonth() === monthIdx &&
+      c.client_name && (
+        c.client_name.toLowerCase() === name.toLowerCase() ||
+        c.client_name.toLowerCase() === (client.name || '').toLowerCase()
+      )
+    ).length
+  }
+
+  function clientTotal(client) {
+    const name = client.short_name || client.name
+    return yearCards.filter(c => c.client_name && (
+      c.client_name.toLowerCase() === name.toLowerCase() ||
+      c.client_name.toLowerCase() === (client.name || '').toLowerCase()
+    )).length
+  }
+
+  function clientUmsatz(client) {
+    return Object.values(client.service_prices || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+  }
+
+  function GoalCircle({ pct, color, gradient, label, current, target, unit, remaining }) {
+    const r = 54, circ = 2 * Math.PI * r
+    const offset = circ - (Math.min(pct, 100) / 100) * circ
+    return (
+      <div style={{ flex: 1, background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 12, padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 14 }}>{label}</div>
+        <div style={{ position: 'relative', width: 130, height: 130, marginBottom: 12 }}>
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            {gradient && (
+              <defs>
+                <linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#f09433"/>
+                  <stop offset="50%" stopColor="#dc2743"/>
+                  <stop offset="100%" stopColor="#bc1888"/>
+                </linearGradient>
+              </defs>
+            )}
+            <circle cx="65" cy="65" r={r} fill="none" stroke="#eeeae6" strokeWidth="11"/>
+            <circle cx="65" cy="65" r={r} fill="none"
+              stroke={gradient ? 'url(#ig)' : color}
+              strokeWidth="11"
+              strokeDasharray={circ}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              transform="rotate(-90 65 65)"
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#1c1a16' }}>{Math.round(pct)}%</div>
+            <div style={{ fontSize: 10, color: '#8a8278' }}>erreicht</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: gradient ? '#dc2743' : color }}>{typeof current === 'number' ? current.toLocaleString('de-DE') : current}{unit}</div>
+            <div style={{ fontSize: 10, color: '#8a8278' }}>erreicht</div>
+          </div>
+          <div style={{ width: 1, background: '#eeeae6' }}/>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1a16' }}>{typeof target === 'number' ? target.toLocaleString('de-DE') : target}{unit}</div>
+            <div style={{ fontSize: 10, color: '#8a8278' }}>Ziel</div>
+          </div>
+        </div>
+        <div style={{ width: '100%', background: '#f4f2ef', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#8a8278' }}>Noch <span style={{ color: '#1c1a16', fontWeight: 700 }}>{remaining}</span></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Arial', color: '#8a8278' }}>Wird geladen...</div>
+
+  const umsatzPct = goals.umsatz ? (totalUmsatz / goals.umsatz) * 100 : 0
+  const aufnahmenPct = goals.aufnahmen ? (totalAufnahmen / goals.aufnahmen) * 100 : 0
+  const igPct = goals.instagram ? (igFollowers / goals.instagram) * 100 : 0
 
   return (
-    <div style={{ fontFamily: 'Arial', background: 'var(--bg)', minHeight: '100vh', color: 'var(--t1)' }}>
-      <style>{`
-        :root { --bg:#f4f2ef; --bg2:#fff; --bg3:#eeeae6; --border:#ddd9d2; --t1:#1c1a16; --t2:#4a4540; --t3:#8a8278; --gold:#b8892a; --gdbg:rgba(184,137,42,.08); --gdbr:rgba(184,137,42,.25); }
-      `}</style>
+    <div style={{ fontFamily: 'Arial', background: '#f4f2ef', minHeight: '100vh', color: '#1c1a16' }}>
+      <style>{`:root{--bg:#f4f2ef;--bg2:#fff;--border:#ddd9d2;--t1:#1c1a16;--t3:#8a8278;--gold:#b8892a}`}</style>
 
-      {/* Header */}
-      <div style={{ height: 52, background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,.05)' }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--t1)' }}>
-          <span style={{ fontSize: 18 }}>←</span>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>ImmoPixels</span>
-          <span style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>CRM</span>
+      <div style={{ height: 52, background: '#fff', borderBottom: '1px solid #ddd9d2', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 16 }}>
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#8a8278', fontSize: 13 }}>
+          <i className="ti ti-arrow-left" style={{ fontSize: 13 }} /> Board
         </a>
-        <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>📊 Kunde Statistik</span>
-        <span style={{ fontSize: 11, color: 'var(--t3)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', marginLeft: 'auto' }}>Nur Admin</span>
+        <div style={{ width: 1, height: 16, background: '#ddd9d2' }} />
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#b8892a' }}>Kunden Statistik {year}</span>
       </div>
 
-      <div style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: '20px 24px', maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        {/* Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Kunden gesamt', value: totalClients, icon: '👥' },
-            { label: 'Aufnahmen gesamt', value: totalCards, icon: '📸' },
-            { label: 'Umsatz gesamt', value: totalRevenue ? totalRevenue.toLocaleString('de-DE') + ' €' : '—', icon: '💶' },
+            { label: 'Kunden', value: clients.length },
+            { label: `Aufnahmen ${year}`, value: totalAufnahmen },
+            { label: `Umsatz ${year}`, value: totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—' },
+            { label: 'Ø pro Aufnahme', value: totalAufnahmen && totalUmsatz ? Math.round(totalUmsatz / totalAufnahmen).toLocaleString('de-DE') + ' €' : '—' },
           ].map(s => (
-            <div key={s.label} style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 5 }}>{s.icon} {s.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--t1)' }}>{s.value}</div>
+            <div key={s.label} style={{ background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, color: '#8a8278', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 5 }}>{s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{s.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Controls */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Kunde suchen..." style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, outline: 'none' }} />
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
-            <option value="fotok">↓ Aufnahmen</option>
-            <option value="bevetel">↓ Umsatz</option>
-            <option value="nev">A–Z Name</option>
-          </select>
-        </div>
+        {/* Goal circles + settings */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <GoalCircle
+            pct={umsatzPct} color="#b8892a" label="Umsatz-Ziel"
+            current={totalUmsatz} target={goals.umsatz} unit=" €"
+            remaining={(goals.umsatz - totalUmsatz).toLocaleString('de-DE') + ' €'}
+          />
+          <GoalCircle
+            pct={aufnahmenPct} color="#15803d" label="Aufnahmen-Ziel"
+            current={totalAufnahmen} target={goals.aufnahmen} unit=""
+            remaining={(goals.aufnahmen - totalAufnahmen) + ' Aufnahmen'}
+          />
+          <GoalCircle
+            pct={igPct} color="#dc2743" gradient label="Instagram-Ziel"
+            current={igFollowers} target={goals.instagram} unit=""
+            remaining={(goals.instagram - igFollowers).toLocaleString('de-DE') + ' Follower'}
+          />
 
-        {/* Table */}
-        <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', padding: '10px 16px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
-            <span>Kunde</span>
-            <span style={{ textAlign: 'right' }}>Aufnahmen</span>
-            <span style={{ textAlign: 'right' }}>Umsatz</span>
-            <span style={{ textAlign: 'right' }}>Letzter</span>
+          {/* Goals settings */}
+          <div style={{ width: 170, background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 12, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase', letterSpacing: '.5px' }}>Ziele setzen</div>
+            {[
+              { label: 'Umsatz (€)', key: 'umsatz' },
+              { label: 'Aufnahmen', key: 'aufnahmen' },
+              { label: 'Instagram Ziel', key: 'instagram' },
+            ].map(f => (
+              <div key={f.key}>
+                <div style={{ fontSize: 10, color: '#8a8278', marginBottom: 4 }}>{f.label}</div>
+                <input type="number" value={goalsInput[f.key]} onChange={e => setGoalsInput(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 7, padding: '6px 10px', fontSize: 13, fontWeight: 700, color: '#1c1a16', outline: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#ddd9d2'}
+                />
+              </div>
+            ))}
+            <div>
+              <div style={{ fontSize: 10, color: '#8a8278', marginBottom: 4 }}>Instagram aktuell</div>
+              <input type="number" value={igInput} onChange={e => setIgInput(e.target.value)}
+                style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 7, padding: '6px 10px', fontSize: 13, fontWeight: 700, color: '#1c1a16', outline: 'none', boxSizing: 'border-box' }}
+                onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+                onBlur={e => e.currentTarget.style.borderColor = '#ddd9d2'}
+              />
+            </div>
+            <button onClick={saveGoals} disabled={savingGoals}
+              style={{ background: '#b8892a', color: '#fff', border: 'none', borderRadius: 7, padding: '8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 'auto' }}>
+              {savingGoals ? '...' : 'Speichern'}
+            </button>
           </div>
-          {sorted.length === 0 && (
-            <div style={{ padding: '20px 16px', color: 'var(--t3)', fontSize: 13 }}>Keine Ergebnisse</div>
-          )}
-          {sorted.map((c, i) => (
-            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', padding: '10px 16px', borderBottom: i < sorted.length - 1 ? '0.5px solid var(--border)' : 'none', alignItems: 'center' }}>
+        </div>
+
+        {/* Bar chart */}
+        <div style={{ background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12 }}>Aufnahmen pro Monat — {year}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 90 }}>
+            {monthlyData.map((m, i) => {
+              const h = m.count ? Math.max(Math.round((m.count / maxMonth) * 70), 4) : 2
+              const isCur = i === curMonth
+              return (
+                <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                  <div style={{ fontSize: 9, color: m.count ? (isCur ? '#b8892a' : '#8a8278') : 'transparent', fontWeight: isCur ? 700 : 400 }}>{m.count || 0}</div>
+                  <div style={{ width: '100%', height: h, background: isCur ? '#b8892a' : (m.count ? '#e8e4de' : '#f4f2ef'), borderRadius: '3px 3px 0 0' }}/>
+                  <div style={{ fontSize: 9, color: isCur ? '#b8892a' : (m.count ? '#8a8278' : '#ccc8c0'), fontWeight: isCur ? 700 : 400 }}>{m.month}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Client table */}
+        <div style={{ background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', background: '#f4f2ef', borderBottom: '0.5px solid #ddd9d2', fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase', letterSpacing: '.4px', gap: 2, alignItems: 'center' }}>
+            <span>Kunde</span>
+            {MONTHS.map(m => <span key={m} style={{ textAlign: 'center' }}>{m}</span>)}
+            <span style={{ textAlign: 'right' }}>Ges.</span>
+            <span style={{ textAlign: 'right' }}>Umsatz</span>
+          </div>
+          {clients.filter(c => clientTotal(c) > 0).sort((a, b) => clientTotal(b) - clientTotal(a)).map((c, i, arr) => (
+            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', borderBottom: i < arr.length - 1 ? '0.5px solid #eeeae6' : 'none', alignItems: 'center', gap: 2 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{c.name}</div>
-                {c.short_name && c.short_name !== c.name && (
-                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{c.short_name}</div>
-                )}
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{c.name}</div>
+                {c.short_name && c.short_name !== c.name && <div style={{ fontSize: 10, color: '#8a8278' }}>{c.short_name}</div>}
               </div>
-              <div style={{ textAlign: 'right' }}>
-                {c.count > 0 ? (
-                  <span style={{ fontSize: 13, fontWeight: 700, color: c.count >= 10 ? 'var(--gold)' : 'var(--t1)' }}>{c.count}</span>
-                ) : (
-                  <span style={{ fontSize: 12, color: 'var(--t3)' }}>—</span>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                {c.revenue > 0 ? (
-                  <span style={{ fontSize: 12, color: 'var(--t2)' }}>{c.revenue.toLocaleString('de-DE')} €</span>
-                ) : (
-                  <span style={{ fontSize: 12, color: 'var(--t3)' }}>—</span>
-                )}
-              </div>
-              <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--t3)' }}>
-                {c.lastDate ? new Date(c.lastDate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'}
-              </div>
+              {MONTHS.map((m, mi) => {
+                const cnt = clientMonthCount(c, mi)
+                return <div key={m} style={{ textAlign: 'center', fontSize: 11, fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+              })}
+              <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{clientTotal(c)}</div>
+              <div style={{ textAlign: 'right', fontSize: 11, color: '#4a4540' }}>{clientUmsatz(c) ? clientUmsatz(c).toLocaleString('de-DE') + ' €' : '—'}</div>
             </div>
           ))}
+          {/* Totals */}
+          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', background: '#faf9f7', borderTop: '1px solid #ddd9d2', alignItems: 'center', gap: 2 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase' }}>Gesamt</div>
+            {MONTHS.map((m, mi) => {
+              const cnt = monthlyData[mi].count
+              return <div key={m} style={{ textAlign: 'center', fontSize: 11, fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+            })}
+            <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{totalAufnahmen}</div>
+            <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700 }}>{totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—'}</div>
+          </div>
         </div>
 
       </div>
