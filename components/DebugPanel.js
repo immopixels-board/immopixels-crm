@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.5.7', date: '2026-05-17', items: ['Kártya grip ikon (drag handle)', 'Hover menü: fel/le nyilak eltávolítva', 'GCal kártyák: addr megjelenítés fix'] },
+  { ver: 'v2.5.6', date: '2026-05-17', items: ['Oszlop drag race condition fix (postgres_changes suppress)', 'moveColumnToIndex: suppress loadCols írás közben'] },
+  { ver: 'v2.5.5', date: '2026-05-17', items: ['Oszlop drag: endColDrag placeholder-index fix (ghost helyett ph pozíció)'] },
   { ver: 'v2.5.0', date: '2026-05-17', items: ['Debug: minden változás rögzítve', 'Debug: Archiviert kártyák Törölt fülön', 'Debug: per-user filter javítva', 'Changelog frissítve minden verzióhoz'] },
   { ver: 'v2.4.9', date: '2026-05-17', items: ['Kártya törlés: Archiviert oszlopba kerül', 'Undo toast 5mp visszaszámlálóval', 'Naptár: nagyobb cellák, zoom 110%', 'Confirm dialóg saját design'] },
   { ver: 'v2.4.8', date: '2026-05-17', items: ['Kártya: piros keret 2+ nap lejárt', '5+ nap: piros háttér', 'Fertig/terminieren kizárva', 'Note broadcast javítva', 'Naptár header + zoom gombok'] },
