@@ -218,14 +218,22 @@ export default function Home() {
   const [dragOver, setDragOver] = useState(null)
   const [droppedCard, setDroppedCard] = useState(null)
   const dragFlyRef = React.useRef(null)
-  const dragGhostRef = React.useRef(null)
-  const dragPhRef = React.useRef(null)
   const dragOffRef = React.useRef({ x: 0, y: 0 })
   const dragTiltRef = React.useRef(0)
   const dragLastXRef = React.useRef(0)
   const dragCardRef = React.useRef(null)
+  const dragCardElRef = React.useRef(null)
   const isDraggingRef = React.useRef(false)
   const dragDidMoveRef = React.useRef(false)
+  const [dragOverColId, setDragOverColId] = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+  const colDragRef = React.useRef(null)
+  const colDragFlyRef = React.useRef(null)
+  const colDragOffRef = React.useRef({ x: 0, y: 0 })
+  const colDragTiltRef = React.useRef(0)
+  const colDragLastXRef = React.useRef(0)
+  const isColDraggingRef = React.useRef(false)
+  const [colDragOverIndex, setColDragOverIndex] = useState(null)
   const [modal, setModal] = useState(null)
   const [newCardColId, setNewCardColId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -638,55 +646,31 @@ export default function Home() {
     undoTimerRef.current = setTimeout(() => { setUndoToast(null) }, 5100)
   }
 
-  // ─── Custom Drag Engine (mouse + touch) ───────────────────────
-  function getDragItemBelow(x, y, listEl) {
-    const cards = [...listEl.querySelectorAll('.board-card:not(.drag-ghost)')]
-    return cards.reduce((closest, c) => {
-      const r = c.getBoundingClientRect()
-      const offset = y - r.top - r.height / 2
-      if (offset < 0 && offset > closest.offset) return { offset, el: c }
-      return closest
-    }, { offset: -Infinity, el: null }).el
+  // ─── Custom Drag Engine (React-state based, no direct DOM manipulation) ──
+  function getCardsInCol(colId) {
+    return cards.filter(c => c.column_id === colId).sort((a,b) => (a.position||0)-(b.position||0))
   }
 
-  function getColListAt(x, y) {
-    const els = document.elementsFromPoint(x, y)
-    return els.find(e => e.classList.contains('bcol-cards'))
-  }
-
-  function initDragPh(height) {
-    let ph = dragPhRef.current
-    if (!ph) {
-      ph = document.createElement('div')
-      ph.style.cssText = 'border-radius:9px;background:rgba(184,137,42,.1);border:1.5px dashed #b8892a;overflow:hidden;transition:height .2s cubic-bezier(.34,1.56,.64,1),margin-bottom .2s,opacity .15s;opacity:0;height:0;margin-bottom:0;pointer-events:none'
-      dragPhRef.current = ph
+  function getDropIndex(colId, clientY) {
+    const colEl = document.querySelector('[data-colid="' + colId + '"]')
+    if (!colEl) return 0
+    const cardEls = [...colEl.querySelectorAll('.board-card')]
+    for (let i = 0; i < cardEls.length; i++) {
+      const r = cardEls[i].getBoundingClientRect()
+      if (clientY < r.top + r.height / 2) return i
     }
-    ph.dataset.height = height
-    return ph
+    return cardEls.length
   }
 
-  function showDragPh(list, before, height) {
-    const ph = initDragPh(height)
-    if (before) list.insertBefore(ph, before)
-    else list.appendChild(ph)
-    requestAnimationFrame(() => {
-      ph.style.height = (height || 52) + 'px'
-      ph.style.marginBottom = '6px'
-      ph.style.opacity = '1'
-    })
-    document.querySelectorAll('.bcol').forEach(c => {
-      c.style.borderColor = c.contains(ph) ? 'var(--gold)' : ''
-      c.style.boxShadow = c.contains(ph) ? '0 0 0 2px rgba(184,137,42,.15)' : ''
-    })
-  }
-
-  function removeDragPh() {
-    const ph = dragPhRef.current
-    if (!ph || !ph.parentNode) return
-    ph.style.opacity = '0'
-    ph.style.height = '0'
-    ph.style.marginBottom = '0'
-    setTimeout(() => { if (ph.parentNode) ph.parentNode.removeChild(ph) }, 220)
+  function getColDropIndex(clientX) {
+    const boardEl = document.querySelector('.bcol-board')
+    if (!boardEl) return 0
+    const colEls = [...boardEl.querySelectorAll('.bcol')]
+    for (let i = 0; i < colEls.length; i++) {
+      const r = colEls[i].getBoundingClientRect()
+      if (clientX < r.left + r.width / 2) return i
+    }
+    return colEls.length
   }
 
   function startCustomDrag(clientX, clientY, cardEl, card) {
@@ -696,127 +680,130 @@ export default function Home() {
     dragLastXRef.current = clientX
     dragTiltRef.current = 0
     dragCardRef.current = card
+    dragCardElRef.current = cardEl
     isDraggingRef.current = true
     dragDidMoveRef.current = false
 
-    // Ghost (faded original)
-    cardEl.classList.add('drag-ghost')
-    cardEl.dataset.dragged = '0'
-    dragGhostRef.current = cardEl
-
     // Flying clone
     const fly = document.createElement('div')
-    fly.style.cssText = `position:fixed;pointer-events:none;z-index:9999;width:${r.width}px;left:${clientX - dragOffRef.current.x}px;top:${clientY - dragOffRef.current.y}px;background:#fff;border:1px solid #b8892a;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700;color:#1c1a16;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:transform .06s linear;will-change:transform`
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:' + r.width + 'px;left:' + (clientX - dragOffRef.current.x) + 'px;top:' + (clientY - dragOffRef.current.y) + 'px;background:#fff;border:1px solid #b8892a;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700;color:#1c1a16;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:transform .06s linear;will-change:transform;opacity:.95'
     fly.innerHTML = cardEl.innerHTML
     document.body.appendChild(fly)
     dragFlyRef.current = fly
 
-    // Placeholder
-    const ph = initDragPh(r.height)
-    cardEl.parentNode.insertBefore(ph, cardEl.nextSibling)
-    requestAnimationFrame(() => { ph.style.height = r.height + 'px'; ph.style.marginBottom = '6px'; ph.style.opacity = '1' })
-
     setDragging(card)
+    setDragOverColId(card.column_id)
+    setDragOverIndex(getDropIndex(card.column_id, clientY))
   }
 
   function moveCustomDrag(clientX, clientY) {
     const fly = dragFlyRef.current
     if (!fly || !isDraggingRef.current) return
     dragDidMoveRef.current = true
-    if (dragGhostRef.current) dragGhostRef.current.dataset.dragged = '1'
+
     fly.style.left = (clientX - dragOffRef.current.x) + 'px'
     fly.style.top = (clientY - dragOffRef.current.y) + 'px'
 
-    // Tilt
     const vx = clientX - dragLastXRef.current
     dragLastXRef.current = clientX
     dragTiltRef.current = dragTiltRef.current * 0.7 + vx * 0.5
     const t = Math.max(-14, Math.min(14, dragTiltRef.current))
-    fly.style.transform = `rotate(${t}deg)`
+    fly.style.transform = 'rotate(' + t + 'deg)'
 
-    // Placeholder position
-    const list = getColListAt(clientX, clientY)
-    if (list) {
-      const ph = dragPhRef.current
-      const before = getDragItemBelow(clientX, clientY, list)
-      if (before) list.insertBefore(ph, before)
-      else list.appendChild(ph)
-      requestAnimationFrame(() => {
-        ph.style.height = (ph.dataset.height || 52) + 'px'
-        ph.style.marginBottom = '6px'
-        ph.style.opacity = '1'
-      })
-      document.querySelectorAll('.bcol').forEach(c => {
-        c.style.borderColor = c.contains(ph) ? 'var(--gold)' : ''
-        c.style.boxShadow = c.contains(ph) ? '0 0 0 2px rgba(184,137,42,.15)' : ''
-      })
+    // Find target col from pointer position
+    const els = document.elementsFromPoint(clientX, clientY)
+    const colEl = els.find(e => e.dataset?.colid)
+    if (colEl) {
+      const colId = colEl.dataset.colid
+      setDragOverColId(colId)
+      setDragOverIndex(getDropIndex(colId, clientY))
     }
   }
 
-  async function endCustomDrag(clientX, clientY) {
+  async function endCustomDrag() {
+    isDraggingRef.current = false
     const fly = dragFlyRef.current
-    const ghost = dragGhostRef.current
-    const ph = dragPhRef.current
     const card = dragCardRef.current
 
-    isDraggingRef.current = false
-    if (!fly || !ghost || !card) return
-
-    // Animate fly to placeholder position
-    const phR = ph?.getBoundingClientRect()
-    if (phR && fly) {
-      fly.style.transition = 'left .18s cubic-bezier(.34,1.56,.64,1), top .18s cubic-bezier(.34,1.56,.64,1), transform .18s, opacity .15s'
-      fly.style.left = phR.left + 'px'
-      fly.style.top = phR.top + 'px'
+    if (fly) {
+      fly.style.transition = 'transform .15s, opacity .15s'
       fly.style.transform = 'rotate(0deg) scale(1)'
       fly.style.opacity = '0'
-    }
-
-    // Find target col
-    const list = ph?.parentNode
-    const colEl = list?.closest('.bcol')
-    const colId = colEl?.dataset.colid
-
-    // Move ghost to where ph is
-    if (ph && ph.parentNode) {
-      ph.parentNode.insertBefore(ghost, ph)
-    }
-
-    setTimeout(() => {
-      if (fly) fly.remove()
+      setTimeout(() => fly.remove(), 160)
       dragFlyRef.current = null
-    }, 200)
+    }
 
-    removeDragPh()
-    ghost.classList.remove('drag-ghost')
-    dragGhostRef.current = null
-    dragCardRef.current = null
+    if (card && dragDidMoveRef.current) {
+      const targetColId = dragOverColId || card.column_id
+      const targetIndex = dragOverIndex ?? 9999
 
-    document.querySelectorAll('.bcol').forEach(c => { c.style.borderColor = ''; c.style.boxShadow = '' })
+      const colCards = cards.filter(c => c.column_id === targetColId && c.id !== card.id)
+        .sort((a,b) => (a.position||0)-(b.position||0))
+      colCards.splice(targetIndex, 0, { ...card, column_id: targetColId })
+      const updates = colCards.map((c, i) => ({ id: c.id, position: i, column_id: targetColId }))
 
-    // Save position and/or column
-    if (colId && dragDidMoveRef.current) {
-      const targetColId = colId
-      const colChanged = targetColId !== card.column_id
-      // Calculate new position based on DOM order
-      const listEl = ph?.parentNode || list
-      const siblings = listEl ? [...listEl.querySelectorAll('.board-card')] : []
-      const newPos = siblings.indexOf(ghost)
+      setCards(prev => {
+        const others = prev.filter(c => c.id !== card.id && c.column_id !== targetColId)
+        const thisCol = colCards.map((c,i) => ({ ...prev.find(x=>x.id===c.id)||c, position:i, column_id:targetColId }))
+        return [...others, ...thisCol]
+      })
 
-      setCards(prev => prev.map(c => c.id === card.id ? { ...c, column_id: targetColId } : c))
-      await supabase.from('cards').update({
-        column_id: targetColId,
-        position: newPos >= 0 ? newPos : 9999,
-        updated_at: new Date().toISOString()
-      }).eq('id', card.id)
+      await Promise.all(updates.map(u =>
+        supabase.from('cards').update({ column_id: u.column_id, position: u.position, updated_at: new Date().toISOString() }).eq('id', u.id)
+      ))
       broadcastChange('cards_changed')
-      if (colChanged) addLog('Karte verschoben: ' + card.title)
+      if (targetColId !== card.column_id) addLog('Karte verschoben: ' + card.title)
       setDroppedCard(card.id)
       setTimeout(() => setDroppedCard(null), 600)
     }
 
-    dragDidMoveRef.current = false
     setDragging(null)
+    setDragOverColId(null)
+    setDragOverIndex(null)
+    dragDidMoveRef.current = false
+    dragCardRef.current = null
+  }
+
+  function startColDrag(e, colEl, col) {
+    if (isDraggingRef.current) return
+    const clientX = e.touches?.[0]?.clientX ?? e.clientX
+    const r = colEl.getBoundingClientRect()
+    colDragOffRef.current = { x: clientX - r.left, y: 0 }
+    colDragLastXRef.current = clientX
+    colDragTiltRef.current = 0
+    colDragRef.current = col
+    isColDraggingRef.current = true
+
+    const fly = document.createElement('div')
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
+    fly.textContent = col.title
+    document.body.appendChild(fly)
+    colDragFlyRef.current = fly
+    setColDragOverIndex(getColDropIndex(clientX))
+  }
+
+  function moveColDrag(clientX) {
+    const fly = colDragFlyRef.current
+    if (!fly || !isColDraggingRef.current) return
+    fly.style.left = (clientX - colDragOffRef.current.x) + 'px'
+    const vx = clientX - colDragLastXRef.current
+    colDragLastXRef.current = clientX
+    colDragTiltRef.current = colDragTiltRef.current * 0.7 + vx * 0.5
+    const t = Math.max(-8, Math.min(8, colDragTiltRef.current))
+    fly.style.transform = 'rotate(' + t + 'deg)'
+    setColDragOverIndex(getColDropIndex(clientX))
+  }
+
+  async function endColDrag() {
+    isColDraggingRef.current = false
+    const fly = colDragFlyRef.current
+    const col = colDragRef.current
+    if (fly) { fly.style.opacity = '0'; setTimeout(() => fly.remove(), 150); colDragFlyRef.current = null }
+    if (col && colDragOverIndex !== null) {
+      await moveColumnToIndex(col.id, colDragOverIndex)
+    }
+    colDragRef.current = null
+    setColDragOverIndex(null)
   }
   // ─── End Custom Drag Engine ────────────────────────────────────
 
@@ -900,17 +887,21 @@ export default function Home() {
   moveCustomDragRef.current = moveCustomDrag
   endCustomDragRef.current = endCustomDrag
 
+  const moveColDragRef = React.useRef(null)
+  const endColDragRef = React.useRef(null)
+  moveColDragRef.current = moveColDrag
+  endColDragRef.current = endColDrag
+
   useEffect(() => {
     function onMove(e) {
-      if (!isDraggingRef.current) return
       if (e.cancelable) e.preventDefault()
       const c = e.touches ? e.touches[0] : e
-      moveCustomDragRef.current?.(c.clientX, c.clientY)
+      if (isDraggingRef.current) moveCustomDragRef.current?.(c.clientX, c.clientY)
+      if (isColDraggingRef.current) moveColDragRef.current?.(c.clientX)
     }
     function onUp(e) {
-      if (!isDraggingRef.current) return
-      const c = e.changedTouches ? e.changedTouches[0] : e
-      endCustomDragRef.current?.(c.clientX, c.clientY)
+      if (isDraggingRef.current) endCustomDragRef.current?.()
+      if (isColDraggingRef.current) endColDragRef.current?.()
     }
     window.addEventListener('mousemove', onMove, { passive: false })
     window.addEventListener('mouseup', onUp)
@@ -994,15 +985,99 @@ export default function Home() {
     return 'var(--bg2)'
   }
 
-  async function moveColumn(fromId, toId) {
-    const fromCol = cols.find(c => c.id === fromId)
-    const toCol = cols.find(c => c.id === toId)
-    if (!fromCol || !toCol) return
-    // Swap positions
-    await supabase.from('columns').update({ position: toCol.position }).eq('id', fromId)
-    await supabase.from('columns').update({ position: fromCol.position }).eq('id', toId)
-    addLog('Spalte átrendezve: ' + fromCol.title)
+  async function moveColumnToIndex(colId, newIndex) {
+    const sorted = [...cols].sort((a, b) => (a.position || 0) - (b.position || 0))
+    const fromIdx = sorted.findIndex(c => c.id === colId)
+    if (fromIdx === -1 || fromIdx === newIndex) return
+    const reordered = [...sorted]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(newIndex, 0, moved)
+    await Promise.all(reordered.map((c, i) => supabase.from('columns').update({ position: i }).eq('id', c.id)))
+    addLog('Spalte verschoben: ' + moved.title)
     loadCols()
+  }
+
+  function getColInsertIndex(boardEl, x) {
+    const colEls = [...boardEl.querySelectorAll('.bcol:not(.col-drag-ghost)')]
+    for (let i = 0; i < colEls.length; i++) {
+      const r = colEls[i].getBoundingClientRect()
+      if (x < r.left + r.width / 2) return i
+    }
+    return colEls.length
+  }
+
+  function startColDrag(e, colEl, col) {
+    if (isDraggingRef.current) return
+    const clientX = e.touches?.[0]?.clientX ?? e.clientX
+    const clientY = e.touches?.[0]?.clientY ?? e.clientY
+    const r = colEl.getBoundingClientRect()
+    colDragOffRef.current = { x: clientX - r.left, y: clientY - r.top }
+    colDragLastXRef.current = clientX
+    colDragTiltRef.current = 0
+    colDragRef.current = col
+    isColDraggingRef.current = true
+
+    colEl.classList.add('col-drag-ghost')
+
+    // Placeholder
+    const ph = document.createElement('div')
+    ph.style.cssText = 'width:' + r.width + 'px;min-width:' + r.width + 'px;height:' + r.height + 'px;border-radius:11px;background:rgba(184,137,42,.08);border:1.5px dashed #b8892a;flex-shrink:0;transition:opacity .2s'
+    ph.classList.add('col-drag-ph')
+    colEl.parentNode.insertBefore(ph, colEl.nextSibling)
+    colDragPhRef.current = ph
+
+    // Flying clone — just header
+    const fly = document.createElement('div')
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
+    fly.textContent = col.title
+    document.body.appendChild(fly)
+    colDragFlyRef.current = fly
+  }
+
+  function moveColDrag(clientX, clientY) {
+    const fly = colDragFlyRef.current
+    if (!fly || !isColDraggingRef.current) return
+    fly.style.left = (clientX - colDragOffRef.current.x) + 'px'
+
+    const vx = clientX - colDragLastXRef.current
+    colDragLastXRef.current = clientX
+    colDragTiltRef.current = colDragTiltRef.current * 0.7 + vx * 0.5
+    const t = Math.max(-8, Math.min(8, colDragTiltRef.current))
+    fly.style.transform = 'rotate(' + t + 'deg)'
+
+    // Move placeholder
+    const ph = colDragPhRef.current
+    const board = document.querySelector('.bcol-board')
+    if (!ph || !board) return
+    const idx = getColInsertIndex(board, clientX)
+    const colEls = [...board.querySelectorAll('.bcol:not(.col-drag-ghost)')]
+    if (idx < colEls.length) board.insertBefore(ph, colEls[idx])
+    else board.appendChild(ph)
+  }
+
+  async function endColDrag() {
+    const fly = colDragFlyRef.current
+    const ph = colDragPhRef.current
+    const col = colDragRef.current
+    isColDraggingRef.current = false
+
+    if (fly) { fly.style.opacity = '0'; setTimeout(() => fly.remove(), 150); colDragFlyRef.current = null }
+
+    const ghost = document.querySelector('.col-drag-ghost')
+    if (ghost) ghost.classList.remove('col-drag-ghost')
+
+    if (ph && ph.parentNode && col) {
+      const board = ph.parentNode
+      const allCols = [...board.querySelectorAll('.bcol')]
+      const newIdx = allCols.indexOf(ghost)
+      ph.remove()
+      colDragPhRef.current = null
+      if (newIdx >= 0) await moveColumnToIndex(col.id, newIdx)
+    } else {
+      if (ph) ph.remove()
+      colDragPhRef.current = null
+    }
+    colDragRef.current = null
   }
 
   async function onDrop(e, colId) {
@@ -1553,6 +1628,7 @@ export default function Home() {
         body { font-size: var(--font-size-base) !important; }
         .board-card { padding: var(--card-padding) !important; }
         .drag-ghost { opacity: 0.2 !important; pointer-events: none !important; }
+        .col-drag-ghost { opacity: 0.15 !important; }
         .card-title-main { font-size: var(--card-title-size) !important; }
       `}</style>
       {/* ── TOPBAR ── */}
@@ -1727,8 +1803,16 @@ export default function Home() {
           </div>
 
           {view === 'board' ? (
-            <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              {cols.map(col => {
+            <div className="bcol-board" style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              {(() => {
+                const sortedCols = [...cols].sort((a,b) => (a.position||0)-(b.position||0))
+                const colItems = []
+                sortedCols.forEach((col, ci) => {
+                  if (colDragOverIndex !== null && ci === colDragOverIndex && colDragRef.current?.id !== col.id) {
+                    colItems.push(<div key="col-ph" style={{ width: 272, minWidth: 272, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0, transition: 'opacity .2s' }} />)
+                  }
+                  if (colDragRef.current?.id === col.id) return
+                  colItems.push((() => {
                 const colCards = cardsForCol(col.id).filter(card => {
                   if (!boardSearch) return true
                   const q = boardSearch.toLowerCase()
@@ -1741,16 +1825,11 @@ export default function Home() {
                 const isCollapsed = collapsedCols.includes(col.id)
                 return (
                   <div key={col.id} className="bcol"
-                    draggable={!isCollapsed}
+                    draggable={false}
                     style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default' }}
-                    onDragStart={e => { if(isCollapsed) return; if(dragging) { e.preventDefault(); return } e.dataTransfer.setData('colId', col.id); e.dataTransfer.setData('type', 'column'); e.currentTarget.style.opacity='0.5' }}
-                    onDragEnd={e => { e.currentTarget.style.opacity='1' }}
-                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); if(!dragging) return; e.currentTarget.style.borderColor='var(--gold)'; e.currentTarget.style.boxShadow='0 0 0 2px var(--gdbg)' }}
-                    onDragLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = '' }}
                     data-colid={col.id}
-                    onDrop={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.classList.remove('col-drop-active'); const colId = e.dataTransfer.getData('colId'); const dragType = e.dataTransfer.getData('type'); if(colId && colId !== col.id && dragType === 'column') { moveColumn(colId, col.id) } else if(dragging) { onDrop(e, col.id) } }}
-                      onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('col-drop-active') }}
-                      onDragLeave={e => { e.currentTarget.classList.remove('col-drop-active') }}>
+                    onMouseDown={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.button !== 0) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; startColDrag(e, e.currentTarget, col) }}
+                    onTouchStart={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; e.preventDefault(); startColDrag(e, e.currentTarget, col) }}>
                     {isCollapsed ? (
                       <div onClick={() => setCollapsedCols(p => p.filter(x => x !== col.id))} style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0', cursor: 'pointer', gap: 8 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: col.dot_color }} />
@@ -1769,8 +1848,19 @@ export default function Home() {
                         </div>
                         <div style={{ height: 1, background: 'var(--border)', margin: '0 10px' }} />
                         <div className="bcol-cards" data-colid={col.id} style={{ overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-                          {colCards.map(card => (
-                            <CardItem key={card.id} card={card} staff={staff} onlineUsers={onlineUsers} fontSize={fontSize} dragging={dragging} clients={clients} border={cardBorder(card)} overdueDays={cardOverdueDays(card)} overdueBg={cardOverdueBg(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={(e, cardEl) => startCustomDrag(e.clientX || e.touches?.[0]?.clientX, e.clientY || e.touches?.[0]?.clientY, cardEl, card)} onSend={openSend} droppedId={droppedCard}
+                          {(() => {
+                            const items = []
+                            const isDragCol = dragOverColId === col.id
+                            const dragIdx = isDragCol ? (dragOverIndex ?? colCards.length) : -1
+                            let inserted = false
+                            colCards.forEach((card, i) => {
+                              if (isDragCol && !inserted && i === dragIdx) {
+                                items.push(<div key="ph" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #b8892a', flexShrink: 0, transition: 'height .2s' }} />)
+                                inserted = true
+                              }
+                              if (dragging && card.id === dragging.id) return
+                              items.push(
+                                <CardItem key={card.id} card={card} staff={staff} onlineUsers={onlineUsers} fontSize={fontSize} dragging={dragging} clients={clients} border={cardBorder(card)} overdueDays={cardOverdueDays(card)} overdueBg={cardOverdueBg(card)} onNoteChange={onNoteChange} onNoteEnter={onNoteEnter} onClick={() => setActiveCard(card)} onDragStart={(e, cardEl) => startCustomDrag(e.clientX || e.touches?.[0]?.clientX, e.clientY || e.touches?.[0]?.clientY, cardEl, card)} onSend={openSend} droppedId={droppedCard}
                             onCheck={async (card) => {
                               const fertig = cols.find(c => c.title.toLowerCase().includes('fertig') || c.title.toLowerCase().includes('kész'))
                               if (fertig) { await supabase.from('cards').update({column_id:fertig.id,updated_at:new Date().toISOString()}).eq('id',card.id); loadCards(); addLog('Fertig: '+card.title) }
@@ -1794,10 +1884,16 @@ export default function Home() {
                             setNoteMention={setNoteMention}
                             dirtyCards={dirtyCards}
                             editingCards={editingCards}
-                            onMoveUp={card => moveCardInColumn(card, 'up')}
+                                onMoveUp={card => moveCardInColumn(card, 'up')}
                             onMoveDown={card => moveCardInColumn(card, 'down')}
                           />
-                          ))}
+                              )
+                            })
+                            if (isDragCol && !inserted) {
+                              items.push(<div key="ph-end" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #b8892a', flexShrink: 0 }} />)
+                            }
+                            return items
+                          })()}
                         </div>
                         <div style={{ padding: '6px 8px', flexShrink: 0 }}>
                           <button onClick={() => { setNewCardColId(col.id); setModal('new-card') }} style={{ width: '100%', background: 'none', border: '1.5px dashed var(--brd2)', borderRadius: 7, padding: 6, fontSize: 11, color: 'var(--t3)', cursor: 'pointer', fontFamily: 'Arial' }}>+ Karte</button>
@@ -1806,7 +1902,13 @@ export default function Home() {
                     )}
                   </div>
                 )
-              })}
+                })())
+                })
+                if (colDragOverIndex !== null && colDragOverIndex >= sortedCols.filter(c => colDragRef.current?.id !== c.id).length) {
+                  colItems.push(<div key="col-ph-end" style={{ width: 272, minWidth: 272, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0 }} />)
+                }
+                return colItems
+              })()}
               <div onClick={() => setModal('new-col')} style={{ width: 44, minWidth: 44, border: '2px dashed var(--brd2)', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: 60, flexShrink: 0 }}>
                 <span style={{ fontSize: 18, color: 'var(--t3)' }}>+</span>
               </div>
