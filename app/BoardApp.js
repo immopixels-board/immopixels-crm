@@ -1947,7 +1947,7 @@ export default function Home() {
 
       {tab === 'calendar' && (
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <div style={{ width: 260, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ width: 'clamp(180px, 22vw, 260px)', flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 9 }}>📋 Heutige Karten</div>
               <button onClick={() => setModal('new-card')} className='btn-primary-anim' style={{ ...BTNP, width: '100%', padding: '6px', fontSize: 12, justifyContent: 'center', display: 'flex', marginBottom: 6 }}>+ Neue Karte</button>

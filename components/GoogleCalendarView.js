@@ -44,7 +44,7 @@ function WeekView({ currentDate, getEventsForDate, today, onEventClick }) {
   const hours = Array.from({length: 12}, (_, i) => i + 8) // 8-19
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '44px repeat(7, 1fr)', minWidth: 600 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '44px repeat(7, minmax(0, 1fr))', width: '100%' }}>
       <div style={{ borderRight: '0.5px solid var(--border)' }} />
       {days.map(d => {
         const dateStr = d.toISOString().slice(0, 10)
@@ -152,7 +152,14 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState(false)
-  const [zoom, setZoom] = useState(110)
+  const [zoom, setZoom] = useState(() => {
+    if (typeof window === 'undefined') return 100
+    const w = window.innerWidth
+    if (w < 768) return 85
+    if (w < 1280) return 95
+    if (w > 1800) return 120
+    return 105
+  })
   const [filterStaff, setFilterStaff] = useState([]) // empty = show all
 
   useEffect(() => {
@@ -330,7 +337,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   const monthLabel = currentDate.toLocaleDateString('de', { month: 'long', year: 'numeric' })
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', minWidth: 0 }}>
       {/* Header */}
       <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
         {/* Month nav — directly next to label */}
@@ -381,9 +388,9 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
       </div>
 
       {/* Calendar grid */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: 0, display: 'flex', flexDirection: 'column' }}>
         {view === 'month' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 0, width: '100%', height: '100%' }}>
             {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (
               <div key={d} style={{ padding: '8px 10px', textAlign: 'center', fontSize: Math.round(11 * zoom / 100), fontWeight: 700, color: (d==='Sa'||d==='So') ? 'var(--red)' : 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>{d}</div>
             ))}
@@ -397,7 +404,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
               const isToday = dateStr === today
               const isWeekend = (new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6)
               return (
-                <div key={day} style={{ minHeight: Math.round(100 * zoom / 100), padding: '6px 7px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative' }}>
+                <div key={day} style={{ minHeight: Math.round(100 * zoom / 100), padding: '6px 7px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative', flex: 1 }}>
                   <div style={{ width: isToday ? 24 : 'auto', height: isToday ? 24 : 'auto', borderRadius: isToday ? '50%' : 0, background: isToday ? 'var(--gold)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(12 * zoom / 100), fontWeight: isToday ? 700 : 600, color: isToday ? '#fff' : isWeekend ? 'var(--red)' : 'var(--t1)', marginBottom: 4 }}>{day}</div>
                   {dayEvents.slice(0, 3).map(ev => (
                     <div key={ev.id} onClick={() => setSelectedEvent(ev)}
