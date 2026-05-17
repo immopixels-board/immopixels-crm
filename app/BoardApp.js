@@ -563,6 +563,13 @@ export default function Home() {
         document.documentElement.style.setProperty('--card-padding', {compact:'7px 8px',standard:'9px 10px',large:'12px 13px'}[us.card_size] || '9px 10px')
         document.documentElement.style.setProperty('--card-title-size', {compact:'11px',standard:'12px',large:'14px'}[us.card_size] || '12px')
         if (us.bg_color === 'dark') { document.documentElement.style.setProperty('--t1','#f4f2ef'); document.documentElement.style.setProperty('--bg2','#2a2820'); document.documentElement.style.setProperty('--bg3','#333028') }
+        if (us.bg_image) {
+          document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
+          document.body.style.backgroundSize = 'cover'
+          document.body.style.backgroundAttachment = 'fixed'
+        } else {
+          document.body.style.backgroundImage = 'none'
+        }
       }
     }, 100)
   }
