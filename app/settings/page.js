@@ -153,6 +153,14 @@ export default function Settings() {
       document.body.style.backgroundImage = 'none'
     }
     setSaved(true); setTimeout(() => setSaved(false), 2000)
+    // Log to debug
+    try {
+      const sid = await getStaffId()
+      if (sid) {
+        const { data: st } = await supabase.from('staff').select('init,name').eq('id', sid).single()
+        if (st) await supabase.from('debug_log').insert({ action: src ? 'Hintergrund Bild: ' + src.split('/').pop() : 'Hintergrund Bild: entfernt', staff_init: st.init, staff_name: st.name, staff_id: sid })
+      }
+    } catch(e) {}
   }
 
   async function saveSetting(key, value) {
@@ -262,7 +270,7 @@ export default function Settings() {
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
                     {BG_OPTIONS.map(bg => (
                       <div key={bg.key}
-                        onClick={() => { setBgColor(bg.key); setBgImage(null); saveBgImage(null); saveUserSetting('bg_color', bg.key) }}
+                        onClick={async () => { setBgColor(bg.key); setBgImage(null); saveBgImage(null); saveUserSetting('bg_color', bg.key); try { const sid = await getStaffId(); if(sid){const {data:st}=await supabase.from('staff').select('init,name').eq('id',sid).single(); if(st)await supabase.from('debug_log').insert({action:'Hintergrundfarbe: '+bg.label,staff_init:st.init,staff_name:st.name,staff_id:sid})}} catch(e){} }}
                         title={bg.label}
                         style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key && !bgImage ? '2px solid #b8892a' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key && !bgImage ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s', opacity: bgImage ? 0.45 : 1 }}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}

@@ -16,6 +16,7 @@ export default function DebugPanel({ supabase, localLog, me }) {
   const [tab, setTab] = useState('logs')
   const [logs, setLogs] = useState([])
   const [filter, setFilter] = useState('')
+  const [staffFilter, setStaffFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [deleted, setDeleted] = useState([])
   const [cols, setCols] = useState([])
@@ -90,10 +91,11 @@ export default function DebugPanel({ supabase, localLog, me }) {
     setLogs([])
   }
 
-  const filtered = filter ? logs.filter(l =>
-    l.action?.toLowerCase().includes(filter.toLowerCase()) ||
-    l.staff_name?.toLowerCase().includes(filter.toLowerCase())
-  ) : logs
+  const filtered = logs.filter(l => {
+    if (staffFilter && l.staff_init !== staffFilter) return false
+    if (filter && !l.action?.toLowerCase().includes(filter.toLowerCase()) && !l.staff_name?.toLowerCase().includes(filter.toLowerCase())) return false
+    return true
+  })
 
   const tabStyle = (t) => ({
     padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
@@ -115,8 +117,14 @@ export default function DebugPanel({ supabase, localLog, me }) {
       {tab === 'logs' && (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 7, flexShrink: 0 }}>
-            <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Szűrés..." style={{ flex: 1, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 9px', fontSize: 11, outline: 'none' }} />
-            <button onClick={clearLogs} style={{ background: 'none', border: '1px solid var(--rdbr)', color: 'var(--red)', borderRadius: 6, padding: '4px 9px', fontSize: 11, cursor: 'pointer' }}>🗑 Törlés</button>
+            <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Suchen..." style={{ flex: 1, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 9px', fontSize: 11, outline: 'none' }} />
+            <select value={staffFilter} onChange={e => setStaffFilter(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', fontSize: 11, outline: 'none', cursor: 'pointer', color: 'var(--t1)' }}>
+              <option value="">Alle</option>
+              {[...new Set(logs.map(l => l.staff_init).filter(Boolean))].map(init => (
+                <option key={init} value={init}>{init}</option>
+              ))}
+            </select>
+            <button onClick={clearLogs} style={{ background: 'none', border: '1px solid var(--rdbr)', color: 'var(--red)', borderRadius: 6, padding: '4px 9px', fontSize: 11, cursor: 'pointer' }}>🗑</button>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px' }}>
             {loading && <div style={{ color: 'var(--t3)', fontSize: 12 }}>Betöltés...</div>}

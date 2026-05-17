@@ -13,7 +13,7 @@ export default function StatsPage() {
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('fotok')
+  const [sortBy, setSortBy] = useState('aufnahmen')
 
   useEffect(() => { init() }, [])
 
@@ -41,7 +41,9 @@ export default function StatsPage() {
         c.client_name.toLowerCase() === client.name.toLowerCase()
       )
     )
-    const revenue = clientCards.reduce((s, c) => s + (c.price || 0), 0)
+    // Revenue from client.service_prices (sum of all entered prices)
+    const sp = client.service_prices || {}
+    const revenue = Object.values(sp).reduce((s, v) => s + (parseFloat(v) || 0), 0)
     const last = clientCards.filter(c => c.card_date).sort((a, b) => b.card_date.localeCompare(a.card_date))[0]
     return { count: clientCards.length, revenue, lastDate: last?.card_date || null }
   }
@@ -52,18 +54,18 @@ export default function StatsPage() {
     (c.short_name || '').toLowerCase().includes(search.toLowerCase())
   )
   const sorted = [...filtered].sort((a, b) =>
-    sortBy === 'fotok' ? b.count - a.count :
-    sortBy === 'bevetel' ? b.revenue - a.revenue :
+    sortBy === 'aufnahmen' ? b.count - a.count :
+    sortBy === 'umsatz' ? b.revenue - a.revenue :
     a.name.localeCompare(b.name)
   )
 
   const totalCards = cards.length
-  const totalRevenue = cards.reduce((s, c) => s + (c.price || 0), 0)
+  const totalRevenue = clients.reduce((s, c) => s + Object.values(c.service_prices || {}).reduce((a, v) => a + (parseFloat(v) || 0), 0), 0)
   const totalClients = clients.length
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Arial', color: '#8a8278' }}>
-      Betöltés...
+      Wird geladen...
     </div>
   )
 
@@ -81,7 +83,7 @@ export default function StatsPage() {
           <span style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>CRM</span>
         </a>
         <div style={{ width: 1, height: 16, background: 'var(--border)' }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>📊 Ügyfél Statistik</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--gold)' }}>📊 Kunde Statistik</span>
         <span style={{ fontSize: 11, color: 'var(--t3)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', marginLeft: 'auto' }}>Nur Admin</span>
       </div>
 
@@ -90,9 +92,9 @@ export default function StatsPage() {
         {/* Summary cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
           {[
-            { label: 'Összes ügyfél', value: totalClients, icon: '👥' },
-            { label: 'Összes fotózás', value: totalCards, icon: '📸' },
-            { label: 'Összes bevétel', value: totalRevenue ? totalRevenue.toLocaleString('de-DE') + ' €' : '—', icon: '💶' },
+            { label: 'Kunden gesamt', value: totalClients, icon: '👥' },
+            { label: 'Aufnahmen gesamt', value: totalCards, icon: '📸' },
+            { label: 'Umsatz gesamt', value: totalRevenue ? totalRevenue.toLocaleString('de-DE') + ' €' : '—', icon: '💶' },
           ].map(s => (
             <div key={s.label} style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
               <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 5 }}>{s.icon} {s.label}</div>
@@ -103,24 +105,24 @@ export default function StatsPage() {
 
         {/* Controls */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ügyfél keresés..." style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, outline: 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Kunde suchen..." style={{ flex: 1, background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, outline: 'none' }} />
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
-            <option value="fotok">↓ Fotózások száma</option>
-            <option value="bevetel">↓ Bevétel</option>
-            <option value="nev">A–Z Név</option>
+            <option value="fotok">↓ Aufnahmen</option>
+            <option value="bevetel">↓ Umsatz</option>
+            <option value="nev">A–Z Name</option>
           </select>
         </div>
 
         {/* Table */}
         <div style={{ background: '#fff', border: '0.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', padding: '10px 16px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
-            <span>Ügyfél</span>
-            <span style={{ textAlign: 'right' }}>Fotózás</span>
-            <span style={{ textAlign: 'right' }}>Bevétel</span>
-            <span style={{ textAlign: 'right' }}>Utolsó</span>
+            <span>Kunde</span>
+            <span style={{ textAlign: 'right' }}>Aufnahmen</span>
+            <span style={{ textAlign: 'right' }}>Umsatz</span>
+            <span style={{ textAlign: 'right' }}>Letzter</span>
           </div>
           {sorted.length === 0 && (
-            <div style={{ padding: '20px 16px', color: 'var(--t3)', fontSize: 13 }}>Nincs találat</div>
+            <div style={{ padding: '20px 16px', color: 'var(--t3)', fontSize: 13 }}>Keine Ergebnisse</div>
           )}
           {sorted.map((c, i) => (
             <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 110px', padding: '10px 16px', borderBottom: i < sorted.length - 1 ? '0.5px solid var(--border)' : 'none', alignItems: 'center' }}>
