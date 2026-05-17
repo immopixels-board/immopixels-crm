@@ -737,6 +737,9 @@ export default function Home() {
 
   function cardOverdueDays(card) {
     if (!card.card_date || card.is_todo) return 0
+    const col = cols.find(c => c.id === card.column_id)
+    const colTitle = (col?.title || '').toLowerCase()
+    if (colTitle.includes('fertig') || colTitle.includes('terminier')) return 0
     const diffH = (new Date() - new Date(card.card_date + 'T00:00:00')) / 3600000
     return diffH / 24
   }

@@ -152,6 +152,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState(false)
+  const [zoom, setZoom] = useState(100)
   const [filterStaff, setFilterStaff] = useState([]) // empty = show all
 
   useEffect(() => {
@@ -331,11 +332,17 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
       {/* Header */}
-      <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold)', fontSize: 18, padding: '0 6px' }}>‹</button>
-        <div style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{monthLabel}</div>
-        <button onClick={() => setCurrentDate(new Date())} style={{ background: 'var(--gdbg)', border: '0.5px solid var(--gdbr)', color: 'var(--gold)', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Heute</button>
-        <button onClick={() => navigate(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold)', fontSize: 18, padding: '0 6px' }}>›</button>
+      <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+        {/* Month nav — directly next to label */}
+        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t2)', fontSize: 16, padding: '0 4px', lineHeight:1 }}>‹</button>
+        <div style={{ fontSize: 14, fontWeight: 700, minWidth: 110 }}>{monthLabel}</div>
+        <button onClick={() => navigate(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t2)', fontSize: 16, padding: '0 4px', lineHeight:1 }}>›</button>
+        <button onClick={() => setCurrentDate(new Date())} style={{ background: 'var(--gdbg)', border: '0.5px solid var(--gdbr)', color: 'var(--gold)', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Heute</button>
+        <div style={{ flex: 1 }} />
+        {/* Zoom */}
+        <button onClick={() => setZoom(z => Math.max(z - 10, 70))} style={{ background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 5, padding: '3px 8px', fontSize: 13, cursor: 'pointer', color: 'var(--t2)', fontWeight: 700 }}>−</button>
+        <span style={{ fontSize: 10, color: 'var(--t3)', minWidth: 30, textAlign: 'center' }}>{zoom}%</span>
+        <button onClick={() => setZoom(z => Math.min(z + 10, 150))} style={{ background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 5, padding: '3px 8px', fontSize: 13, cursor: 'pointer', color: 'var(--t2)', fontWeight: 700 }}>+</button>
         {/* View switcher */}
         <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: 8, padding: 2, gap: 2 }}>
           {['month','week','day'].map(v => (
@@ -376,12 +383,12 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
       {/* Calendar grid */}
       <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
         {view === 'month' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, minWidth: 600 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0, width: '100%', fontSize: zoom + '%' }}>
             {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (
               <div key={d} style={{ padding: '6px 8px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: (d==='Sa'||d==='So') ? 'var(--red)' : 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.4px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>{d}</div>
             ))}
             {Array.from({ length: firstDay }, (_, i) => (
-              <div key={'empty-' + i} style={{ minHeight: 80, background: 'var(--bg3)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', opacity: 0.5 }} />
+              <div key={'empty-' + i} style={{ minHeight: Math.round(80 * zoom / 100), background: 'var(--bg3)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', opacity: 0.5 }} />
             ))}
             {Array.from({ length: daysInMonth }, (_, i) => {
               const day = i + 1
@@ -390,7 +397,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
               const isToday = dateStr === today
               const isWeekend = (new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6)
               return (
-                <div key={day} style={{ minHeight: 80, padding: '4px 5px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative' }}>
+                <div key={day} style={{ minHeight: Math.round(80 * zoom / 100), padding: '4px 5px', background: isToday ? 'rgba(184,137,42,.04)' : isWeekend ? 'rgba(185,28,28,.02)' : 'var(--bg2)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', position: 'relative' }}>
                   <div style={{ width: isToday ? 22 : 'auto', height: isToday ? 22 : 'auto', borderRadius: isToday ? '50%' : 0, background: isToday ? 'var(--gold)' : 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: isToday ? 700 : 600, color: isToday ? '#fff' : isWeekend ? 'var(--red)' : 'var(--t1)', marginBottom: 3 }}>{day}</div>
                   {dayEvents.slice(0, 3).map(ev => (
                     <div key={ev.id} onClick={() => setSelectedEvent(ev)}
