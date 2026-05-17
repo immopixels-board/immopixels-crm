@@ -552,28 +552,6 @@ export default function Home() {
     setLoading(true)
     await Promise.all([loadCols(), loadCards(), loadStaff(), loadClients(), loadMaklers(), loadSettings(), loadServicePrices(), loadPhonebook()])
     setLoading(false)
-    // Per-user settings + notifications
-    setTimeout(async () => {
-      const meNow = getMe()
-      if (!meNow?.id) {
-        setTimeout(async () => {
-          const meRetry = getMe()
-          if (!meRetry?.id) return
-          loadNotifications()
-          const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', meRetry.id).single()
-          applyUserSettings(us)
-        }, 2000)
-        return
-      }
-      loadNotifications()
-      const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', meNow.id).single()
-      if (us) {
-        applyUserSettings(us)
-      } else {
-        document.body.style.backgroundImage = 'none'
-        document.documentElement.style.setProperty('--bg', '#f4f2ef')
-      }
-    }, 100)
   }
 
 
@@ -687,6 +665,15 @@ export default function Home() {
 
   function getStaff(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', name: '?', avatar_url: null } }
   function getStaffByInit(init) { return staff.find(s => s.init === init) }
+  useEffect(() => {
+    const meNow = getMe()
+    if (!meNow?.id) return
+    supabase.from('user_settings').select('*').eq('staff_id', meNow.id).single().then(({ data: us }) => {
+      if (us) applyUserSettings(us)
+    })
+    loadNotifications()
+  }, [staff])
+
   function applyUserSettings(us) {
     if (!us) return
     const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
