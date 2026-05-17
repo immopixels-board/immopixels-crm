@@ -805,6 +805,27 @@ export default function Home() {
       await supabase.from('cards').update({ note: val }).eq('id', cardId)
       setDirtyCards(p => { const n={...p}; delete n[cardId]; return n })
       broadcastChange('card_editing', { cardId, editing: false, userId: mySessionId.current })
+      broadcastChange('cards_changed')
+      // Értesítés küldése a kártya többi tagjának
+      const meNow = getMe()
+      if (meNow && val) {
+        const card = cards.find(c => c.id === cardId)
+        if (card) {
+          const { data: team } = await supabase.from('card_team').select('staff_id').eq('card_id', cardId)
+          for (const t of (team || [])) {
+            if (t.staff_id !== meNow.id) {
+              await supabase.from('notifications').insert({
+                recipient_id: t.staff_id,
+                sender_id: meNow.id,
+                type: 'card_note',
+                card_id: cardId,
+                message: meNow.name + ' hat eine Schnellnotiz zu "' + (card.title || '') + '" hinzugefügt',
+                read: false,
+              })
+            }
+          }
+        }
+      }
     }, 800)
   }
 
@@ -815,7 +836,9 @@ export default function Home() {
       const val = e.target.value
       setCards(p => p.map(c => c.id === cardId ? { ...c, note: val } : c))
       setActiveCard(prev => prev?.id === cardId ? { ...prev, note: val } : prev)
-      supabase.from('cards').update({ note: val }).eq('id', cardId)
+      supabase.from('cards').update({ note: val }).eq('id', cardId).then(() => {
+        broadcastChange('cards_changed')
+      })
       e.target.blur()
     }
   }
