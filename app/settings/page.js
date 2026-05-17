@@ -114,11 +114,19 @@ export default function Settings() {
       try { s[row.key] = JSON.parse(row.value) } catch(e) {}
     }
     setCats(s)
-    if (s.bg_color) setBgColor(s.bg_color)
-    if (s.bg_image) setBgImage(s.bg_image)
-    if (s.font_size) setFontSize(s.font_size)
-    if (s.card_size) setCardSize(s.card_size)
     setLoading(false)
+    // Load per-user settings
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: st } = await supabase.from('staff').select('id').eq('email', user.email).single()
+    if (!st?.id) return
+    const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', st.id).single()
+    if (us) {
+      if (us.bg_color) setBgColor(us.bg_color)
+      if (us.bg_image) setBgImage(us.bg_image)
+      if (us.font_size) setFontSize(us.font_size)
+      if (us.card_size) setCardSize(us.card_size)
+    }
   }
 
   async function getStaffId() {
@@ -219,7 +227,7 @@ export default function Settings() {
                   </div>
                   <div style={{ display:'flex', gap:8 }}>
                     {FONT_SIZES.map(f => (
-                      <div key={f.key} onClick={() => { setFontSize(f.key); saveSetting('font_size', f.key) }}
+                      <div key={f.key} onClick={() => { setFontSize(f.key); saveUserSetting('font_size', f.key) }}
                         style={{ flex:1, background: fontSize===f.key ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: fontSize===f.key ? '1.5px solid #b8892a' : '0.5px solid #eeeae6', borderRadius:9, padding:'12px', textAlign:'center', cursor:'pointer', transition:'all .15s' }}>
                         <div style={{ fontSize: f.key==='sm'?'13px':f.key==='lg'?'18px':'15px', fontWeight:700, color: fontSize===f.key ? '#b8892a' : '#1c1a16', marginBottom:4 }}>Aa</div>
                         <div style={{ fontSize:11, color: fontSize===f.key ? '#b8892a' : '#8a8278', fontWeight:600 }}>{f.label}</div>
@@ -235,7 +243,7 @@ export default function Settings() {
                   </div>
                   <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
                     {CARD_SIZES.map(cs => (
-                      <div key={cs.key} onClick={() => { setCardSize(cs.key); saveSetting('card_size', cs.key) }} style={{ cursor:'pointer', textAlign:'center' }}>
+                      <div key={cs.key} onClick={() => { setCardSize(cs.key); saveUserSetting('card_size', cs.key) }} style={{ cursor:'pointer', textAlign:'center' }}>
                         <div style={{ width:cs.w, border: cardSize===cs.key ? '1.5px solid #b8892a' : '0.5px solid #ddd9d2', borderRadius:9, padding: cs.key==='compact'?'7px 9px':cs.key==='standard'?'9px 10px':'12px', background: cardSize===cs.key ? 'rgba(184,137,42,.05)' : '#fff', boxShadow: cardSize===cs.key ? '0 0 0 3px rgba(184,137,42,.1)' : 'none', transition:'all .15s' }}>
                           <div style={{ height:cs.key==='compact'?6:cs.key==='standard'?7:8, background:'#FFBE98', borderRadius:3, marginBottom:cs.key==='compact'?4:5, width:'55%' }} />
                           <div style={{ height:cs.key==='compact'?8:cs.key==='standard'?9:10, background:'#eeeae6', borderRadius:2, marginBottom:3 }} />
