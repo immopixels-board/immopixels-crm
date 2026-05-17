@@ -231,6 +231,7 @@ export default function Home() {
   const [descMention, setDescMention] = useState({ query:'', pos:0, show:false })
   const [view, setView] = useState('board')
   const [editClient, setEditClient] = useState(null)
+  const [clientSpJson, setClientSpJson] = useState('{}')
   const [clientColorState, setClientColorState] = useState('')
   const [servicePrices, setServicePrices] = useState([
     { id:'foto',     label:'Fotoshooting',  grundpreis:'199.00' },
@@ -1573,7 +1574,7 @@ export default function Home() {
                 📥 Import
                 <input type="file" accept=".csv" style={{ display: 'none' }} onChange={importClients} />
               </label>
-              <button onClick={() => { setEditClient(null); setClientColorState(''); setModal('client') }} className='btn-primary-anim' style={{ ...BTNP, padding: '6px 12px', fontSize: 12, display: (me?.role_level==='admin'||me?.role_level==='subadmin') ? '' : 'none' }}>+ Neuer Kunde</button>
+              <button onClick={() => { setEditClient(null); setClientColorState(''); setClientSpJson('{}'); setModal('client') }} className='btn-primary-anim' style={{ ...BTNP, padding: '6px 12px', fontSize: 12, display: (me?.role_level==='admin'||me?.role_level==='subadmin') ? '' : 'none' }}>+ Neuer Kunde</button>
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
@@ -1582,7 +1583,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 12 }}>
             {clients.length === 0 && <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Noch keine Kunden</div>}
             {clients.map(cl => (
-              <div key={cl.id} onClick={() => { setEditClient(cl); setClientColorState(cl.color||''); setModal('client') }} style={{ background: cl.color ? {'peach':'rgba(255,190,152,.10)','mocha':'rgba(166,123,91,.10)','ciel':'rgba(123,191,203,.10)','apricot':'rgba(232,168,124,.10)','sage':'rgba(156,175,136,.10)','artgold':'rgba(201,169,110,.10)','granite':'rgba(181,196,177,.10)','rose':'rgba(212,165,165,.10)','cerulean':'rgba(168,197,218,.10)','slate':'rgba(107,124,147,.10)','caramel':'rgba(196,149,106,.10)','laurel':'rgba(143,166,142,.10)','flamingo':'rgba(212,134,155,.10)','steel':'rgba(123,158,166,.10)'}[cl.color]||'var(--bg2)' : 'var(--bg2)', border: '0.5px solid ' + (cl.color ? {'peach':'rgba(255,190,152,.35)','mocha':'rgba(166,123,91,.35)','ciel':'rgba(123,191,203,.35)','apricot':'rgba(232,168,124,.35)','sage':'rgba(156,175,136,.35)','artgold':'rgba(201,169,110,.35)','granite':'rgba(181,196,177,.35)','rose':'rgba(212,165,165,.35)','cerulean':'rgba(168,197,218,.35)','slate':'rgba(107,124,147,.35)','caramel':'rgba(196,149,106,.35)','laurel':'rgba(143,166,142,.35)','flamingo':'rgba(212,134,155,.35)','steel':'rgba(123,158,166,.35)'}[cl.color]||'var(--border)' : 'var(--border)'), borderRadius: 11, padding: '14px 16px', cursor: 'pointer', boxShadow: 'var(--sh)', transition:'transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s,border-color .15s' }} onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px) scale(1.01)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.10)'}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--sh)'}}>
+              <div key={cl.id} onClick={() => { setEditClient(cl); setClientColorState(cl.color||''); setClientSpJson(JSON.stringify(cl?.service_prices||{})); setModal('client') }} style={{ background: cl.color ? {'peach':'rgba(255,190,152,.10)','mocha':'rgba(166,123,91,.10)','ciel':'rgba(123,191,203,.10)','apricot':'rgba(232,168,124,.10)','sage':'rgba(156,175,136,.10)','artgold':'rgba(201,169,110,.10)','granite':'rgba(181,196,177,.10)','rose':'rgba(212,165,165,.10)','cerulean':'rgba(168,197,218,.10)','slate':'rgba(107,124,147,.10)','caramel':'rgba(196,149,106,.10)','laurel':'rgba(143,166,142,.10)','flamingo':'rgba(212,134,155,.10)','steel':'rgba(123,158,166,.10)'}[cl.color]||'var(--bg2)' : 'var(--bg2)', border: '0.5px solid ' + (cl.color ? {'peach':'rgba(255,190,152,.35)','mocha':'rgba(166,123,91,.35)','ciel':'rgba(123,191,203,.35)','apricot':'rgba(232,168,124,.35)','sage':'rgba(156,175,136,.35)','artgold':'rgba(201,169,110,.35)','granite':'rgba(181,196,177,.35)','rose':'rgba(212,165,165,.35)','cerulean':'rgba(168,197,218,.35)','slate':'rgba(107,124,147,.35)','caramel':'rgba(196,149,106,.35)','laurel':'rgba(143,166,142,.35)','flamingo':'rgba(212,134,155,.35)','steel':'rgba(123,158,166,.35)'}[cl.color]||'var(--border)' : 'var(--border)'), borderRadius: 11, padding: '14px 16px', cursor: 'pointer', boxShadow: 'var(--sh)', transition:'transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s,border-color .15s' }} onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px) scale(1.01)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.10)'}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--sh)'}}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{cl.name}</div>
                   {cl.short_name && <span style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, background: 'var(--gdbg)', padding: '1px 7px', borderRadius: 4, marginLeft: 6, flexShrink: 0 }}>{cl.short_name}</span>}
@@ -2403,11 +2404,10 @@ export default function Home() {
                       servicePrices={servicePrices}
                       clientPrices={editClient?.service_prices || {}}
                       onChange={prices => {
-                        const inp = document.getElementById('sp-json-input')
-                        if (inp) inp.value = JSON.stringify(prices)
+                        setClientSpJson(JSON.stringify(prices))
                       }}
                     />
-                    <input type="hidden" name="service_prices_json" id="sp-json-input" defaultValue={JSON.stringify(editClient?.service_prices || {})} />
+                    <input type="hidden" name="service_prices_json" value={clientSpJson} readOnly />
                   </div>
                 )}
               </div>
