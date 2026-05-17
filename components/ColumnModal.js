@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 
-export const PANTONE = [
+export var PANTONE = [
   { key:'peach',    color:'#FFBE98', bg:'rgba(255,190,152,.08)', br:'rgba(255,190,152,.35)', text:'#a05a20', label:'Peach Fuzz' },
   { key:'mocha',    color:'#A67B5B', bg:'rgba(166,123,91,.08)',  br:'rgba(166,123,91,.35)',  text:'#6a3a20', label:'Mocha' },
   { key:'ciel',     color:'#7BBFCB', bg:'rgba(123,191,203,.08)', br:'rgba(123,191,203,.35)', text:'#2a6a7a', label:'Ciel' },

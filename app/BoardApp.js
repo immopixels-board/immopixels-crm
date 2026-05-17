@@ -5,7 +5,7 @@ import AvatarCrop from '../components/AvatarCrop'
 import DebugPanel from '../components/DebugPanel'
 import MaklerEditor from '../components/MaklerEditor'
 import TeamChat from '../components/TeamChat'
-const GoogleCalendarView = dynamic(() => import('../components/GoogleCalendarView'), { ssr: false })
+var GoogleCalendarView = dynamic(() => import('../components/GoogleCalendarView'), { ssr: false })
 import CardModal from '../components/CardModal'
 import ColumnModal, { PANTONE, getColStyle, ConfirmDialog } from '../components/ColumnModal'
 import { supabase } from '../lib/supabase'
