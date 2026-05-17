@@ -803,7 +803,7 @@ export default function Home() {
       await moveColumnToIndex(col.id, colDragOverIndex)
     }
     colDragRef.current = null
-    setColDragOverIndex(null)
+    setTimeout(() => setColDragOverIndex(null), 50)
   }
   // ─── End Custom Drag Engine ────────────────────────────────────
 
@@ -1809,9 +1809,9 @@ export default function Home() {
                 const colItems = []
                 sortedCols.forEach((col, ci) => {
                   if (colDragOverIndex !== null && ci === colDragOverIndex && colDragRef.current?.id !== col.id) {
-                    colItems.push(<div key="col-ph" style={{ width: 272, minWidth: 272, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0, transition: 'opacity .2s' }} />)
+                    colItems.push(<div key="col-ph" style={{ width: 272, minWidth: 272, height: 100, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0, transition: 'opacity .2s' }} />)
                   }
-                  if (colDragRef.current?.id === col.id) return
+                  const isColDragged = colDragRef.current?.id === col.id
                   colItems.push((() => {
                 const colCards = cardsForCol(col.id).filter(card => {
                   if (!boardSearch) return true
@@ -1826,7 +1826,7 @@ export default function Home() {
                 return (
                   <div key={col.id} className="bcol"
                     draggable={false}
-                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default' }}
+                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default', opacity: isColDragged ? 0.2 : 1 }}
                     data-colid={col.id}
                     onMouseDown={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.button !== 0) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; startColDrag(e, e.currentTarget, col) }}
                     onTouchStart={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; e.preventDefault(); startColDrag(e, e.currentTarget, col) }}>
@@ -1904,8 +1904,8 @@ export default function Home() {
                 )
                 })())
                 })
-                if (colDragOverIndex !== null && colDragOverIndex >= sortedCols.filter(c => colDragRef.current?.id !== c.id).length) {
-                  colItems.push(<div key="col-ph-end" style={{ width: 272, minWidth: 272, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0 }} />)
+                if (colDragOverIndex !== null && colDragOverIndex >= sortedCols.length) {
+                  colItems.push(<div key="col-ph-end" style={{ width: 272, minWidth: 272, height: 100, borderRadius: 11, background: 'rgba(184,137,42,.08)', border: '1.5px dashed #b8892a', flexShrink: 0 }} />)
                 }
                 return colItems
               })()}
