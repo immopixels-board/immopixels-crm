@@ -554,28 +554,21 @@ export default function Home() {
     setLoading(false)
     // Per-user settings + notifications
     setTimeout(async () => {
-      if (!me?.id) return
+      const meNow = getMe()
+      if (!meNow?.id) {
+        setTimeout(async () => {
+          const meRetry = getMe()
+          if (!meRetry?.id) return
+          loadNotifications()
+          const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', meRetry.id).single()
+          applyUserSettings(us)
+        }, 2000)
+        return
+      }
       loadNotifications()
-      const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', me.id).single()
+      const { data: us } = await supabase.from('user_settings').select('*').eq('staff_id', meNow.id).single()
       if (us) {
-        const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
-        const fsMap = { sm:'13px', md:'14px', lg:'16px' }
-        setBgColor(us.bg_color || 'linen')
-        setFontSize(us.font_size || 'md')
-        setCardSize(us.card_size || 'standard')
-        document.documentElement.style.setProperty('--bg', bgMap[us.bg_color] || '#f4f2ef')
-        document.documentElement.style.setProperty('--font-size-base', fsMap[us.font_size] || '14px')
-        document.documentElement.style.setProperty('--card-padding', {compact:'7px 8px',standard:'9px 10px',large:'12px 13px'}[us.card_size] || '9px 10px')
-        document.documentElement.style.setProperty('--card-title-size', {compact:'11px',standard:'12px',large:'14px'}[us.card_size] || '12px')
-        if (us.bg_color === 'dark') { document.documentElement.style.setProperty('--t1','#f4f2ef'); document.documentElement.style.setProperty('--bg2','#2a2820'); document.documentElement.style.setProperty('--bg3','#333028') }
-        if (us.bg_image) {
-          document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
-          document.body.style.backgroundSize = 'cover'
-          document.body.style.backgroundAttachment = 'fixed'
-          document.body.style.backgroundRepeat = 'no-repeat'
-        } else {
-          document.body.style.backgroundImage = 'none'
-        }
+        applyUserSettings(us)
       } else {
         document.body.style.backgroundImage = 'none'
         document.documentElement.style.setProperty('--bg', '#f4f2ef')
@@ -694,6 +687,28 @@ export default function Home() {
 
   function getStaff(id) { return staff.find(s => s.id === id) || { init: '?', color: '#999', name: '?', avatar_url: null } }
   function getStaffByInit(init) { return staff.find(s => s.init === init) }
+  function applyUserSettings(us) {
+    if (!us) return
+    const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
+    const fsMap = { sm:'13px', md:'14px', lg:'16px' }
+    setBgColor(us.bg_color || 'linen')
+    setFontSize(us.font_size || 'md')
+    setCardSize(us.card_size || 'standard')
+    if (us.bg_image) {
+      document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
+      document.body.style.backgroundSize = 'cover'
+      document.body.style.backgroundAttachment = 'fixed'
+      document.body.style.backgroundRepeat = 'no-repeat'
+    } else {
+      document.body.style.backgroundImage = 'none'
+      document.documentElement.style.setProperty('--bg', bgMap[us.bg_color] || '#f4f2ef')
+    }
+    document.documentElement.style.setProperty('--font-size-base', fsMap[us.font_size] || '14px')
+    document.documentElement.style.setProperty('--card-padding', {compact:'7px 8px',standard:'9px 10px',large:'12px 13px'}[us.card_size] || '9px 10px')
+    document.documentElement.style.setProperty('--card-title-size', {compact:'11px',standard:'12px',large:'14px'}[us.card_size] || '12px')
+    if (us.bg_color === 'dark') { document.documentElement.style.setProperty('--t1','#f4f2ef'); document.documentElement.style.setProperty('--bg2','#2a2820'); document.documentElement.style.setProperty('--bg3','#333028') }
+  }
+
   function getMe() {
     if (!currentUser || !staff.length) return null
     return staff.find(s => s.email === currentUser.email) || null
