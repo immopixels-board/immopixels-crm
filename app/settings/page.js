@@ -10,13 +10,9 @@ const DEFAULTS = {
 }
 
 const BG_IMAGE_OPTIONS = [
-  { key:'bg_lv_green',     label:'Green',     src:'/bg/bg_lv_green.png' },
-  { key:'bg_lv_cream',     label:'Cream',     src:'/bg/bg_lv_cream.png' },
-  { key:'bg_lv_blue',      label:'Blue',      src:'/bg/bg_lv_blue.png' },
-  { key:'bg_lv_pink',      label:'Pink',      src:'/bg/bg_lv_pink.png' },
-  { key:'bg_wa_cream',     label:'Warm Cream',src:'/bg/bg_wa_cream.png' },
+  { key:'bg_wa_cream',     label:'Cream',     src:'/bg/bg_wa_cream.png' },
   { key:'bg_wa_mint',      label:'Mint',      src:'/bg/bg_wa_mint.png' },
-  { key:'bg_wa_lightgray', label:'Light Gray',src:'/bg/bg_wa_lightgray.png' },
+  { key:'bg_wa_lightgray', label:'Gray',      src:'/bg/bg_wa_lightgray.png' },
 ]
 
 const BG_OPTIONS = [
