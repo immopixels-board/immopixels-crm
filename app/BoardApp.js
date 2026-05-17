@@ -767,12 +767,15 @@ export default function Home() {
   function startColDrag(e, colEl, col) {
     if (isDraggingRef.current) return
     const clientX = e.touches?.[0]?.clientX ?? e.clientX
+    if (!clientX) return
     const r = colEl.getBoundingClientRect()
     colDragOffRef.current = { x: clientX - r.left, y: 0 }
     colDragLastXRef.current = clientX
     colDragTiltRef.current = 0
     colDragRef.current = col
     isColDraggingRef.current = true
+    // Pointer capture ensures mouseup always fires on window
+    try { colEl.setPointerCapture && colEl.releasePointerCapture(e.pointerId) } catch(e) {}
 
     const fly = document.createElement('div')
     fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
@@ -783,8 +786,9 @@ export default function Home() {
   }
 
   function moveColDrag(clientX) {
+    if (!isColDraggingRef.current) return
     const fly = colDragFlyRef.current
-    if (!fly || !isColDraggingRef.current) return
+    if (!fly) return
     fly.style.left = (clientX - colDragOffRef.current.x) + 'px'
     const vx = clientX - colDragLastXRef.current
     colDragLastXRef.current = clientX
@@ -795,15 +799,21 @@ export default function Home() {
   }
 
   async function endColDrag() {
+    if (!isColDraggingRef.current) return
     isColDraggingRef.current = false
     const fly = colDragFlyRef.current
     const col = colDragRef.current
-    if (fly) { fly.style.opacity = '0'; setTimeout(() => fly.remove(), 150); colDragFlyRef.current = null }
+    if (fly) {
+      fly.style.transition = 'opacity .15s'
+      fly.style.opacity = '0'
+      setTimeout(() => { try { fly.remove() } catch(e){} }, 160)
+      colDragFlyRef.current = null
+    }
     if (col && colDragOverIndex !== null) {
       await moveColumnToIndex(col.id, colDragOverIndex)
     }
     colDragRef.current = null
-    setTimeout(() => setColDragOverIndex(null), 50)
+    setColDragOverIndex(null)
   }
   // ─── End Custom Drag Engine ────────────────────────────────────
 
@@ -1826,10 +1836,9 @@ export default function Home() {
                 return (
                   <div key={col.id} className="bcol"
                     draggable={false}
-                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default', opacity: isColDragged ? 0.2 : 1 }}
+                    style={{ width: isCollapsed ? 44 : 272, minWidth: isCollapsed ? 44 : 272, background: getColStyle(col.color).bg, border: '1px solid var(--border)', borderRadius: 11, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 116px)', flexShrink: 0, transition: 'all .2s', cursor: isCollapsed ? 'pointer' : 'default', opacity: isColDragged ? 0.6 : 1 }}
                     data-colid={col.id}
-                    onMouseDown={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.button !== 0) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; startColDrag(e, e.currentTarget, col) }}
-                    onTouchStart={e => { if(isCollapsed) return; if(isDraggingRef.current || isColDraggingRef.current) return; if(e.target.closest('button,input,textarea,a,.board-card')) return; e.preventDefault(); startColDrag(e, e.currentTarget, col) }}>
+>
                     {isCollapsed ? (
                       <div onClick={() => setCollapsedCols(p => p.filter(x => x !== col.id))} style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0', cursor: 'pointer', gap: 8 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: col.dot_color }} />
@@ -1839,6 +1848,13 @@ export default function Home() {
                     ) : (
                       <>
                         <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <div
+                            onMouseDown={e => { if(e.button !== 0) return; startColDrag(e, e.currentTarget.closest('.bcol'), col) }}
+                            onTouchStart={e => { e.preventDefault(); startColDrag(e, e.currentTarget.closest('.bcol'), col) }}
+                            style={{ cursor: 'grab', padding: '2px 2px', color: 'var(--t3)', display:'flex', alignItems:'center', touchAction:'none' }}
+                            title="Spalte verschieben">
+                            <i className="ti ti-grip-vertical" style={{ fontSize:14 }}></i>
+                          </div>
                           <div style={{ width: 7, height: 7, borderRadius: '50%', background: col.dot_color }} />
                           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>{col.title}</div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', background: 'var(--bg4)', borderRadius: 4, padding: '1px 5px' }}>{colCards.length}</div>
