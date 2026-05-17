@@ -283,7 +283,6 @@ export default function Home() {
   const [customWidgetModal, setCustomWidgetModal] = useState(false)
   const [colModal, setColModal] = useState(null)
   const [colPrivate, setColPrivate] = useState(false)
-  const isAdminOrSub = me?.role_level==='admin' || me?.role_level==='subadmin'
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [notifications, setNotifications] = useState([])
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
@@ -433,6 +432,7 @@ export default function Home() {
 
 
   const me = getMe()
+  const isAdminOrSub = me?.role_level==='admin' || me?.role_level==='subadmin'
 
   // Notifications realtime
   useEffect(() => {
@@ -1091,7 +1091,7 @@ export default function Home() {
         setAiMessages(prev => [...prev, { role:'assistant', content:replyText || 'Keine Antwort.' }])
       }
     } catch(e) {
-      const errMsg = error?.message || 'Unbekannter Fehler'
+      const errMsg = e?.message || 'Unbekannter Fehler'
       setAiMessages(prev => [...prev, { role:'assistant', content:'Fehler: ' + errMsg }])
     }
     setAiLoading(false)
