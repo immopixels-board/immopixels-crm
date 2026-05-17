@@ -237,37 +237,28 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* Background */}
+                {/* Hintergrund - szín + kép egy helyen */}
                 <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                    <i className="ti ti-paint" style={{ fontSize:16, color:'#b8892a' }} /> Hintergrundfarbe
+                  <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+                    <i className="ti ti-paint" style={{ fontSize:16, color:'#b8892a' }} /> Hintergrund
                   </div>
-                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#8a8278', marginBottom:8, textTransform:'uppercase', letterSpacing:'.5px' }}>Farbe</div>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
                     {BG_OPTIONS.map(bg => (
-                      <div key={bg.key} onClick={() => { setBgColor(bg.key); saveSetting('bg_color', bg.key) }}
+                      <div key={bg.key}
+                        onClick={() => { setBgColor(bg.key); setBgImage(null); saveSetting('bg_color', bg.key); saveBgImage(null) }}
                         title={bg.label}
-                        style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key ? '2px solid #b8892a' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s' }}
+                        style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key && !bgImage ? '2px solid #b8892a' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key && !bgImage ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s', opacity: bgImage ? 0.45 : 1 }}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
                         onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
                       />
                     ))}
-                    <label title="Eigenes Bild" style={{ width:40, height:40, borderRadius:9, border:'1.5px dashed #ccc8c0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#8a8278', fontSize:18, transition:'all .15s' }}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor='#b8892a';e.currentTarget.style.color='#b8892a'}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor='#ccc8c0';e.currentTarget.style.color='#8a8278'}}>
-                      <input type="file" accept="image/*" style={{ display:'none' }} />
-                      <i className="ti ti-photo" />
-                    </label>
                   </div>
-                  <div style={{ fontSize:11, color:'#aaa8a0', marginTop:10 }}>Hintergrundfarbe wird nach Neuladen der Seite angewendet.</div>
-                </div>
-
-                {/* Háttérképek */}
-                <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginTop:12 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                    <i className="ti ti-photo" style={{ fontSize:16, color:'#b8892a' }} /> Hintergrundbild
+                  <div style={{ fontSize:11, fontWeight:700, color:'#8a8278', marginBottom:8, textTransform:'uppercase', letterSpacing:'.5px' }}>
+                    Bild <span style={{ fontWeight:400, color:'#bbb8b0', textTransform:'none' }}>– überschreibt Farbe</span>
                   </div>
-                  <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:8 }}>
-                    <div onClick={()=>saveBgImage(null)}
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    <div onClick={()=>{ setBgImage(null); saveBgImage(null) }}
                       style={{ width:56, height:40, borderRadius:7, background:'var(--bg3)', border: !bgImage?'2px solid #b8892a':'1px solid #ddd9d2', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#8a8278', transition:'all .15s' }}>
                       Keine
                     </div>
@@ -281,7 +272,7 @@ export default function Settings() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize:11, color:'#aaa8a0' }}>Bild wird nur für dich gespeichert.</div>
+                  <div style={{ fontSize:11, color:'#aaa8a0', marginTop:10 }}>Wird nur für dich gespeichert.</div>
                 </div>
               </>
             )}
