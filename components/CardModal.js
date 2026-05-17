@@ -1,14 +1,14 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 
-const CARD_COLORS = [
+var CARD_COLORS = [
   { key: '', bg: '#fff', br: '#ccc8c0', label: 'Keine' },
   { key: 'peach', bg: '#FFBE98', br: '#FFBE98', label: 'Peach Fuzz', cardBg: 'rgba(255,190,152,.12)', cardBr: 'rgba(255,190,152,.4)' },
   { key: 'sage', bg: '#9CAF88', br: '#9CAF88', label: 'Sage', cardBg: 'rgba(156,175,136,.12)', cardBr: 'rgba(156,175,136,.4)' },
   { key: 'rose', bg: '#D4A5A5', br: '#D4A5A5', label: 'Mellow Rose', cardBg: 'rgba(212,165,165,.12)', cardBr: 'rgba(212,165,165,.4)' },
 ]
 
-const DAYS_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+var DAYS_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 function fmtDate(dateStr) {
   if (!dateStr) return ''
@@ -30,7 +30,7 @@ function AutoSaveBadge({ show }) {
   )
 }
 
-const TYPES_LIST = [
+var TYPES_LIST = [
   { key:'foto',      label:'Foto',        c:'#b8892a', bg:'rgba(184,137,42,.12)', br:'rgba(184,137,42,.3)' },
   { key:'foto-reel', label:'Foto+Reel',   c:'#6d28d9', bg:'rgba(109,40,217,.12)', br:'rgba(109,40,217,.3)' },
   { key:'foto-dron', label:'Foto+Drohne', c:'#a16207', bg:'rgba(161,98,7,.12)',   br:'rgba(161,98,7,.3)' },

@@ -2,11 +2,11 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
-const LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
+var IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
+var LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
 
-const MF_IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
-const MF_LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
+var MF_IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
+var MF_LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
 
 function MaklerForm({ form, setForm, onSave, onCancel }) {
   return (

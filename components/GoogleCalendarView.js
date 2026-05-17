@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 
-const STAFF_COLORS_MAP = {
+var STAFF_COLORS_MAP = {
   '#b8892a': '#b8892a', '#7BBFCB': '#7BBFCB',
   '#D4869B': '#D4869B', '#9CAF88': '#9CAF88',
   '#A67B5B': '#A67B5B',
