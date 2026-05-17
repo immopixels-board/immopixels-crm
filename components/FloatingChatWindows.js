@@ -1,65 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
-function FloatingChatWindows({ openChats, setOpenChats, staff, me, supabase, onlineUsers, unreadChat, setUnreadChat }) {
-  const WINDOW_WIDTH = 300
-  const WINDOW_GAP = 10
-
-  function closeChat(idx) {
-    setOpenChats(p => p.filter((_,i)=>i!==idx))
-  }
-
-  function getStatusColor(staffId) {
-    const s = onlineUsers?.[staffId]
-    return s==='online'?'#15803d':s==='away'?'#f59e0b':'#8a8278'
-  }
-
-  if (!openChats?.length) return null
-
-  return (
-    <div style={{ position:'fixed', bottom:0, right:10, display:'flex', gap:WINDOW_GAP, alignItems:'flex-end', zIndex:290, pointerEvents:'none' }}>
-      {openChats.map((chat, idx) => {
-        const isTeam = chat.type==='team'
-        const partner = !isTeam ? staff.find(s=>s.id===chat.staffId) : null
-        const windowRight = (openChats.length-1-idx)*(WINDOW_WIDTH+WINDOW_GAP)
-        return (
-          <div key={isTeam?'team':chat.staffId}
-            style={{ width:WINDOW_WIDTH, height:320, background:'#fff', border:'0.5px solid var(--border)', borderRadius:'12px 12px 0 0', boxShadow:'0 -4px 24px rgba(0,0,0,.10)', display:'flex', flexDirection:'column', pointerEvents:'all', position:'relative' }}>
-            {/* Header */}
-            <div style={{ padding:'9px 12px', borderBottom:'0.5px solid var(--border)', display:'flex', alignItems:'center', gap:8, background: isTeam?'rgba(156,175,136,.08)':'rgba(123,191,203,.06)', borderRadius:'12px 12px 0 0', cursor:'move', userSelect:'none', flexShrink:0 }}>
-              {isTeam ? (
-                <img src="/ip-logo.png" style={{ width:22, height:22, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} alt="IP" />
-              ) : (
-                <div style={{ position:'relative', flexShrink:0 }}>
-                  <div style={{ width:24, height:24, borderRadius:'50%', background:partner?.color+'22', color:partner?.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, overflow:'hidden' }}>
-                    {partner?.avatar_url?<img src={partner.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:partner?.init}
-                  </div>
-                  <div style={{ position:'absolute', bottom:-1, right:-1, width:8, height:8, borderRadius:'50%', background:getStatusColor(chat.staffId), border:'1.5px solid #fff' }} />
-                </div>
-              )}
-              <span style={{ fontSize:12, fontWeight:700, flex:1, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {isTeam ? 'Team-Chat' : partner?.name}
-              </span>
-              {!isTeam && (
-                <span style={{ fontSize:10, fontWeight:600, color:getStatusColor(chat.staffId) }}>
-                  {onlineUsers?.[chat.staffId]==='online'?'Online':onlineUsers?.[chat.staffId]==='away'?'Inaktiv':'Offline'}
-                </span>
-              )}
-              <button onClick={()=>closeChat(idx)} style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 5px', fontSize:16, color:'var(--t3)', lineHeight:1 }} title="Schließen">×</button>
-            </div>
-            {/* Chat content */}
-            <div style={{ flex:1, overflowY:'auto', padding:10, background: isTeam?'rgba(156,175,136,.04)':'rgba(123,191,203,.03)' }}>
-              <ChatWindowContent chat={chat} staff={staff} me={me} supabase={supabase} partner={partner} />
-            </div>
-            {/* Input */}
-            <ChatWindowInput chat={chat} me={me} supabase={supabase} partner={partner} />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 function ChatWindowContent({ chat, staff, me, supabase, partner }) {
   const [messages, setMessages] = useState([])
   const bottomRef = useRef(null)
@@ -145,6 +86,65 @@ function ChatWindowInput({ chat, me, supabase, partner }) {
         placeholder="Nachricht... (Enter)"
         style={{ flex:1, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'5px 8px', fontSize:11, outline:'none', color:'var(--t1)', fontFamily:'Arial' }} />
       <button onClick={send} style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 10px', fontSize:11, fontWeight:700, cursor:'pointer' }}>↑</button>
+    </div>
+  )
+}
+
+function FloatingChatWindows({ openChats, setOpenChats, staff, me, supabase, onlineUsers, unreadChat, setUnreadChat }) {
+  const WINDOW_WIDTH = 300
+  const WINDOW_GAP = 10
+
+  function closeChat(idx) {
+    setOpenChats(p => p.filter((_,i)=>i!==idx))
+  }
+
+  function getStatusColor(staffId) {
+    const s = onlineUsers?.[staffId]
+    return s==='online'?'#15803d':s==='away'?'#f59e0b':'#8a8278'
+  }
+
+  if (!openChats?.length) return null
+
+  return (
+    <div style={{ position:'fixed', bottom:0, right:10, display:'flex', gap:WINDOW_GAP, alignItems:'flex-end', zIndex:290, pointerEvents:'none' }}>
+      {openChats.map((chat, idx) => {
+        const isTeam = chat.type==='team'
+        const partner = !isTeam ? staff.find(s=>s.id===chat.staffId) : null
+        const windowRight = (openChats.length-1-idx)*(WINDOW_WIDTH+WINDOW_GAP)
+        return (
+          <div key={isTeam?'team':chat.staffId}
+            style={{ width:WINDOW_WIDTH, height:320, background:'#fff', border:'0.5px solid var(--border)', borderRadius:'12px 12px 0 0', boxShadow:'0 -4px 24px rgba(0,0,0,.10)', display:'flex', flexDirection:'column', pointerEvents:'all', position:'relative' }}>
+            {/* Header */}
+            <div style={{ padding:'9px 12px', borderBottom:'0.5px solid var(--border)', display:'flex', alignItems:'center', gap:8, background: isTeam?'rgba(156,175,136,.08)':'rgba(123,191,203,.06)', borderRadius:'12px 12px 0 0', cursor:'move', userSelect:'none', flexShrink:0 }}>
+              {isTeam ? (
+                <img src="/ip-logo.png" style={{ width:22, height:22, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} alt="IP" />
+              ) : (
+                <div style={{ position:'relative', flexShrink:0 }}>
+                  <div style={{ width:24, height:24, borderRadius:'50%', background:partner?.color+'22', color:partner?.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, overflow:'hidden' }}>
+                    {partner?.avatar_url?<img src={partner.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:partner?.init}
+                  </div>
+                  <div style={{ position:'absolute', bottom:-1, right:-1, width:8, height:8, borderRadius:'50%', background:getStatusColor(chat.staffId), border:'1.5px solid #fff' }} />
+                </div>
+              )}
+              <span style={{ fontSize:12, fontWeight:700, flex:1, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {isTeam ? 'Team-Chat' : partner?.name}
+              </span>
+              {!isTeam && (
+                <span style={{ fontSize:10, fontWeight:600, color:getStatusColor(chat.staffId) }}>
+                  {onlineUsers?.[chat.staffId]==='online'?'Online':onlineUsers?.[chat.staffId]==='away'?'Inaktiv':'Offline'}
+                </span>
+              )}
+              <button onClick={()=>closeChat(idx)} style={{ background:'none', border:'none', cursor:'pointer', padding:'2px 5px', fontSize:16, color:'var(--t3)', lineHeight:1 }} title="Schließen">×</button>
+            </div>
+            {/* Chat content */}
+            <div style={{ flex:1, overflowY:'auto', padding:10, background: isTeam?'rgba(156,175,136,.04)':'rgba(123,191,203,.03)' }}>
+              <ChatWindowContent chat={chat} staff={staff} me={me} supabase={supabase} partner={partner} />
+            </div>
+            {/* Input */}
+            <ChatWindowInput chat={chat} me={me} supabase={supabase} partner={partner} />
+          </div>
+        )
+      })}
     </div>
   )
 }

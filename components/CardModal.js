@@ -487,6 +487,18 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
           </div>
 
+          {/* Drive / WeTransfer Link */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Drive / WeTransfer Link</div>
+            <EditableField value={localCard.drive_link} onSave={v => save('drive_link', v)} placeholder="z.B. https://drive.google.com/drive/folders/... oder https://we.tl/t-..." style={{ fontSize: 12, color: '#8a8278' }} />
+            {localCard.drive_link && (
+              <a href={localCard.drive_link} target="_blank" rel="noopener noreferrer"
+                style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:5, fontSize:11, color:'#1d5ec7', textDecoration:'none', fontWeight:600 }}>
+                <i className="ti ti-external-link" style={{fontSize:11}}/> Link öffnen
+              </a>
+            )}
+          </div>
+
           {/* Notiz */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Notiz</div>

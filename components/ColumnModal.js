@@ -46,9 +46,10 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Löschen', confi
   )
 }
 
-export default function ColumnModal({ col, onSave, onClose }) {
+export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
   const [name, setName] = useState(col?.title || '')
   const [colorKey, setColorKey] = useState(col?.color || '')
+  const [privateCol, setPrivateCol] = useState((col?.visible_to_roles||[]).length > 0)
   const preview = PANTONE.find(c => c.key === colorKey)
 
   return (
@@ -73,7 +74,7 @@ export default function ColumnModal({ col, onSave, onClose }) {
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Name</div>
             <input value={name} onChange={e => setName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && name.trim() && onSave(name, colorKey)}
+              onKeyDown={e => e.key === 'Enter' && name.trim() && onSave(name, colorKey, privateCol)}
               placeholder="Spaltenname..."
               style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid ' + (name ? '#b8892a' : '#ddd9d2'), borderRadius: 8, padding: '9px 12px', fontSize: 14, fontWeight: 600, color: '#1c1a16', outline: 'none', fontFamily: 'Arial' }} />
           </div>
@@ -113,7 +114,14 @@ export default function ColumnModal({ col, onSave, onClose }) {
         {/* Footer */}
         <div style={{ padding: '10px 18px', borderTop: '0.5px solid #eeeae6', display: 'flex', gap: 8, background: '#faf9f7' }}>
           <button onClick={onClose} style={{ flex: 1, background: 'none', border: '0.5px solid #ddd9d2', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 600, color: '#4a4540', cursor: 'pointer' }}>Abbrechen</button>
-          <button onClick={() => name.trim() && onSave(name, colorKey)}
+          {isAdmin && (
+            <div style={{ marginBottom:10, display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'var(--bg3)', borderRadius:7 }}>
+              <input type="checkbox" id="col-private" checked={privateCol} onChange={e=>setPrivateCol(e.target.checked)}
+                style={{ width:14, height:14, cursor:'pointer', accentColor:'#b8892a' }} />
+              <label htmlFor="col-private" style={{ fontSize:11, fontWeight:600, color:'var(--t1)', cursor:'pointer' }}>Nur für mich sichtbar</label>
+            </div>
+          )}
+          <button onClick={() => name.trim() && onSave(name, colorKey, privateCol)}
             disabled={!name.trim()}
             style={{ flex: 2, background: name.trim() ? '#1c1a16' : '#ccc', color: '#fff', border: 'none', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
             <i className="ti ti-check" style={{ fontSize: 13 }} /> Speichern
