@@ -1,3 +1,4 @@
 *.md
 *.sql
 .npmrc
+v2_4_2_migration.sql
