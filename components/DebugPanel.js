@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.6.0', date: '2026-05-17', items: ['GCal kétirányú szinkron', 'Board→GCal auto push', 'GCal→Board 30 perc cron', 'Kategória felismerés'] },
   { ver: 'v2.5.9', date: '2026-05-17', items: ['GCal kétirányú szinkron', 'Board→GCal: kártya cím+dátum esetén auto push', 'GCal→Board: 30 percenként auto import (location alapján)', 'Kategória felismerés (Drohne/Reel/Foto)', 'OAuth scope: calendar.events (írás)', 'beschäftigt státusz (booking blokk)'] },
   { ver: 'v2.5.8', date: '2026-05-17', items: ['Kártya drag csak grip ikonon', 'Gombok/kattintás javítva a kártyán', 'Welcome modal konfettivel (első belépés)'] },
   { ver: 'v2.5.7', date: '2026-05-17', items: ['Kártya grip ikon (drag handle)', 'Hover menü: fel/le nyilak eltávolítva', 'GCal kártyák: addr megjelenítés fix'] },
