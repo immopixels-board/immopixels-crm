@@ -186,12 +186,20 @@ export default function ProfilPage() {
   async function saveUserSetting(key, value) {
     const sid = me?.id
     if (!sid) return
-    const next = { ...userSettings, [key]: value }
-    // bg_image: apply immediately
+    // Ha képet választunk, töröljük a bg_color-t (kép felülírja)
+    // Ha színt választunk, töröljük a bg_image-t
+    let next
     if (key === 'bg_image') {
+      next = { ...userSettings, bg_image: value }
       document.body.style.backgroundImage = value ? 'url(' + value + ')' : 'none'
       document.body.style.backgroundSize = 'cover'
       document.body.style.backgroundAttachment = 'fixed'
+      document.body.style.backgroundRepeat = 'no-repeat'
+    } else if (key === 'bg_color') {
+      next = { ...userSettings, bg_color: value, bg_image: null }
+      document.body.style.backgroundImage = 'none'
+    } else {
+      next = { ...userSettings, [key]: value }
     }
     setUserSettings(next)
     await supabase.from('user_settings').upsert({ staff_id: sid, ...next }, { onConflict: 'staff_id' })
@@ -202,7 +210,9 @@ export default function ProfilPage() {
   function applySettings(s) {
     const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
     const fsMap = { sm:'13px', md:'14px', lg:'16px' }
-    document.documentElement.style.setProperty('--bg', bgMap[s.bg_color] || '#f4f2ef')
+    if (!s.bg_image) {
+      document.documentElement.style.setProperty('--bg', bgMap[s.bg_color] || '#f4f2ef')
+    }
     document.body.style.fontSize = fsMap[s.font_size] || '14px'
   }
 

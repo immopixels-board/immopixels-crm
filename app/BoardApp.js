@@ -402,7 +402,9 @@ export default function Home() {
       updatePresence(inactive ? 'away' : 'online')
     }, 30000)
     const loadPresence = async () => {
-      const { data } = await supabase.from('user_presence').select('staff_id,status,last_seen').catch(()=>({data:null}))
+      let presenceData = null
+      try { const r = await supabase.from('user_presence').select('staff_id,status,last_seen'); presenceData = r.data } catch(e) {}
+      const { data }  = { data: presenceData }
       if (data) {
         const map = {}
         const now = Date.now()
