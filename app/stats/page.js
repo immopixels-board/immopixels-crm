@@ -20,7 +20,7 @@ export default function StatsPage() {
   async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { window.location.href = '/login'; return }
-    const { data: staff } = await supabase.from('staff').select('*').eq('user_id', user.id).single()
+    const { data: staff } = await supabase.from('staff').select('*').eq('email', user.email).single()
     if (!staff || staff.role_level !== 'admin') { window.location.href = '/'; return }
     setMe(staff)
 
