@@ -1,0 +1,78 @@
+ImmoPixels CRM — v2.4.2 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.1 → v2.4.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. SOFT-DELETE KÁRTYÁK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Törölt kártyák nem törlődnek véglegesen
+• Debug panel → Törölt fülön visszanézhetőek
+• Visszaállítás gomb: visszateszi az eredeti oszlopba
+• Ha az oszlop is törölve lett, az első oszlopba kerül
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. AUTOMATIKUS ÜGYFÉL FELISMERÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Kártya létrehozásakor a névből automatikusan
+  felismeri az ügyfelet (pl. "Riegel#57..." → Riegel)
+• Dropbox link automatikusan hozzárendelődik
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. NAPI AUTOMATIKUS BACKUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Minden nap 02:00-kor automatikus mentés
+• Supabase backups táblában tárolva
+• 30 napig megőrizve
+• Debug panel → Backup fülről letölthető JSON-ban
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. ÓRÁNKÉNTI GCAL SNAPSHOT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Minden órában elmenti a GCal eseményeket
+• Supabase gcal_snapshots táblában
+• GCal token Supabase-be mentve (cron jobhoz)
+• 30 napig megőrizve
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. DEBUG PANEL — ÚJ FÜLEK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 📋 Log — meglévő log nézet
+• 🗑 Törölt — törölt kártyák visszaállítással
+• 💾 Backup — mentések listája, letöltés
+• 📝 Changelog — összes verzió history
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. ÜGYFÉL STATISZTIKA OLDAL (/stats)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Csak admin láthatja
+• Topbarban 📊 ikon (admin esetén)
+• Összes ügyfél fotózásainak száma
+• Összbevétel per ügyfél
+• Utolsó fotózás dátuma
+• Rendezés: fotók / bevétel / név szerint
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. GCAL KÁRTYÁK AKTUALIZÁLÁSA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Meglévő GCal kártyákon addr → title merge
+• SQL migration egyszeri futtatással
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUPABASE SQL (futtatandó először!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+→ Lásd: v2_4_2_migration.sql
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERCEL ENV VÁLTOZÓK (hozzáadandó)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRON_SECRET = (bármilyen véletlenszerű string, pl. openssl rand -hex 32)
+SUPABASE_SERVICE_ROLE_KEY = (Supabase → Settings → API → service_role key)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Supabase SQL Editorban futtasd: v2_4_2_migration.sql
+2. Vercel Settings → Environment Variables → add CRON_SECRET + SUPABASE_SERVICE_ROLE_KEY
+3. cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -q immopixels-crm_2_4_2.zip && mv immopixels-crm-v2.4.2 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ && echo "kész"
+4. cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.2" && git push

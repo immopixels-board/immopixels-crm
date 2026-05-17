@@ -1,0 +1,40 @@
+ImmoPixels CRM — v2.4.1 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.0 → v2.4.1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. DROPBOX GOMB A CARDMODALBAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• A Dropbox gomb a footer felett jelenik meg
+• Automatikusan az ügyfél dropbox_link mezőjéből töltődik
+• Ha nincs link az ügyfélnél, a gomb nem jelenik meg
+• Kattintásra közvetlenül megnyitja az ügyfél Dropbox mappáját
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. FERTIG GOMB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Új Fertig gomb a Senden gomb mellett a footerben
+• Azonnal átteszi a kártyát a Fertig oszlopba
+• Bezárja a modalt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. MANUÁLIS MENTÉS GOMB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Floppy ikon gomb a kuka ikon mellett
+• Automatikus mentés megmarad, de kézzel is menthető
+• Mentés után zöld "Gespeichert" visszajelzés
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. GCAL KÁRTYANÉV FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• GCal kártyákon a teljes cím a névben marad
+  (pl. "Casalie#011 - Grenzhoferweg 1, Brühl")
+• Az addr mező nem jelenik meg külön GCal kártyákon
+• A város nem kerül oda külön cím mezőbe
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -q immopixels-crm_2_4_1.zip && mv immopixels-crm-v2.4.1 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ && echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.1" && git push

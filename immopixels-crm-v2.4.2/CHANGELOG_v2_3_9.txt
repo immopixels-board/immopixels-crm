@@ -1,0 +1,43 @@
+ImmoPixels CRM — v2.3.9 Update Notes
+=====================================
+Datum: 2026-05-16
+Verzió: v2.3.8 → v2.3.9
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. GOOGLE NAPTÁR INTEGRÁCIÓ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• OAuth alapú Google Calendar csatlakozás
+• Havi / heti / napi nézet
+• GCal események megjelennek a boardon és a naptárban
+• GCal badge a kártyákon
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. OSZLOP LÁTHATÓSÁG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• "Nur für mich sichtbar" opció oszlopokon
+• Privát oszlop csak az adott felhasználónak látszik
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. DRIVE / WETRANSFER LINK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Új mező a CardModal-ban Drive/WeTransfer linkhez
+• Kattintható link megjelenik a kártyán
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. KÁRTYA POZÍCIÓ RENDEZÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Kártyák ASC sorrendbe rendeződnek pozíció szerint
+• Drag-and-drop után tisztán újraszámolt pozíciók
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. TECHNIKAI — BUILD FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• page.js → thin wrapper + BoardApp.js szétválasztás
+• BoardApp dynamic import ssr:false (Next.js build fix)
+• isAdminOrSub komponens-szintű változóként
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -q immopixels-crm_2_3_9.zip && mv immopixels-crm-v2.3.9 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ && echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.3.9" && git push
