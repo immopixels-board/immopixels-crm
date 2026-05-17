@@ -112,20 +112,25 @@ export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '10px 18px', borderTop: '0.5px solid #eeeae6', display: 'flex', gap: 8, background: '#faf9f7' }}>
-          <button onClick={onClose} style={{ flex: 1, background: 'none', border: '0.5px solid #ddd9d2', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 600, color: '#4a4540', cursor: 'pointer' }}>Abbrechen</button>
+        <div style={{ padding: '10px 18px', borderTop: '0.5px solid #eeeae6', background: '#faf9f7' }}>
           {isAdmin && (
-            <div style={{ marginBottom:10, display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'var(--bg3)', borderRadius:7 }}>
-              <input type="checkbox" id="col-private" checked={privateCol} onChange={e=>setPrivateCol(e.target.checked)}
-                style={{ width:14, height:14, cursor:'pointer', accentColor:'#b8892a' }} />
-              <label htmlFor="col-private" style={{ fontSize:11, fontWeight:600, color:'var(--t1)', cursor:'pointer' }}>Nur für mich sichtbar</label>
+            <div onClick={() => setPrivateCol(p => !p)}
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background: privateCol ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: '0.5px solid ' + (privateCol ? '#b8892a' : '#ddd9d2'), borderRadius:8, marginBottom:10, cursor:'pointer', transition:'all .15s' }}>
+              <div style={{ width:18, height:18, borderRadius:4, border:'1.5px solid ' + (privateCol ? '#b8892a' : '#ccc'), background: privateCol ? '#b8892a' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s' }}>
+                {privateCol && <i className="ti ti-check" style={{ fontSize:11, color:'#fff' }} />}
+              </div>
+              <i className="ti ti-eye-off" style={{ fontSize:13, color: privateCol ? '#b8892a' : '#8a8278' }} />
+              <span style={{ fontSize:12, fontWeight:600, color: privateCol ? '#b8892a' : '#4a4540' }}>Nur für mich sichtbar</span>
             </div>
           )}
-          <button onClick={() => name.trim() && onSave(name, colorKey, privateCol)}
-            disabled={!name.trim()}
-            style={{ flex: 2, background: name.trim() ? '#1c1a16' : '#ccc', color: '#fff', border: 'none', borderRadius: 8, padding: '8px', fontSize: 13, fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-            <i className="ti ti-check" style={{ fontSize: 13 }} /> Speichern
-          </button>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={onClose} style={{ flex:1, background:'none', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'8px', fontSize:13, fontWeight:600, color:'#4a4540', cursor:'pointer' }}>Abbrechen</button>
+            <button onClick={() => name.trim() && onSave(name, colorKey, privateCol)}
+              disabled={!name.trim()}
+              style={{ flex:2, background: name.trim() ? '#1c1a16' : '#ccc', color:'#fff', border:'none', borderRadius:8, padding:'8px', fontSize:13, fontWeight:700, cursor: name.trim() ? 'pointer' : 'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+              <i className="ti ti-check" style={{ fontSize:13 }} /> Speichern
+            </button>
+          </div>
         </div>
       </div>
     </div>
