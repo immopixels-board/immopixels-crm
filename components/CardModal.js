@@ -376,6 +376,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   const GCAL_SYNC_FIELDS = ['addr', 'card_date', 'card_time', 'title', 'description', 'client_name']
 
   async function save(field, value) {
+    if (currentStaff?.role_level === 'demo') return
     const upd = { [field]: value }
     if (field !== 'card_color') upd.updated_at = new Date().toISOString()
     await supabase.from('cards').update(upd).eq('id', card.id)
