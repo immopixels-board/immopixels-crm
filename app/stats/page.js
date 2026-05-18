@@ -64,7 +64,7 @@ export default function StatsPage() {
   // Calculations
   const yearCards = cards.filter(c => c.card_date?.startsWith(year + ''))
   const totalAufnahmen = yearCards.length
-  const totalUmsatz = clients.reduce((s, c) => s + Object.values(c.service_prices || {}).reduce((a, v) => a + (parseFloat(v) || 0), 0), 0)
+  const totalUmsatz = yearCards.reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
 
   const monthlyData = MONTHS.map((m, i) => ({
     month: m,
@@ -93,7 +93,31 @@ export default function StatsPage() {
   }
 
   function clientUmsatz(client) {
-    return Object.values(client.service_prices || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+    const name = client.short_name || client.name
+    const clientCards = yearCards.filter(c => c.client_name && (
+      c.client_name.toLowerCase() === name.toLowerCase() ||
+      c.client_name.toLowerCase() === (client.name || '').toLowerCase()
+    ))
+    const fromCards = clientCards.reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
+    if (fromCards > 0) return fromCards
+    // fallback: count × default service price
+    const defaultPrice = Object.values(client.service_prices || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+    return clientCards.length * defaultPrice
+  }
+
+  function clientMonthUmsatz(client, monthIdx) {
+    const name = client.short_name || client.name
+    const monthCards = yearCards.filter(c =>
+      new Date(c.card_date).getMonth() === monthIdx &&
+      c.client_name && (
+        c.client_name.toLowerCase() === name.toLowerCase() ||
+        c.client_name.toLowerCase() === (client.name || '').toLowerCase()
+      )
+    )
+    const fromCards = monthCards.reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
+    if (fromCards > 0) return fromCards
+    const defaultPrice = Object.values(client.service_prices || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+    return monthCards.length * defaultPrice
   }
 
   function GoalCircle({ pct, color, gradient, label, current, target, unit, remaining }) {
@@ -251,14 +275,15 @@ export default function StatsPage() {
 
         {/* Client table */}
         <div style={{ background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', background: '#f4f2ef', borderBottom: '0.5px solid #ddd9d2', fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase', letterSpacing: '.4px', gap: 2, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 50px 80px 80px', padding: '9px 14px', background: '#f4f2ef', borderBottom: '0.5px solid #ddd9d2', fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase', letterSpacing: '.4px', gap: 2, alignItems: 'center' }}>
             <span>Kunde</span>
             {MONTHS.map(m => <span key={m} style={{ textAlign: 'center' }}>{m}</span>)}
             <span style={{ textAlign: 'right' }}>Ges.</span>
             <span style={{ textAlign: 'right' }}>Umsatz</span>
+            <span style={{ textAlign: 'right', color:'#15803d', fontWeight:700 }}>Gesamt €</span>
           </div>
           {clients.filter(c => clientTotal(c) > 0).sort((a, b) => clientTotal(b) - clientTotal(a)).map((c, i, arr) => (
-            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', borderBottom: i < arr.length - 1 ? '0.5px solid #eeeae6' : 'none', alignItems: 'center', gap: 2 }}>
+            <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 50px 80px 80px', padding: '9px 14px', borderBottom: i < arr.length - 1 ? '0.5px solid #eeeae6' : 'none', alignItems: 'center', gap: 2 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700 }}>{c.name}</div>
                 {c.short_name && c.short_name !== c.name && <div style={{ fontSize: 10, color: '#8a8278' }}>{c.short_name}</div>}
@@ -269,17 +294,23 @@ export default function StatsPage() {
               })}
               <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{clientTotal(c)}</div>
               <div style={{ textAlign: 'right', fontSize: 11, color: '#4a4540' }}>{clientUmsatz(c) ? clientUmsatz(c).toLocaleString('de-DE') + ' €' : '—'}</div>
+              <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700, color:'#15803d' }}>{clientUmsatz(c) ? clientUmsatz(c).toLocaleString('de-DE') + ' €' : '—'}</div>
             </div>
           ))}
           {/* Totals */}
-          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 60px 90px', padding: '9px 14px', background: '#faf9f7', borderTop: '1px solid #ddd9d2', alignItems: 'center', gap: 2 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '170px repeat(12,1fr) 50px 80px 80px', padding: '9px 14px', background: '#faf9f7', borderTop: '1px solid #ddd9d2', alignItems: 'center', gap: 2 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase' }}>Gesamt</div>
             {MONTHS.map((m, mi) => {
               const cnt = monthlyData[mi].count
-              return <div key={m} style={{ textAlign: 'center', fontSize: 11, fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+              const monthUmsatz = yearCards.filter(c => new Date(c.card_date).getMonth() === mi).reduce((s, c) => s + (parseFloat(c.price)||0), 0)
+              return <div key={m} style={{ textAlign: 'center', fontSize: 10 }}>
+                <div style={{ fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+                {monthUmsatz > 0 && <div style={{ color:'#15803d', fontWeight:700, marginTop:2 }}>{monthUmsatz.toLocaleString('de-DE')}€</div>}
+              </div>
             })}
             <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{totalAufnahmen}</div>
             <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700 }}>{totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—'}</div>
+            <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700, color:'#15803d' }}>{totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—'}</div>
           </div>
         </div>
 
