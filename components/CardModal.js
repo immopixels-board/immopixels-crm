@@ -626,50 +626,15 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               <EditableField value={localCard.client_name} onSave={v => save('client_name', v)} placeholder="Kunden eingeben..." style={{ fontSize: 13, fontWeight: 600, color: '#1c1a16' }} />
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Termin</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div onClick={() => { setDatePickerOpen(p => !p); if(localCard.card_date) { const d=new Date(localCard.card_date+'T00:00:00'); setPickerMonth({y:d.getFullYear(),m:d.getMonth()}) } }} style={{ flex:1, background: datePickerOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(datePickerOpen?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:600, color: localCard.card_date?'#b8892a':'#8a8278', cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-                  <i className="ti ti-calendar" style={{ fontSize:13 }} />
-                  {fmtDateCustom(localCard.card_date)}
-                  <i className="ti ti-chevron-down" style={{ fontSize:10, marginLeft:'auto' }} />
-                </div>
-                <div style={{ background:'#f4f2ef', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'7px 10px', display:'flex', alignItems:'center', gap:4 }}>
-                  <i className="ti ti-clock" style={{ fontSize:12, color:'#8a8278' }} />
-                  <input type="time" value={localCard.card_time?.slice(0,5)||''} onChange={e=>save('card_time',e.target.value)}
-                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600, color:'#1c1a16', background:'transparent', width:65 }} />
-                </div>
-              </div>
-              {datePickerOpen && (
-                <div style={{ background:'#fff', border:'0.5px solid #ddd9d2', borderRadius:10, padding:10, boxShadow:'0 8px 24px rgba(0,0,0,.1)', zIndex:10, marginTop:6 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                    <button onClick={()=>setPickerMonth(p=>p.m===0?{y:p.y-1,m:11}:{y:p.y,m:p.m-1})} style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:'#4a4540', padding:'0 6px' }}>‹</button>
-                    <span style={{ fontSize:12, fontWeight:700, color:'#1c1a16' }}>{MONTHS_DE[pickerMonth.m]} {pickerMonth.y}</span>
-                    <button onClick={()=>setPickerMonth(p=>p.m===11?{y:p.y+1,m:0}:{y:p.y,m:p.m+1})} style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:'#4a4540', padding:'0 6px' }}>›</button>
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', textAlign:'center', gap:1, marginBottom:4 }}>
-                    {['M','D','M','D','F','S','S'].map((d,i)=><div key={i} style={{ fontSize:9, fontWeight:700, color: i===6?'#b91c1c':'#8a8278', padding:'2px 0' }}>{d}</div>)}
-                    {getCalDays(pickerMonth.y, pickerMonth.m).map((day,i) => {
-                      const ds = day.date.toISOString().slice(0,10)
-                      const isSel = ds === localCard.card_date
-                      const isSun = day.date.getDay() === 0
-                      return <div key={i} onClick={()=>{ save('card_date', ds) }} style={{ fontSize:11, padding:'4px 1px', borderRadius:'50%', width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', cursor:'pointer', background: isSel?'#b8892a':'none', color: isSel?'#fff': !day.cur?'#ccc': isSun?'#b91c1c':'#1c1a16', fontWeight: isSel?700:400 }}>{day.date.getDate()}</div>
-                    })}
-                  </div>
-                  <div style={{ borderTop:'0.5px solid #f4f2ef', paddingTop:8, marginBottom:6 }}>
-                    <div style={{ fontSize:9, fontWeight:700, color:'#8a8278', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:5 }}>Uhrzeit</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:3, maxHeight:120, overflowY:'auto' }}>
-                      {TIME_SLOTS.map(t => {
-                        const isSel = t === localCard.card_time?.slice(0,5)
-                        return <div key={t} onClick={()=>save('card_time',t)} style={{ fontSize:10, fontWeight: isSel?700:400, padding:'5px 2px', textAlign:'center', borderRadius:5, background: isSel?'#b8892a':'#f4f2ef', color: isSel?'#fff':'#1c1a16', cursor:'pointer', border: isSel?'none':'0.5px solid #eeeae6' }}>{t}</div>
-                      })}
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={()=>setDatePickerOpen(false)} style={{ flex:1, background:'#1c1a16', color:'#fff', border:'none', borderRadius:6, padding:'6px', fontSize:11, fontWeight:700, cursor:'pointer' }}>Schließen</button>
-                    {localCard.card_date && <button onClick={()=>{save('card_date',null);save('card_time',null);setDatePickerOpen(false)}} style={{ background:'#fef2f2', color:'#b91c1c', border:'0.5px solid #fecaca', borderRadius:6, padding:'6px 10px', fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', gap:3 }}><i className="ti ti-trash" style={{ fontSize:10 }} /> Löschen</button>}
-                  </div>
-                </div>
-              )}
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Termin</div>
+              <CardDateTimePicker
+                date={localCard.card_date||null}
+                time={localCard.card_time?.slice(0,5)||null}
+                timeTo={localCard.card_time_to?.slice(0,5)||null}
+                onDateChange={v=>save('card_date',v)}
+                onTimeChange={v=>save('card_time',v)}
+                onTimeToChange={v=>save('card_time_to',v)}
+              />
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>
