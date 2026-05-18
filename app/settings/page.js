@@ -96,7 +96,8 @@ function WatchActivateButton() {
       const data = await r.json()
       if (data.ok) {
         const ok = (data.results||[]).filter(x=>x.ok).length
-        setStatus({ ok:true, msg: ok+' Kalender verbunden' })
+        const fail = (data.results||[]).filter(x=>!x.ok).length
+        setStatus({ ok:true, msg: ok+' Kalender verbunden'+(fail>0?', '+fail+' fehlgeschlagen':'') })
       } else { setStatus({ ok:false, msg:'Fehler: '+(data.reason||'Unbekannt') }) }
     } catch(e) { setStatus({ ok:false, msg:'Netzwerkfehler' }) }
     setLoading(false)
@@ -208,6 +209,7 @@ export default function Settings() {
     { key:'appearance', label:'Aussehen', icon:'ti-palette', color:'#b8892a', bg:'rgba(184,137,42,.12)' },
     { key:'categories', label:'Kategorien', icon:'ti-camera', color:'#1d5ec7', bg:'rgba(29,94,199,.10)' },
     { key:'staff', label:'Mitarbeiter', icon:'ti-id-badge', color:'#15803d', bg:'rgba(21,128,61,.10)' },
+    { key:'integrations', label:'Integrationen', icon:'ti-plug', color:'#6d28d9', bg:'rgba(109,40,217,.10)' },
   ]
 
   if (loading) return <div style={{padding:40,fontFamily:'Arial',color:'#8a8278',display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f4f2ef'}}>Wird geladen...</div>
@@ -352,6 +354,21 @@ export default function Settings() {
               />
             )}
 
+          {activeNav === 'integrations' && (
+            <div>
+              <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                  <i className="ti ti-brand-google" style={{ fontSize:16, color:'#b8892a' }} />
+                  Google Calendar Sync
+                </div>
+                <div style={{ fontSize:12, color:'#8a8278', marginBottom:14, lineHeight:1.6 }}>
+                  Aktiviert die sofortige Synchronisation zwischen Google Kalender und dem Board.<br/>
+                  Die Watch-Verbindung ist 7 Tage gültig und wird jeden Montag automatisch erneuert.
+                </div>
+                <WatchActivateButton />
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </div>
