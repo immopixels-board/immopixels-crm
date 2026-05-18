@@ -483,9 +483,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 </div>
               )}
             </div>
-            <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', gridColumn: 'span 2' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Beschreibung</div>
-              <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 12, color: '#4a4540' }} />
+            <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>
+              <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, color: '#1c1a16', lineHeight: 1.65 }} renderValue={v => renderCommentText(v)} />
             </div>
           </div>
 
@@ -544,7 +544,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           {/* Notiz */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Notiz</div>
-            <NoteField value={localCard.note} onSave={v => save('note', v)} staff={staff} />
+            <NoteField value={localCard.note} onSave={v => save('note', v)} staff={staff} fontSize={14} />
           </div>
 
           {/* Kommentare */}
