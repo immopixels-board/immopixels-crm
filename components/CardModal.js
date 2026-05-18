@@ -264,7 +264,7 @@ function EditableField({ value, onSave, style, multiline, placeholder }) {
   )
 }
 
-export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig }) {
+export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig, onSend }) {
   const [saved, setSaved] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [localCard, setLocalCard] = useState(card)
@@ -703,7 +703,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
         {/* Footer */}
         <div style={{ padding: '10px 20px', borderTop: '0.5px solid #eeeae6', display: 'flex', gap: 8, alignItems: 'center', background: '#faf9f7', flexShrink: 0 }}>
-          <button onClick={() => { /* open send modal */ }} style={{ background: '#c9a05a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <button onClick={() => onSend && onSend(card)} style={{ background: '#c9a05a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
             <i className="ti ti-send" style={{ fontSize: 13 }} /> Senden
           </button>
           <button onClick={async () => {
