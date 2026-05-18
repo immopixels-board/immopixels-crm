@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.8.5', date: '2026-05-18', items: ['GCal Push Notification webhook (azonnali szinkron)', 'GCal → Board: dátum változás azonnali frissítés', 'Shootings oszlop: dátum szerinti rendezés', 'Heti watch megújítás (cron hétfőnként)'] },
   { ver: 'v2.7.7', date: '2026-05-18', items: ['Widgetek mindig nyitva indulnak', 'X gomb → minimize (összecsukás)', 'Minimize állapot mentve localStorage-be', 'Widget pozíció clamp (nem lóg ki a képből)'] },
   { ver: 'v2.6.9', date: '2026-05-18', items: ['Beschreibung: vastagabb betű, word-break, linkek rövidítve+arany', 'Drive/WeTransfer → Drive/Dropbox', 'Settings: Aufnahme-Kategorien szekció törölve', 'Duplikált kategóriák javítva (getTypes egyetlen forrás)', 'Dátum törlés gomb', 'Kompakt dátum: nap.hónap.év'] },
   { ver: 'v2.6.9', date: '2026-05-18', items: ['Dátum törlés gomb a CardModal Termin mezőnél', 'Kompakt kártya dátum: nap.hónap.év (pl. 17.05.26)', 'Új kategória hozzáadás a kártyán belül (szín + név)'] },
