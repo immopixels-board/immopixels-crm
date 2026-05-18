@@ -3229,7 +3229,7 @@ function ClaudeAvatar({ size = 28 }) {
 }
 
 function CardItem({ card, staff, border, overdueDays = 0, overdueBg, onNoteChange, onNoteEnter, onClick, onDragStart, onSend, onCheck, onDelete, onColorChange, droppedId, noteMention, setNoteMention, dirtyCards, editingCards, onMoveUp, onMoveDown, onlineUsers, fontSize = 14, dragging = null, clients = [], allTypes = null }) {
-  const t = TYPES[card.card_type] || TYPES.foto
+  const t = findType(allTypes || getTypes([]), card.card_type) || { i:'', l:'Foto', c:'#b8892a', bg:'#b8892a22', br:'#b8892a66' }
   const done = (card.checklist_items || []).filter(x => x.done).length
   const tot = (card.checklist_items || []).length
   const [noteVal, setNoteVal] = useState(card.note || '')
