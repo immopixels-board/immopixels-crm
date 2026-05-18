@@ -322,6 +322,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   }
 
   async function addComment() {
+    if (currentStaff?.role_level === 'demo') return
     const text = commentText.trim()
     if (!text || !currentStaff?.id) return
     const mentioned = parseMentionedStaffIds(text)
