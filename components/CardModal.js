@@ -379,7 +379,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
   const GCAL_SYNC_FIELDS = ['addr', 'card_date', 'card_time', 'title', 'description', 'client_name']
 
-  const DRIVE_FOLDER_ID = '1642pD6ASiQBwZNKUBm_XhFXIBw8Q54yx'
+  const DRIVE_FOLDER_ID = '1Khlf9n732ri4ucfWo9kYWX8Vf1i4m1S9'
 
   async function uploadZipToDrive(file) {
     if (!file) return
