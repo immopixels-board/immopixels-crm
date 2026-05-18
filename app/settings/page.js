@@ -5,13 +5,13 @@ import { supabase } from '../../lib/supabase'
 
 const DEFAULTS = {
   photo_categories: [
-    { l:'Foto', c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' },
-    { l:'Foto+Reel', c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    { l:'Foto+Drohne', c:'#a16207', bg:'#a1620712', br:'#a1620730' },
-    { l:'Drohne', c:'#15803d', bg:'#15803d12', br:'#15803d30' },
-    { l:'Reel', c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    { l:'360°', c:'#0891b2', bg:'#0891b212', br:'#0891b230' },
-    { l:'Video', c:'#1d5ec7', bg:'#1d5ec712', br:'#1d5ec730' },
+    { l:'Foto',        c:'#b8892a' },
+    { l:'Foto+Reel',   c:'#6d28d9' },
+    { l:'Foto+Drohne', c:'#a16207' },
+    { l:'Drohne',      c:'#15803d' },
+    { l:'Reel',        c:'#6d28d9' },
+    { l:'360°',        c:'#0891b2' },
+    { l:'Video',       c:'#1d5ec7' },
   ],
   client_categories: ['Maklerunternehmen','Privat','Bauträger','Bank','Home Designer','Sonstige'],
   staff_roles: ['Fotograf','Videograf / Cutter','Drohnen Pilot','Backoffice','Social Media','Leiter / Fotograf'],
