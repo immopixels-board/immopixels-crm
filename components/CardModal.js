@@ -497,6 +497,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
   async function gcalSyncCard(updatedCard) {
     if (!updatedCard?.addr || !updatedCard?.card_date) return
+    if (updatedCard.is_gcal) return // GCal-ból importált kártyát nem írjuk vissza
     try {
       const teamData = await supabase.from('card_team').select('staff_id').eq('card_id', updatedCard.id)
       const staffInits = (teamData.data || []).map(t => {

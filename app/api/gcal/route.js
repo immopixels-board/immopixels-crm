@@ -147,7 +147,7 @@ export async function GET(req) {
 
         const { data: newCard } = await supabase.from('cards').insert({
           column_id: shootingsCol.id,
-          title: location,
+          title: ev.summary || location,
           addr: location,
           description: ev.description || '',
           card_date: date,
