@@ -264,6 +264,110 @@ function EditableField({ value, onSave, style, multiline, placeholder }) {
   )
 }
 
+const MONTHS_CM = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+
+function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTimeToChange }) {
+  const [calOpen, setCalOpen] = useState(false)
+  const [timeOpen, setTimeOpen] = useState(false)
+  const [cy, setCy] = useState(() => date ? parseInt(date.slice(0,4)) : new Date().getFullYear())
+  const [cm, setCm] = useState(() => date ? parseInt(date.slice(5,7))-1 : new Date().getMonth())
+
+  function pad(n){return String(n).padStart(2,'0')}
+  function toMin(t){const[h,m]=(t||'00:00').split(':').map(Number);return h*60+m}
+  function fromMin_(mn){return pad(Math.floor(mn/60))+':'+pad(mn%60)}
+  function fmtD(s){if(!s)return'Datum wählen...';const d=new Date(s+'T00:00:00');const days=['So','Mo','Di','Mi','Do','Fr','Sa'];return days[d.getDay()]+'. '+pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+String(d.getFullYear()).slice(2)}
+
+  const fromT = time||'10:00'
+  const toT = timeTo||fromMin_(toMin(fromT)+120)
+  const diff = Math.max(0, toMin(toT)-toMin(fromT))
+  const durLabel = Math.floor(diff/60)+'h'+(diff%60?' '+diff%60+'min':'')
+
+  const calDays = React.useMemo(()=>{
+    const first=new Date(cy,cm,1),last=new Date(cy,cm+1,0)
+    const startDow=(first.getDay()+6)%7,days=[]
+    for(let i=0;i<startDow;i++){const d=new Date(cy,cm,1-startDow+i);days.push({date:d,cur:false})}
+    for(let d=1;d<=last.getDate();d++)days.push({date:new Date(cy,cm,d),cur:true})
+    return days
+  },[cy,cm])
+
+  const slots=[]
+  for(let h=7;h<=20;h++)for(let m=0;m<60;m+=15)slots.push(pad(h)+':'+pad(m))
+
+  function pickFrom(t){
+    onTimeChange(t)
+    const fm=toMin(t)
+    if(toMin(toT)<=fm) onTimeToChange(fromMin_(Math.min(fm+120,toMin('20:00'))))
+  }
+
+  return (
+    <div>
+      <div style={{ display:'flex', gap:8, marginBottom:6 }}>
+        <div onClick={()=>{setCalOpen(p=>!p);setTimeOpen(false)}} style={{ flex:'1.2', background:calOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(calOpen||date?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:700, color:date?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+          <i className="ti ti-calendar" style={{ fontSize:13 }} />
+          <span style={{ flex:1 }}>{fmtD(date)}</span>
+          <i className="ti ti-chevron-down" style={{ fontSize:10, transition:'.2s', transform:calOpen?'rotate(180deg)':'' }} />
+        </div>
+        <div onClick={()=>{setTimeOpen(p=>!p);setCalOpen(false)}} style={{ flex:1, background:timeOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(timeOpen||time?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:12, fontWeight:700, color:time?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+          <i className="ti ti-clock" style={{ fontSize:13 }} />
+          <span style={{ flex:1 }}>{fromT} – {toT}</span>
+          <i className="ti ti-chevron-down" style={{ fontSize:10, transition:'.2s', transform:timeOpen?'rotate(180deg)':'' }} />
+        </div>
+      </div>
+      {calOpen && (
+        <div style={{ background:'#fff', border:'0.5px solid #ddd9d2', borderRadius:12, padding:12, marginBottom:8, boxShadow:'0 4px 20px rgba(0,0,0,.08)', zIndex:20 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <button type="button" onClick={()=>setCm(m=>m===0?(setCy(y=>y-1),11):m-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1c1a16', fontSize:18, padding:'0 8px' }}>‹</button>
+            <span style={{ fontSize:13, fontWeight:700, color:'#1c1a16' }}>{MONTHS_CM[cm]} {cy}</span>
+            <button type="button" onClick={()=>setCm(m=>m===11?(setCy(y=>y+1),0):m+1)} style={{ background:'none', border:'none', cursor:'pointer', color:'#1c1a16', fontSize:18, padding:'0 8px' }}>›</button>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', textAlign:'center', gap:2, marginBottom:6 }}>
+            {['M','D','M','D','F','S'].map((d,i)=><div key={i} style={{ fontSize:9, fontWeight:700, color:'#4a4540' }}>{d}</div>)}
+            <div style={{ fontSize:9, fontWeight:700, color:'#b91c1c' }}>S</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+            {calDays.map((day,i)=>{
+              const ds=day.date.toISOString().slice(0,10)
+              const isSel=ds===date,isSun=day.date.getDay()===0,isToday=ds===new Date().toISOString().slice(0,10)
+              return <div key={i} onClick={()=>{onDateChange(ds);setCy(day.date.getFullYear());setCm(day.date.getMonth())}}
+                style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', fontSize:11, cursor:'pointer', margin:'0 auto', fontWeight:isSel?700:400, background:isSel?'#b8892a':'none', color:isSel?'#fff':!day.cur?'#aaa8a0':isSun?'#b91c1c':'#1c1a16', border:isToday&&!isSel?'1.5px solid #b8892a':'none' }}>{day.date.getDate()}</div>
+            })}
+          </div>
+          {date && <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8, paddingTop:8, borderTop:'0.5px solid #eeeae6' }}>
+            <button type="button" onClick={()=>{onDateChange(null);onTimeChange(null);setCalOpen(false)}} style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, color:'#b91c1c', fontWeight:600, display:'flex', alignItems:'center', gap:3 }}>
+              <i className="ti ti-trash" style={{ fontSize:10 }} /> Datum löschen
+            </button>
+          </div>}
+        </div>
+      )}
+      {timeOpen && (
+        <div style={{ background:'#fff', border:'0.5px solid #ddd9d2', borderRadius:12, padding:12, marginBottom:8, boxShadow:'0 4px 20px rgba(0,0,0,.08)', zIndex:20 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, color:'#4a4540', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:7 }}>Von</div>
+              <div style={{ maxHeight:180, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
+                {slots.map(t=><div key={t} onClick={()=>pickFrom(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===fromT?700:500, background:t===fromT?'#b8892a':'#f4f2ef', color:t===fromT?'#fff':'#1c1a16', border:'0.5px solid '+(t===fromT?'#b8892a':'#ddd9d2') }}>{t}</div>)}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, color:'#4a4540', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:7 }}>Bis</div>
+              <div style={{ maxHeight:180, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
+                {slots.filter(t=>toMin(t)>toMin(fromT)).map(t=>{
+                  const inRange=toMin(t)>toMin(fromT)&&toMin(t)<=toMin(toT)
+                  return <div key={t} onClick={()=>onTimeToChange(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===toT?700:500, background:t===toT?'#b8892a':inRange?'#b8892a18':'#f4f2ef', color:t===toT?'#fff':inRange?'#7a4a00':'#1c1a16', border:'0.5px solid '+(t===toT?'#b8892a':inRange?'#b8892a66':'#ddd9d2') }}>{t}</div>
+                })}
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop:10, paddingTop:8, borderTop:'0.5px solid #eeeae6', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ fontSize:12, color:'#4a4540', fontWeight:600 }}>⏱ {durLabel} Aufnahmedauer</span>
+            <button type="button" onClick={()=>setTimeOpen(false)} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:6, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer' }}>OK</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig, onSend }) {
   const [saved, setSaved] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
