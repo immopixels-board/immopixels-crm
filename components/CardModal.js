@@ -30,7 +30,7 @@ function AutoSaveBadge({ show }) {
   )
 }
 
-var TYPES_LIST = [
+var TYPES_LIST_DEFAULT = [
   { key:'foto',      label:'Foto',        c:'#b8892a', bg:'rgba(184,137,42,.12)', br:'rgba(184,137,42,.3)' },
   { key:'foto-reel', label:'Foto+Reel',   c:'#6d28d9', bg:'rgba(109,40,217,.12)', br:'rgba(109,40,217,.3)' },
   { key:'foto-dron', label:'Foto+Drohne', c:'#a16207', bg:'rgba(161,98,7,.12)',   br:'rgba(161,98,7,.3)' },
@@ -39,9 +39,45 @@ var TYPES_LIST = [
   { key:'360',       label:'360°',        c:'#0891b2', bg:'rgba(8,145,178,.12)',  br:'rgba(8,145,178,.3)' },
 ]
 
+var EXTRA_TYPES_KEY = 'crm_extra_types'
+
+function getTypesList() {
+  try {
+    const extra = JSON.parse(localStorage.getItem(EXTRA_TYPES_KEY) || '[]')
+    return [...TYPES_LIST_DEFAULT, ...extra]
+  } catch(e) { return TYPES_LIST_DEFAULT }
+}
+
+function saveExtraType(label, color) {
+  try {
+    const extra = JSON.parse(localStorage.getItem(EXTRA_TYPES_KEY) || '[]')
+    const key = label.toLowerCase().replace(/[^a-z0-9]/g,'')
+    if (!extra.find(x => x.key === key)) {
+      const c = color || '#b8892a'
+      extra.push({ key, label, c, bg: c+'22', br: c+'66' })
+      localStorage.setItem(EXTRA_TYPES_KEY, JSON.stringify(extra))
+    }
+    return key
+  } catch(e) { return label.toLowerCase().replace(/[^a-z0-9]/g,'') }
+}
+
 function CategoryPicker({ cardType, onChange }) {
   const [open, setOpen] = useState(false)
-  const t = TYPES_LIST.find(x => x.key === cardType) || TYPES_LIST[0]
+  const [newLabel, setNewLabel] = useState('')
+  const [newColor, setNewColor] = useState('#6d28d9')
+  const [typesList, setTypesList] = useState(getTypesList)
+  const t = typesList.find(x => x.key === cardType) || typesList[0]
+
+  function addNew() {
+    if (!newLabel.trim()) return
+    const key = saveExtraType(newLabel.trim(), newColor)
+    setTypesList(getTypesList())
+    onChange(key)
+    setNewLabel('')
+    setNewColor('#6d28d9')
+    setOpen(false)
+  }
+
   return (
     <div style={{ position:'relative', display:'inline-block' }}>
       <span onClick={e => { e.stopPropagation(); setOpen(p=>!p) }}
@@ -51,8 +87,8 @@ function CategoryPicker({ cardType, onChange }) {
       </span>
       {open && <>
         <div onClick={e=>{e.stopPropagation();setOpen(false)}} style={{position:'fixed',inset:0,zIndex:9998}} />
-        <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, background:'#fff', border:'1px solid #ddd9d2', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,.12)', zIndex:9999, minWidth:130, overflow:'hidden' }}>
-          {TYPES_LIST.map(tp => (
+        <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, background:'#fff', border:'1px solid #ddd9d2', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,.12)', zIndex:9999, minWidth:150, overflow:'hidden' }}>
+          {typesList.map(tp => (
             <div key={tp.key} onClick={e => { e.stopPropagation(); onChange(tp.key); setOpen(false) }}
               style={{ padding:'8px 12px', fontSize:12, fontWeight:600, cursor:'pointer', color: tp.key===cardType ? tp.c : '#1c1a16', background: tp.key===cardType ? tp.bg : 'none', display:'flex', alignItems:'center', gap:7 }}
               onMouseEnter={e => e.currentTarget.style.background=tp.bg}
@@ -61,6 +97,19 @@ function CategoryPicker({ cardType, onChange }) {
               {tp.label}
             </div>
           ))}
+          <div style={{ borderTop:'0.5px solid #eeeae6', padding:'8px 10px' }}>
+            <div style={{ fontSize:10, fontWeight:700, color:'#aaa8a0', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:6 }}>+ Neue Kategorie</div>
+            <div style={{ display:'flex', gap:5, alignItems:'center' }}>
+              <input type="color" value={newColor} onChange={e=>setNewColor(e.target.value)}
+                style={{ width:26, height:26, border:'0.5px solid #ddd9d2', borderRadius:5, cursor:'pointer', padding:2, flexShrink:0 }} />
+              <input value={newLabel} onChange={e=>setNewLabel(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter')addNew()}}
+                placeholder="Name..."
+                style={{ flex:1, border:'0.5px solid #ddd9d2', borderRadius:5, padding:'4px 8px', fontSize:11, outline:'none', background:'#f4f2ef', color:'#1c1a16', minWidth:0 }} />
+              <button onClick={e=>{e.stopPropagation();addNew()}}
+                style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:5, padding:'4px 7px', fontSize:11, fontWeight:700, cursor:'pointer', flexShrink:0 }}>+</button>
+            </div>
+          </div>
         </div>
       </>}
     </div>
@@ -479,7 +528,10 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                     <input type="time" value={localCard.card_time?.slice(0,5) || ''} onChange={e => { save('card_time', e.target.value) }}
                       style={{ width: 90, background: '#f4f2ef', border: '0.5px solid #ddd9d2', borderRadius: 6, padding: '6px 10px', fontSize: 13, fontWeight: 600, outline: 'none' }} />
                   </div>
-                  <button onClick={() => setDatePickerOpen(false)} style={{ marginTop: 8, background: '#1c1a16', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer', width: '100%' }}>Schließen</button>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button onClick={() => setDatePickerOpen(false)} style={{ flex: 1, background: '#1c1a16', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>Schließen</button>
+                    {localCard.card_date && <button onClick={() => { save('card_date', null); save('card_time', null); setDatePickerOpen(false) }} style={{ background: '#fef2f2', color: '#b91c1c', border: '0.5px solid #fecaca', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><i className="ti ti-trash" style={{ fontSize: 12 }} /> Datum löschen</button>}
+                  </div>
                 </div>
               )}
             </div>
