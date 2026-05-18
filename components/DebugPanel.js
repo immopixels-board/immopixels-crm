@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.6.9', date: '2026-05-18', items: ['Beschreibung: vastagabb betű, word-break, linkek rövidítve+arany', 'Drive/WeTransfer → Drive/Dropbox', 'Settings: Aufnahme-Kategorien szekció törölve', 'Duplikált kategóriák javítva (getTypes egyetlen forrás)', 'Dátum törlés gomb', 'Kompakt dátum: nap.hónap.év'] },
   { ver: 'v2.6.9', date: '2026-05-18', items: ['Dátum törlés gomb a CardModal Termin mezőnél', 'Kompakt kártya dátum: nap.hónap.év (pl. 17.05.26)', 'Új kategória hozzáadás a kártyán belül (szín + név)'] },
   { ver: 'v2.6.5', date: '2026-05-18', items: ['Beschreibung: nagyobb betű + link rendering', 'Aufnahme-Kategorien: szín picker + egyéni szín', 'Új kategóriák megjelennek a kártyákon (dinamikus TYPES)', 'PhotoCategorySection a settings oldalon'] },
   { ver: 'v2.6.4', date: '2026-05-18', items: ['Notiz: kártya mérete szöveghez igazodik', 'Description + komment: linkek felismerése + rövidítés', 'Client extra_link mező (pl. Trello)', 'Extra link megjelenik a kártyán'] },

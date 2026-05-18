@@ -344,14 +344,14 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     for (const m of matches) {
       if (m.index > last) parts.push({ type:'text', val: text.slice(last, m.index) })
       const url = m[0]
-      const short = url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 36) + (url.length > 40 ? '…' : '')
+      const short = url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28) + '…'
       parts.push({ type:'url', val: url, short })
       last = m.index + url.length
     }
     if (last < text.length) parts.push({ type:'text', val: text.slice(last) })
     if (parts.length === 0) parts.push({ type:'text', val: text })
     return parts.map((pt, i) => {
-      if (pt.type === 'url') return <a key={i} href={pt.val} target="_blank" rel="noopener" style={{ color:'#b8892a', textDecoration:'underline', wordBreak:'break-all' }}>{pt.short}</a>
+      if (pt.type === 'url') return <a key={i} href={pt.val} target="_blank" rel="noopener" style={{ color:'#b8892a', fontWeight:700, textDecoration:'none', wordBreak:'break-all', display:'inline-block', maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', verticalAlign:'bottom' }}>{pt.short}</a>
       const sub = pt.val.split(/(@[A-Za-zÀ-ž0-9_.-]+)/g)
       return sub.map((s, j) => s.startsWith('@') ? <span key={i+'-'+j} style={{ color:'#b8892a', fontWeight:700 }}>{s}</span> : s)
     })
@@ -537,7 +537,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>
-              <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, color: '#1c1a16', lineHeight: 1.65 }} renderValue={v => renderCommentText(v)} />
+              <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
             </div>
           </div>
 
@@ -581,9 +581,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
           </div>
 
-          {/* Drive / WeTransfer Link */}
+          {/* Drive / Dropbox Link */}
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Drive / WeTransfer Link</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Drive / Dropbox Link</div>
             <EditableField value={localCard.drive_link} onSave={v => save('drive_link', v)} placeholder="z.B. https://drive.google.com/drive/folders/... oder https://we.tl/t-..." style={{ fontSize: 12, color: '#8a8278' }} />
             {localCard.drive_link && (
               <a href={localCard.drive_link} target="_blank" rel="noopener noreferrer"

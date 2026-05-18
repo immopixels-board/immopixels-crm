@@ -27,24 +27,22 @@ var TYPES = {
 }
 
 function getTypes(photoCats) {
-  const base = {
-    foto:        { i:'', l:'Foto',        c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' },
-    'foto-reel': { i:'', l:'Foto+Reel',   c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    'foto-dron': { i:'', l:'Foto+Drohne', c:'#a16207', bg:'#a1620712', br:'#a1620730' },
-    dron:        { i:'', l:'Drohne',      c:'#15803d', bg:'#15803d12', br:'#15803d30' },
-    reel:        { i:'', l:'Reel',        c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    '360':       { i:'', l:'360°',        c:'#0891b2', bg:'#0891b212', br:'#0891b230' },
-    todo:        { i:'', l:'To Do',       c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-  }
-  if (!photoCats) return base
-  for (const cat of photoCats) {
-    const obj = typeof cat === 'string' ? { l:cat, c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' } : cat
+  const result = {}
+  const src = (photoCats && photoCats.length) ? photoCats : [
+    { l:'Foto', c:'#b8892a' }, { l:'Foto+Reel', c:'#6d28d9' },
+    { l:'Foto+Drohne', c:'#a16207' }, { l:'Drohne', c:'#15803d' },
+    { l:'Reel', c:'#6d28d9' }, { l:'360°', c:'#0891b2' }, { l:'Video', c:'#1d5ec7' },
+  ]
+  for (const cat of src) {
+    const obj = typeof cat === 'string' ? { l:cat, c:'#b8892a' } : cat
     const key = obj.l.toLowerCase().replace(/[^a-z0-9]/g,'')
-    if (!base[key]) {
-      base[key] = { i:'', l:obj.l, c:obj.c||'#b8892a', bg:(obj.bg||(obj.c||'#b8892a')+'14'), br:(obj.br||(obj.c||'#b8892a')+'30') }
+    if (key && !result[key]) {
+      const c = obj.c || '#b8892a'
+      result[key] = { i:'', l:obj.l, c, bg:c+'22', br:c+'55' }
     }
   }
-  return base
+  result['todo'] = { i:'', l:'To Do', c:'#6d28d9', bg:'#6d28d922', br:'#6d28d955' }
+  return result
 }
 
 var AUTO_CL = ['Fotografiert', 'In Bearbeitung', 'Rausgeschickt']
@@ -3158,7 +3156,7 @@ export default function Home() {
               <button onClick={() => setSendModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, color: 'var(--t3)' }}>✕</button>
             </div>
             <div style={{ marginBottom: 10 }}><label style={LS}>Kunde email</label><input value={sendModal.clientEmail} onChange={e => setSendModal(p => ({ ...p, clientEmail: e.target.value }))} style={IS} /></div>
-            <div style={{ marginBottom: 10 }}><label style={LS}>Drive / WeTransfer Link</label><input value={sendModal.link} onChange={e => setSendModal(p => ({ ...p, link: e.target.value }))} placeholder="https://drive.google.com/..." style={IS} /></div>
+            <div style={{ marginBottom: 10 }}><label style={LS}>Drive / Dropbox Link</label><input value={sendModal.link} onChange={e => setSendModal(p => ({ ...p, link: e.target.value }))} placeholder="https://drive.google.com/..." style={IS} /></div>
             <div style={{ marginBottom: 14 }}>
               <label style={LS}>Vorlage</label>
               <div style={{ display: 'flex', gap: 5, marginTop: 4 }}>

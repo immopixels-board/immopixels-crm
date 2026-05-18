@@ -4,15 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const DEFAULTS = {
-  photo_categories: [
-    { l:'Foto', c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' },
-    { l:'Foto+Reel', c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    { l:'Foto+Drohne', c:'#a16207', bg:'#a1620712', br:'#a1620730' },
-    { l:'Drohne', c:'#15803d', bg:'#15803d12', br:'#15803d30' },
-    { l:'Reel', c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
-    { l:'360°', c:'#0891b2', bg:'#0891b212', br:'#0891b230' },
-    { l:'Video', c:'#1d5ec7', bg:'#1d5ec712', br:'#1d5ec730' },
-  ],
+
   client_categories: ['Maklerunternehmen','Privat','Bauträger','Bank','Home Designer','Sonstige'],
   staff_roles: ['Fotograf','Videograf / Cutter','Drohnen Pilot','Backoffice','Social Media','Leiter / Fotograf'],
 }
@@ -93,68 +85,6 @@ function CategorySection({ title, icon, items, onAdd, onRename, onRemove }) {
   )
 }
 
-function PhotoCategorySection({ items, onSave }) {
-  const [list, setList] = useState(items.map(i => typeof i==='string' ? { l:i, c:'#b8892a' } : i))
-  const [newVal, setNewVal] = useState('')
-  const [newColor, setNewColor] = useState('#b8892a')
-  const [editIdx, setEditIdx] = useState(null)
-
-  React.useEffect(() => { setList(items.map(i => typeof i==='string' ? { l:i, c:'#b8892a' } : i)) }, [JSON.stringify(items)])
-
-  function save(updated) {
-    setList(updated)
-    onSave(updated.map(i => ({ l:i.l, c:i.c, bg:i.c+'14', br:i.c+'30' })))
-  }
-
-  return (
-    <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
-      <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-        <i className="ti ti-camera" style={{ fontSize:16, color:'#b8892a' }} />Aufnahme-Kategorien
-      </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
-        {list.map((item, idx) => (
-          <div key={idx} style={{ display:'flex', alignItems:'center', gap:8, background:'#f4f2ef', border:'1.5px solid '+(editIdx===idx?'#b8892a':'#eeeae6'), borderRadius:9, padding:'6px 10px' }}>
-            <div style={{ width:14, height:14, borderRadius:'50%', background:item.c, flexShrink:0 }} />
-            {editIdx===idx ? (
-              <>
-                <input value={item.l} onChange={e=>setList(l=>l.map((x,i)=>i===idx?{...x,l:e.target.value}:x))}
-                  style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:12, fontWeight:600, color:'#1c1a16' }} autoFocus />
-                <input type="color" value={item.c} onChange={e=>setList(l=>l.map((x,i)=>i===idx?{...x,c:e.target.value}:x))}
-                  style={{ width:28, height:24, border:'none', borderRadius:5, cursor:'pointer', padding:2 }} />
-                <button onClick={()=>{setEditIdx(null);save(list)}} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:6, padding:'3px 8px', fontSize:11, fontWeight:700, cursor:'pointer' }}>OK</button>
-              </>
-            ) : (
-              <>
-                <span style={{ flex:1, fontSize:12, fontWeight:600, color:'#1c1a16' }}>{item.l}</span>
-                <button onClick={()=>setEditIdx(idx)} style={{ background:'none', border:'none', cursor:'pointer', color:'#aaa8a0', padding:'0 3px', display:'flex', alignItems:'center' }}
-                  onMouseEnter={e=>e.currentTarget.style.color='#b8892a'} onMouseLeave={e=>e.currentTarget.style.color='#aaa8a0'}>
-                  <i className="ti ti-pencil" style={{ fontSize:11 }} />
-                </button>
-                <button onClick={()=>{const u=list.filter((_,i)=>i!==idx);save(u)}} style={{ background:'none', border:'none', cursor:'pointer', color:'#aaa8a0', padding:'0 3px', display:'flex', alignItems:'center' }}
-                  onMouseEnter={e=>e.currentTarget.style.color='#b91c1c'} onMouseLeave={e=>e.currentTarget.style.color='#aaa8a0'}>
-                  <i className="ti ti-x" style={{ fontSize:12 }} />
-                </button>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-      <div style={{ display:'flex', gap:7, alignItems:'center' }}>
-        <input type="color" value={newColor} onChange={e=>setNewColor(e.target.value)}
-          style={{ width:36, height:34, border:'0.5px solid #ddd9d2', borderRadius:8, cursor:'pointer', padding:3, flexShrink:0 }} />
-        <input value={newVal} onChange={e=>setNewVal(e.target.value)}
-          onKeyDown={e=>{if(e.key==='Enter'&&newVal.trim()){const u=[...list,{l:newVal.trim(),c:newColor}];save(u);setNewVal('');setNewColor('#b8892a')}}}
-          placeholder="Neue Kategorie..."
-          style={{ flex:1, background:'#f4f2ef', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'8px 12px', fontSize:12, outline:'none', color:'#1c1a16' }}
-          onFocus={e=>e.target.style.borderColor='#b8892a'} onBlur={e=>e.target.style.borderColor='#ddd9d2'} />
-        <button onClick={()=>{if(newVal.trim()){const u=[...list,{l:newVal.trim(),c:newColor}];save(u);setNewVal('');setNewColor('#b8892a')}}}
-          style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-          <i className="ti ti-plus" style={{ fontSize:12 }} /> Hinzufügen
-        </button>
-      </div>
-    </div>
-  )
-}
 
 export default function Settings() {
   const [activeNav, setActiveNav] = useState('appearance')
@@ -373,9 +303,7 @@ export default function Settings() {
 
             {activeNav === 'categories' && (
               <>
-                <PhotoCategorySection
-                  items={cats.photo_categories}
-                  onSave={updated => saveCat('photo_categories', updated)} />
+
                 <CategorySection title="Kunden-Kategorien" icon="ti-users"
                   items={cats.client_categories}
                   onAdd={v => saveCat('client_categories', [...cats.client_categories, v])}
