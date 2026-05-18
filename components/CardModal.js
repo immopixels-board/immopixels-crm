@@ -667,10 +667,16 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Drive / Dropbox Link</div>
             <EditableField value={localCard.drive_link} onSave={v => save('drive_link', v)} placeholder="z.B. https://drive.google.com/drive/folders/... oder https://we.tl/t-..." style={{ fontSize: 12, color: '#8a8278' }} />
             {localCard.drive_link && (
-              <a href={localCard.drive_link} target="_blank" rel="noopener noreferrer"
-                style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:5, fontSize:11, color:'#1d5ec7', textDecoration:'none', fontWeight:600 }}>
-                <i className="ti ti-external-link" style={{fontSize:11}}/> Link öffnen
-              </a>
+              <div style={{ display:'flex', gap:6, marginTop:6 }}>
+                <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(localCard.drive_link).then(()=>{ const b=e.currentTarget; b.style.background='#15803d22'; b.style.color='#15803d'; setTimeout(()=>{b.style.background='';b.style.color=''},1500) }) }}
+                  style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'4px 10px', borderRadius:6, border:'0.5px solid #ddd9d2', background:'none', fontSize:11, fontWeight:600, color:'#4a4540', cursor:'pointer' }}>
+                  <i className="ti ti-copy" style={{fontSize:11}}/> Kopieren
+                </button>
+                <a href={localCard.drive_link} target="_blank" rel="noopener noreferrer"
+                  style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'4px 10px', borderRadius:6, border:'0.5px solid #ddd9d2', fontSize:11, fontWeight:600, color:'#1d5ec7', textDecoration:'none' }}>
+                  <i className="ti ti-external-link" style={{fontSize:11}}/> Öffnen
+                </a>
+              </div>
             )}
           </div>
 
@@ -678,10 +684,10 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>ZIP → Google Drive</div>
             <div
-              onDragOver={e => { e.preventDefault(); setZipDragOver(true) }}
-              onDragLeave={() => setZipDragOver(false)}
-              onDrop={e => { e.preventDefault(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if(f) uploadZipToDrive(f) }}
-              onClick={() => { if(uploadProgress!==null) return; const inp=document.createElement('input'); inp.type='file'; inp.accept='.zip,application/zip'; inp.onchange=e=>uploadZipToDrive(e.target.files[0]); inp.click() }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(true) }}
+              onDragLeave={e => { e.stopPropagation(); setZipDragOver(false) }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if(f) uploadZipToDrive(f) }}
+              onClick={e => { e.stopPropagation(); if(uploadProgress!==null) return; const inp=document.createElement('input'); inp.type='file'; inp.accept='.zip,application/zip'; inp.onchange=ev=>{ev.stopPropagation();uploadZipToDrive(ev.target.files[0])}; inp.click() }}
               style={{ border: '1.5px dashed '+(zipDragOver?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'14px 12px', textAlign:'center', cursor: uploadProgress!==null?'default':'pointer', background: zipDragOver?'#b8892a0a':'#f9f8f6', transition:'all .15s' }}>
               {uploadProgress === null ? (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
