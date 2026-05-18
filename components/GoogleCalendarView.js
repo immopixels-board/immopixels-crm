@@ -161,6 +161,9 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
     return 105
   })
   const [filterStaff, setFilterStaff] = useState([]) // empty = show all
+  const [newEventModal, setNewEventModal] = useState(false)
+  const [newEventForm, setNewEventForm] = useState({ title:'', date:'', time:'', endTime:'', calId:'', location:'', description:'' })
+  const [newEventLoading, setNewEventLoading] = useState(false)
 
   useEffect(() => {
     // Check if Google Calendar is connected
