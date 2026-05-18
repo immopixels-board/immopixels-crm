@@ -336,6 +336,37 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
 
   const monthLabel = currentDate.toLocaleDateString('de', { month: 'long', year: 'numeric' })
 
+  async function createGCalEvent() {
+    if (!newEventForm.title || !newEventForm.date || !newEventForm.calId) return
+    setNewEventLoading(true)
+    try {
+      const token = localStorage.getItem('gcal_token')
+      const calEnc = encodeURIComponent(newEventForm.calId)
+      const isDateTime = !!newEventForm.time
+      const startDT = isDateTime ? `${newEventForm.date}T${newEventForm.time}:00` : newEventForm.date
+      const endDT = isDateTime
+        ? (newEventForm.endTime ? `${newEventForm.date}T${newEventForm.endTime}:00` : (() => { const d = new Date(`${newEventForm.date}T${newEventForm.time}:00`); d.setHours(d.getHours()+2); return d.toISOString().slice(0,19) })())
+        : newEventForm.date
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calEnc}/events`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer '+token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary: newEventForm.title,
+          location: newEventForm.location || '',
+          description: newEventForm.description || '',
+          status: 'confirmed',
+          transparency: 'opaque',
+          start: isDateTime ? { dateTime: startDT, timeZone: 'Europe/Berlin' } : { date: startDT },
+          end: isDateTime ? { dateTime: endDT, timeZone: 'Europe/Berlin' } : { date: endDT },
+        })
+      })
+      setNewEventModal(false)
+      setNewEventForm({ title:'', date:'', time:'', endTime:'', calId:'', location:'', description:'' })
+      await loadCalendars()
+    } catch(e) {}
+    setNewEventLoading(false)
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', minWidth: 0 }}>
       {/* Header */}
@@ -367,9 +398,15 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
             Google verbinden
           </button>
         ) : (
-          <span style={{ fontSize: 10, color: '#15803d', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <i className="ti ti-brand-google" style={{ fontSize: 12 }} /> Verbunden
-          </span>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize: 10, color: '#15803d', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <i className="ti ti-brand-google" style={{ fontSize: 12 }} /> Verbunden
+            </span>
+            <button onClick={() => setNewEventModal(true)}
+              style={{ display:'flex', alignItems:'center', gap:4, background:'var(--gold)', border:'none', borderRadius:7, padding:'5px 10px', fontSize:11, fontWeight:700, cursor:'pointer', color:'#fff' }}>
+              <i className="ti ti-plus" style={{ fontSize:12 }} /> Termin
+            </button>
+          </div>
         )}
       </div>
 
@@ -504,6 +541,52 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
                 {importing ? 'Wird importiert...' : imported ? '✓ Importiert' : 'Auf Board importieren'}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Neuer Termin Modal */}
+      {newEventModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.45)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}
+          onClick={e => { if(e.target===e.currentTarget) setNewEventModal(false) }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:13, width:400, maxWidth:'94vw', padding:24, boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <span style={{ fontWeight:700, fontSize:14 }}>Neuer Termin</span>
+              <button onClick={()=>setNewEventModal(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t3)', fontSize:16 }}>✕</button>
+            </div>
+            {[
+              { label:'Titel *', key:'title', type:'text', placeholder:'z.B. FOTO - Mannheim...' },
+              { label:'Kalender *', key:'calId', type:'select' },
+              { label:'Datum *', key:'date', type:'date' },
+              { label:'Von', key:'time', type:'time' },
+              { label:'Bis', key:'endTime', type:'time' },
+              { label:'Adresse', key:'location', type:'text', placeholder:'Straße, Stadt' },
+              { label:'Beschreibung', key:'description', type:'text', placeholder:'Drohne, Reel...' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, fontWeight:700, color:'var(--t3)', display:'block', marginBottom:4 }}>{f.label}</label>
+                {f.type === 'select' ? (
+                  <select value={newEventForm.calId} onChange={e=>setNewEventForm(p=>({...p,calId:e.target.value}))}
+                    style={{ width:'100%', background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:7, padding:'8px 10px', fontSize:13, color:'var(--t1)' }}>
+                    <option value="">— wählen —</option>
+                    {[
+                      { id:'immopixels@gmail.com', label:'ImmoPixels (CD)' },
+                      { id:'66d96a2869c084e8e329d2905619613afbdbbe253fc72b1de8a83cb8a424f966@group.calendar.google.com', label:'D - Terminen' },
+                      { id:'227726e59806a3556283ba31ed000c7c103f67932c55102f2659cd0c0c24b71b@group.calendar.google.com', label:'E - Terminen' },
+                      { id:'5281af37de6046e897661f80b40034e6e368a611e6514e09b8300c5068f22e61@group.calendar.google.com', label:'N - Terminen' },
+                    ].map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                ) : (
+                  <input type={f.type} value={newEventForm[f.key]} placeholder={f.placeholder||''}
+                    onChange={e=>setNewEventForm(p=>({...p,[f.key]:e.target.value}))}
+                    style={{ width:'100%', background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:7, padding:'8px 10px', fontSize:13, color:'var(--t1)', boxSizing:'border-box' }} />
+                )}
+              </div>
+            ))}
+            <button onClick={createGCalEvent} disabled={newEventLoading || !newEventForm.title || !newEventForm.date || !newEventForm.calId}
+              style={{ width:'100%', background:'var(--gold)', border:'none', borderRadius:8, padding:'10px', fontSize:13, fontWeight:700, color:'#fff', cursor:'pointer', marginTop:6, opacity:(newEventLoading||!newEventForm.title||!newEventForm.date||!newEventForm.calId)?0.6:1 }}>
+              {newEventLoading ? 'Speichern...' : 'Termin erstellen'}
+            </button>
           </div>
         </div>
       )}
