@@ -74,7 +74,7 @@ export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Name</div>
             <input value={name} onChange={e => setName(e.target.value)}
-              onKeyDown={e => { if(e.key==='Enter' && name.trim()) { const pt=PANTONE.find(c=>c.key===colorKey); onSave(name, colorKey, privateCol, pt?.color||null) } }}
+              onKeyDown={e => e.key === 'Enter' && name.trim() && onSave(name, colorKey, privateCol)}
               placeholder="Spaltenname..."
               style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid ' + (name ? '#b8892a' : '#ddd9d2'), borderRadius: 8, padding: '9px 12px', fontSize: 14, fontWeight: 600, color: '#1c1a16', outline: 'none', fontFamily: 'Arial' }} />
           </div>
@@ -125,7 +125,7 @@ export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
           )}
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={onClose} style={{ flex:1, background:'none', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'8px', fontSize:13, fontWeight:600, color:'#4a4540', cursor:'pointer' }}>Abbrechen</button>
-            <button onClick={() => { if(!name.trim()) return; const pt=PANTONE.find(c=>c.key===colorKey); onSave(name, colorKey, privateCol, pt?.color||null) }}
+            <button onClick={() => name.trim() && onSave(name, colorKey, privateCol)}
               disabled={!name.trim()}
               style={{ flex:2, background: name.trim() ? '#1c1a16' : '#ccc', color:'#fff', border:'none', borderRadius:8, padding:'8px', fontSize:13, fontWeight:700, cursor: name.trim() ? 'pointer' : 'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
               <i className="ti ti-check" style={{ fontSize:13 }} /> Speichern
