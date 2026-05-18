@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.8.8', date: '2026-05-18', items: ['Narancssárga glow keret (mai nap + 18:00 után)', 'Email badge fejlécben (olvasatlan count, 5 percenként frissül)', 'Kattintásra webmail megnyílik'] },
   { ver: 'v2.8.7', date: '2026-05-18', items: ['Narancssárga keret: mai nap + 18:00 után + nem Beim Bearbeiter'] },
   { ver: 'v2.8.5', date: '2026-05-18', items: ['GCal Push Notification webhook (azonnali szinkron)', 'GCal → Board: dátum változás azonnali frissítés', 'Shootings oszlop: dátum szerinti rendezés', 'Heti watch megújítás (cron hétfőnként)'] },
   { ver: 'v2.7.7', date: '2026-05-18', items: ['Widgetek mindig nyitva indulnak', 'X gomb → minimize (összecsukás)', 'Minimize állapot mentve localStorage-be', 'Widget pozíció clamp (nem lóg ki a képből)'] },
