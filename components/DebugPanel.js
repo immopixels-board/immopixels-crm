@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.9.4', date: '2026-05-18', items: ['Noch nicht gesendet badge (addr+date, nincs drive link)', 'Datepicker: custom naptár + 15 perces időslotok'] },
   { ver: 'v2.8.9', date: '2026-05-18', items: ['ZIP feltöltés Google Drive-ra (drag & drop + kattintás)', 'Progress bar feltöltés közben', 'Feltöltés után link automatikusan a kártya Drive mezőjébe'] },
   { ver: 'v2.8.8', date: '2026-05-18', items: ['Narancssárga glow keret (mai nap + 18:00 után)', 'Email badge fejlécben (olvasatlan count, 5 percenként frissül)', 'Kattintásra webmail megnyílik'] },
   { ver: 'v2.8.7', date: '2026-05-18', items: ['Narancssárga keret: mai nap + 18:00 után + nem Beim Bearbeiter'] },

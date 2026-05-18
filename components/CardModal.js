@@ -267,6 +267,36 @@ function EditableField({ value, onSave, style, multiline, placeholder }) {
 export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig, onSend }) {
   const [saved, setSaved] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [pickerMonth, setPickerMonth] = useState(() => {
+    const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }
+  })
+
+  const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+  const TIME_SLOTS = []
+  for(let h=7;h<=18;h++) for(let mm=0;mm<60;mm+=15) TIME_SLOTS.push(String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'))
+
+  function getCalDays(y, m) {
+    const first = new Date(y, m, 1)
+    const last = new Date(y, m+1, 0)
+    const startDow = (first.getDay()+6)%7
+    const days = []
+    for(let i=0;i<startDow;i++) {
+      const d = new Date(y, m, 1-startDow+i)
+      days.push({ date: d, cur: false })
+    }
+    for(let d=1;d<=last.getDate();d++) days.push({ date: new Date(y,m,d), cur: true })
+    return days
+  }
+
+  function fmtDateCustom(dateStr) {
+    if (!dateStr) return 'Datum wählen...'
+    const d = new Date(dateStr + 'T00:00:00')
+    const days = ['So','Mo','Di','Mi','Do','Fr','Sa']
+    const dd = String(d.getDate()).padStart(2,'0')
+    const mm = String(d.getMonth()+1).padStart(2,'0')
+    const yy = String(d.getFullYear()).slice(2)
+    return days[d.getDay()]+'. '+dd+'.'+mm+'.'+yy
+  }
   const [localCard, setLocalCard] = useState(card)
   const [attachments, setAttachments] = useState([])
   const [comments, setComments] = useState([])
@@ -597,21 +627,46 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Termin</div>
-              <div onClick={() => setDatePickerOpen(p => !p)} style={{ fontSize: 13, fontWeight: 600, color: '#b8892a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <i className="ti ti-calendar-event" style={{ fontSize: 12 }} />
-                {localCard.card_date ? fmtDate(localCard.card_date) + (localCard.card_time ? ' ' + localCard.card_time.slice(0,5) : '') : 'Datum wählen...'}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div onClick={() => { setDatePickerOpen(p => !p); if(localCard.card_date) { const d=new Date(localCard.card_date+'T00:00:00'); setPickerMonth({y:d.getFullYear(),m:d.getMonth()}) } }} style={{ flex:1, background: datePickerOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(datePickerOpen?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:600, color: localCard.card_date?'#b8892a':'#8a8278', cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                  <i className="ti ti-calendar" style={{ fontSize:13 }} />
+                  {fmtDateCustom(localCard.card_date)}
+                  <i className="ti ti-chevron-down" style={{ fontSize:10, marginLeft:'auto' }} />
+                </div>
+                <div style={{ background:'#f4f2ef', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'7px 10px', display:'flex', alignItems:'center', gap:4 }}>
+                  <i className="ti ti-clock" style={{ fontSize:12, color:'#8a8278' }} />
+                  <input type="time" value={localCard.card_time?.slice(0,5)||''} onChange={e=>save('card_time',e.target.value)}
+                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600, color:'#1c1a16', background:'transparent', width:65 }} />
+                </div>
               </div>
               {datePickerOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 10, marginTop: 4 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input type="date" value={localCard.card_date || ''} onChange={e => { save('card_date', e.target.value) }}
-                      style={{ flex: 1, background: '#f4f2ef', border: '0.5px solid #ddd9d2', borderRadius: 6, padding: '6px 10px', fontSize: 13, fontWeight: 600, outline: 'none' }} />
-                    <input type="time" value={localCard.card_time?.slice(0,5) || ''} onChange={e => { save('card_time', e.target.value) }}
-                      style={{ width: 90, background: '#f4f2ef', border: '0.5px solid #ddd9d2', borderRadius: 6, padding: '6px 10px', fontSize: 13, fontWeight: 600, outline: 'none' }} />
+                <div style={{ background:'#fff', border:'0.5px solid #ddd9d2', borderRadius:10, padding:10, boxShadow:'0 8px 24px rgba(0,0,0,.1)', zIndex:10, marginTop:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                    <button onClick={()=>setPickerMonth(p=>p.m===0?{y:p.y-1,m:11}:{y:p.y,m:p.m-1})} style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:'#4a4540', padding:'0 6px' }}>‹</button>
+                    <span style={{ fontSize:12, fontWeight:700, color:'#1c1a16' }}>{MONTHS_DE[pickerMonth.m]} {pickerMonth.y}</span>
+                    <button onClick={()=>setPickerMonth(p=>p.m===11?{y:p.y+1,m:0}:{y:p.y,m:p.m+1})} style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:'#4a4540', padding:'0 6px' }}>›</button>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button onClick={() => setDatePickerOpen(false)} style={{ flex: 1, background: '#1c1a16', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>Schließen</button>
-                    {localCard.card_date && <button onClick={() => { save('card_date', null); save('card_time', null); setDatePickerOpen(false) }} style={{ background: '#fef2f2', color: '#b91c1c', border: '0.5px solid #fecaca', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><i className="ti ti-trash" style={{ fontSize: 12 }} /> Datum löschen</button>}
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', textAlign:'center', gap:1, marginBottom:4 }}>
+                    {['M','D','M','D','F','S','S'].map((d,i)=><div key={i} style={{ fontSize:9, fontWeight:700, color: i===6?'#b91c1c':'#8a8278', padding:'2px 0' }}>{d}</div>)}
+                    {getCalDays(pickerMonth.y, pickerMonth.m).map((day,i) => {
+                      const ds = day.date.toISOString().slice(0,10)
+                      const isSel = ds === localCard.card_date
+                      const isSun = day.date.getDay() === 0
+                      return <div key={i} onClick={()=>{ save('card_date', ds) }} style={{ fontSize:11, padding:'4px 1px', borderRadius:'50%', width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', cursor:'pointer', background: isSel?'#b8892a':'none', color: isSel?'#fff': !day.cur?'#ccc': isSun?'#b91c1c':'#1c1a16', fontWeight: isSel?700:400 }}>{day.date.getDate()}</div>
+                    })}
+                  </div>
+                  <div style={{ borderTop:'0.5px solid #f4f2ef', paddingTop:8, marginBottom:6 }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:'#8a8278', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:5 }}>Uhrzeit</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:3, maxHeight:120, overflowY:'auto' }}>
+                      {TIME_SLOTS.map(t => {
+                        const isSel = t === localCard.card_time?.slice(0,5)
+                        return <div key={t} onClick={()=>save('card_time',t)} style={{ fontSize:10, fontWeight: isSel?700:400, padding:'5px 2px', textAlign:'center', borderRadius:5, background: isSel?'#b8892a':'#f4f2ef', color: isSel?'#fff':'#1c1a16', cursor:'pointer', border: isSel?'none':'0.5px solid #eeeae6' }}>{t}</div>
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={()=>setDatePickerOpen(false)} style={{ flex:1, background:'#1c1a16', color:'#fff', border:'none', borderRadius:6, padding:'6px', fontSize:11, fontWeight:700, cursor:'pointer' }}>Schließen</button>
+                    {localCard.card_date && <button onClick={()=>{save('card_date',null);save('card_time',null);setDatePickerOpen(false)}} style={{ background:'#fef2f2', color:'#b91c1c', border:'0.5px solid #fecaca', borderRadius:6, padding:'6px 10px', fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', gap:3 }}><i className="ti ti-trash" style={{ fontSize:10 }} /> Löschen</button>}
                   </div>
                 </div>
               )}
