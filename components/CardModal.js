@@ -274,6 +274,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   const [commentMentions, setCommentMentions] = useState([])
   const [commentMentionIdx, setCommentMentionIdx] = useState(0)
   const [dragOver, setDragOver] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null) // null | 0-100
+  const [uploadError, setUploadError] = useState(null)
+  const [zipDragOver, setZipDragOver] = useState(false)
   const fileRef = useRef(null)
   const saveTimer = useRef(null)
 
@@ -375,6 +378,82 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   }
 
   const GCAL_SYNC_FIELDS = ['addr', 'card_date', 'card_time', 'title', 'description', 'client_name']
+
+  const DRIVE_FOLDER_ID = '1642pD6ASiQBwZNKUBm_XhFXIBw8Q54yx'
+
+  async function uploadZipToDrive(file) {
+    if (!file) return
+    setUploadProgress(0)
+    setUploadError(null)
+    try {
+      // Get GCal/Drive token from localStorage
+      const token = localStorage.getItem('gcal_token')
+      if (!token) {
+        setUploadError('Bitte zuerst Google verbinden (Kalender-Tab)')
+        setUploadProgress(null)
+        return
+      }
+
+      // 1. Initiate resumable upload
+      const metadata = {
+        name: file.name,
+        parents: [DRIVE_FOLDER_ID],
+        mimeType: file.type || 'application/zip',
+      }
+      const initRes = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'X-Upload-Content-Type': file.type || 'application/zip',
+            'X-Upload-Content-Length': file.size,
+          },
+          body: JSON.stringify(metadata),
+        }
+      )
+      if (!initRes.ok) {
+        const err = await initRes.json()
+        throw new Error(err.error?.message || 'Upload init fehlgeschlagen')
+      }
+      const uploadUrl = initRes.headers.get('Location')
+      if (!uploadUrl) throw new Error('Kein Upload-URL erhalten')
+
+      // 2. Upload file with progress
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('PUT', uploadUrl)
+        xhr.setRequestHeader('Content-Type', file.type || 'application/zip')
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadProgress(Math.round(e.loaded / e.total * 100))
+        }
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText))
+          else reject(new Error('Upload fehlgeschlagen: ' + xhr.status))
+        }
+        xhr.onerror = () => reject(new Error('Netzwerkfehler'))
+        xhr.send(file)
+      }).then(async (fileData) => {
+        // 3. Make file shareable (anyone with link)
+        await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`,
+          {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+          }
+        )
+        // 4. Save link to card
+        const link = `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`
+        await save('drive_link', link)
+        setUploadProgress(null)
+      })
+    } catch(e) {
+      setUploadError(e.message)
+      setUploadProgress(null)
+    }
+  }
 
   async function save(field, value) {
     if (currentStaff?.role_level === 'demo') return
@@ -593,6 +672,32 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 <i className="ti ti-external-link" style={{fontSize:11}}/> Link öffnen
               </a>
             )}
+          </div>
+
+          {/* ZIP Upload */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>ZIP → Google Drive</div>
+            <div
+              onDragOver={e => { e.preventDefault(); setZipDragOver(true) }}
+              onDragLeave={() => setZipDragOver(false)}
+              onDrop={e => { e.preventDefault(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if(f) uploadZipToDrive(f) }}
+              onClick={() => { if(uploadProgress!==null) return; const inp=document.createElement('input'); inp.type='file'; inp.accept='.zip,application/zip'; inp.onchange=e=>uploadZipToDrive(e.target.files[0]); inp.click() }}
+              style={{ border: '1.5px dashed '+(zipDragOver?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'14px 12px', textAlign:'center', cursor: uploadProgress!==null?'default':'pointer', background: zipDragOver?'#b8892a0a':'#f9f8f6', transition:'all .15s' }}>
+              {uploadProgress === null ? (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
+                  <i className="ti ti-cloud-upload" style={{ fontSize:22, color:'#b8892a' }} />
+                  <span style={{ fontSize:12, color:'#8a8278' }}>ZIP hierher ziehen oder <span style={{ color:'#b8892a', fontWeight:700 }}>klicken</span></span>
+                </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:7 }}>
+                  <div style={{ width:'100%', background:'#eeeae6', borderRadius:10, height:8 }}>
+                    <div style={{ width: uploadProgress+'%', background:'#b8892a', height:8, borderRadius:10, transition:'width .3s' }} />
+                  </div>
+                  <span style={{ fontSize:11, color:'#b8892a', fontWeight:700 }}>{uploadProgress < 100 ? uploadProgress+'% wird hochgeladen...' : '✓ Fertig! Link wird gespeichert...'}</span>
+                </div>
+              )}
+            </div>
+            {uploadError && <div style={{ fontSize:11, color:'#b91c1c', marginTop:5, display:'flex', alignItems:'center', gap:4 }}><i className="ti ti-alert-circle" style={{fontSize:11}}/>{uploadError}</div>}
           </div>
 
           {/* Notiz */}

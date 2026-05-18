@@ -288,7 +288,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   function connectGoogle() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
     const redirect = window.location.origin + '/auth/google/callback'
-    const scope = 'https://www.googleapis.com/auth/calendar.events'
+    const scope = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file'
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(scope)}`
     window.open(url, '_blank', 'width=500,height=600')
     // Listen for token from popup
