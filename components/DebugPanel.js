@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v2.6.4', date: '2026-05-18', items: ['Notiz: kártya mérete szöveghez igazodik', 'Description + komment: linkek felismerése + rövidítés', 'Client extra_link mező (pl. Trello)', 'Extra link megjelenik a kártyán'] },
   { ver: 'v2.6.3', date: '2026-05-18', items: ['2FA kikapcsolva — közvetlen jelszavas login', 'Staff form: jelszó mező (új és meglévő)', 'GCal nézet: új termin létrehozás', 'endyk.cristian naptár eltávolítva'] },
   { ver: 'v2.6.0', date: '2026-05-17', items: ['GCal kétirányú szinkron', 'Board→GCal auto push', 'GCal→Board 30 perc cron', 'Kategória felismerés'] },
   { ver: 'v2.5.9', date: '2026-05-17', items: ['GCal kétirányú szinkron', 'Board→GCal: kártya cím+dátum esetén auto push', 'GCal→Board: 30 percenként auto import (location alapján)', 'Kategória felismerés (Drohne/Reel/Foto)', 'OAuth scope: calendar.events (írás)', 'beschäftigt státusz (booking blokk)'] },

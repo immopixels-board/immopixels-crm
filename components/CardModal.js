@@ -287,8 +287,25 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   }
 
   function renderCommentText(text) {
-    const parts = String(text || '').split(/(@[A-Za-zÀ-ž0-9_.-]+)/g)
-    return parts.map((part, idx) => part.startsWith('@') ? <span key={idx} style={{ color:'#b8892a', fontWeight:700 }}>{part}</span> : part)
+    if (!text) return null
+    const URL_RE = /https?:\/\/[^\s]+/g
+    const parts = []
+    let last = 0
+    const matches = [...String(text).matchAll(URL_RE)]
+    for (const m of matches) {
+      if (m.index > last) parts.push({ type:'text', val: text.slice(last, m.index) })
+      const url = m[0]
+      const short = url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 36) + (url.length > 40 ? '…' : '')
+      parts.push({ type:'url', val: url, short })
+      last = m.index + url.length
+    }
+    if (last < text.length) parts.push({ type:'text', val: text.slice(last) })
+    if (parts.length === 0) parts.push({ type:'text', val: text })
+    return parts.map((pt, i) => {
+      if (pt.type === 'url') return <a key={i} href={pt.val} target="_blank" rel="noopener" style={{ color:'#b8892a', textDecoration:'underline', wordBreak:'break-all' }}>{pt.short}</a>
+      const sub = pt.val.split(/(@[A-Za-zÀ-ž0-9_.-]+)/g)
+      return sub.map((s, j) => s.startsWith('@') ? <span key={i+'-'+j} style={{ color:'#b8892a', fontWeight:700 }}>{s}</span> : s)
+    })
   }
 
   async function gcalSyncCard(updatedCard) {
