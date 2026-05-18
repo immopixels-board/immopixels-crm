@@ -86,6 +86,36 @@ function CategorySection({ title, icon, items, onAdd, onRename, onRemove }) {
 }
 
 
+function WatchActivateButton() {
+  const [status, setStatus] = React.useState(null)
+  const [loading, setLoading] = React.useState(false)
+  async function activate() {
+    setLoading(true); setStatus(null)
+    try {
+      const r = await fetch('/api/gcal/watch-ui')
+      const data = await r.json()
+      if (data.ok) {
+        const ok = (data.results||[]).filter(x=>x.ok).length
+        setStatus({ ok:true, msg: ok+' Kalender verbunden' })
+      } else { setStatus({ ok:false, msg:'Fehler: '+(data.reason||'Unbekannt') }) }
+    } catch(e) { setStatus({ ok:false, msg:'Netzwerkfehler' }) }
+    setLoading(false)
+  }
+  return (
+    <div>
+      <button onClick={activate} disabled={loading}
+        style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, opacity:loading?0.7:1 }}>
+        <i className="ti ti-refresh" style={{ fontSize:14 }} />
+        {loading ? 'Wird verbunden...' : 'Watch aktivieren'}
+      </button>
+      {status && <div style={{ marginTop:10, fontSize:12, color:status.ok?'#15803d':'#b91c1c', display:'flex', alignItems:'center', gap:5 }}>
+        <i className={'ti '+(status.ok?'ti-check':'ti-alert-circle')} style={{ fontSize:13 }} />
+        {status.msg}
+      </div>}
+    </div>
+  )
+}
+
 export default function Settings() {
   const [activeNav, setActiveNav] = useState('appearance')
   const [cats, setCats] = useState(DEFAULTS)
