@@ -26,6 +26,22 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     loadRows()
   },[currentStaff?.id, from, to])
 
+  async function recalcMissingKm(rowsToCalc){
+    setCalcLoading(true)
+    for(const row of rowsToCalc){
+      try{
+        const res = await fetch('/api/fahrtenbuch/distance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stops:[row.from_addr,row.to_addr]})})
+        const d = await res.json()
+        if(d.ok&&d.legs[0]){
+          const km = parseFloat((d.legs[0].distance/1000).toFixed(1))
+          await supabase.from('fahrtenbuch_rows').update({km}).eq('id',row.id)
+          setRows(prev=>prev.map(r=>r.id===row.id?{...r,km}:r))
+        }
+      }catch(e){}
+    }
+    setCalcLoading(false)
+  }
+
   async function loadRows(){
     if(!currentStaff?.id) return
     const { data } = await supabase.from('fahrtenbuch_rows')
@@ -37,6 +53,9 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     // Get existing rows from DB
     const existingRows = data || []
     const existingCardIds = new Set(existingRows.filter(r=>r.source_card_id).map(r=>r.source_card_id))
+    // Recalc km for rows missing it
+    const needsKm = existingRows.filter(r=>r.km===null&&r.from_addr&&r.to_addr)
+    if(needsKm.length>0) recalcMissingKm(needsKm)
 
     // Find new cards not yet in DB
     const home = currentStaff.address||''
@@ -187,7 +206,13 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           <button onClick={()=>{const d=new Date(selDate);d.setMonth(d.getMonth()+1);setSelDate(d.toISOString().slice(0,10))}}
             style={{background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--t2)',fontSize:14}}>›</button>
         </div>
-        {calcLoading && <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>}
+        {calcLoading
+          ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
+          : <button onClick={()=>recalcMissingKm(rows.filter(r=>!r.km&&r.from_addr&&r.to_addr))}
+              style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+              <i className="ti ti-refresh" style={{fontSize:11}}/> km neu
+            </button>
+        }
       </div>
 
       {/* Staff info */}
