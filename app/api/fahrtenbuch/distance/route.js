@@ -5,7 +5,7 @@ export async function POST(req) {
   const { stops } = await req.json()
   if (!stops || stops.length < 2) return Response.json({ ok: false, reason: 'need at least 2 stops' })
 
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY
   if (!key) return Response.json({ ok: false, reason: 'no api key' })
 
   const legs = []
