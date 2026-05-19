@@ -232,9 +232,18 @@ export default function DebugPanel({ supabase, localLog, me }) {
             </label>
             <label style={{ fontSize:11, color:'var(--t3)', display:'flex', alignItems:'center', gap:5, cursor:'pointer' }}>
               <input type="checkbox" onChange={e=>{
+                if(!e.target.checked){ setSelectedCards(new Set()); return }
                 const filtered = getKartenFiltered()
-                if(e.target.checked) setSelectedCards(new Set(filtered.map(c=>c.id)))
-                else setSelectedCards(new Set())
+                // For duplicates: select only the copies (not the first/original)
+                const seen = {}
+                const toSelect = new Set()
+                for(const c of filtered){
+                  const k=(c.card_date||'')+'_'+(c.addr||c.title||'').toLowerCase().trim()
+                  if(seen[k]) toSelect.add(c.id)
+                  else seen[k]=c.id
+                }
+                // If no dups found, select all
+                setSelectedCards(toSelect.size > 0 ? toSelect : new Set(filtered.map(c=>c.id)))
               }} /> Alle auswählen
             </label>
             {selectedCards.size > 0 && (

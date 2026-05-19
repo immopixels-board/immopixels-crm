@@ -424,6 +424,9 @@ export default function Home() {
   const colDragOverIndexRef = React.useRef(null)
   const [modal, setModal] = useState(null)
   const [newCardColId, setNewCardColId] = useState(null)
+  const [gcalPickerOpen, setGcalPickerOpen] = useState(false)
+  const [gcalPickerEvents, setGcalPickerEvents] = useState([])
+  const [gcalPickerLoading, setGcalPickerLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [dirtyCards, setDirtyCards] = useState({})
@@ -484,6 +487,10 @@ export default function Home() {
   const [fontSize, setFontSize] = useState('md')
   const [cardSize, setCardSize] = useState('standard')
   const [colWidgetHeader, setColWidgetHeader] = useState(false)
+  const [compactEnabled, setCompactEnabled] = useState(false)
+  const [compactCards, setCompactCards] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('compactCards') || '[]') } catch(e) { return [] }
+  })
   const [clientCats, setClientCats] = useState(['Maklerunternehmen','Privat','Bauträger','Bank','Home Designer','Sonstige'])
   const [staffRoles, setStaffRoles] = useState(['Fotograf','Videograf / Cutter','Drohnen Pilot','Backoffice','Social Media','Leiter / Fotograf'])
   const [mentionList, setMentionList] = useState([])
@@ -1250,6 +1257,7 @@ export default function Home() {
     setFontSize(us.font_size || 'md')
     setCardSize(us.card_size || 'standard')
     setColWidgetHeader(!!us.col_widget_header)
+    setCompactEnabled(!!us.compact_cards_enabled)
     if (us.bg_color || us.bg_image) {
       addLog('Hintergrund: ' + (us.bg_image ? us.bg_image.split('/').pop() : us.bg_color))
     }
@@ -1588,6 +1596,73 @@ export default function Home() {
       await supabase.from('cards').update({ deleted_at: null, deleted_by: null }).eq('id', cardId)
       loadCards(); broadcastChange('cards_changed')
     })
+  }
+
+  async function openGcalPicker() {
+    setGcalPickerOpen(true)
+    setGcalPickerLoading(true)
+    try {
+      const token = localStorage.getItem('gcal_token')
+      if (!token) { setGcalPickerEvents([]); setGcalPickerLoading(false); return }
+      const now = new Date()
+      const end = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+      const CALS = [
+        { id: 'immopixels@gmail.com', label: 'CD' },
+        { id: '66d96a2869c084e8e329d2905619613afbdbbe253fc72b1de8a83cb8a424f966%40group.calendar.google.com', label: 'DB' },
+        { id: '227726e59806a3556283ba31ed000c7c103f67932c55102f2659cd0c0c24b71b%40group.calendar.google.com', label: 'EL' },
+        { id: '5281af37de6046e897661f80b40034e6e368a611e6514e09b8300c5068f22e61%40group.calendar.google.com', label: 'NS' },
+      ]
+      const existingGcalIds = new Set(cards.filter(c=>c.gcal_id).map(c=>c.gcal_id))
+      const events = []
+      for (const cal of CALS) {
+        try {
+          const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${cal.id}/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`, { headers: { Authorization: 'Bearer ' + token } })
+          if (!r.ok) continue
+          const { items = [] } = await r.json()
+          for (const ev of items) {
+            if (!ev.location) continue
+            const isDup = existingGcalIds.has(ev.id)
+            events.push({
+              id: ev.id,
+              summary: ev.summary || ev.location,
+              location: ev.location,
+              date: (ev.start?.dateTime || ev.start?.date || '').slice(0,10),
+              time: ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'}) : null,
+              cal: cal.label,
+              isDup,
+            })
+          }
+        } catch(e) {}
+      }
+      events.sort((a,b) => a.date.localeCompare(b.date))
+      setGcalPickerEvents(events)
+    } catch(e) { setGcalPickerEvents([]) }
+    setGcalPickerLoading(false)
+  }
+
+  async function createCardFromGcal(ev) {
+    if (ev.isDup) return
+    const shootingsCol = cols.find(c => c.title.toLowerCase().includes('shooting')) || cols[0]
+    if (!shootingsCol) return
+    const { data: card } = await supabase.from('cards').insert({
+      column_id: shootingsCol.id,
+      title: ev.summary,
+      addr: ev.location,
+      card_date: ev.date,
+      card_time: ev.time,
+      card_type: 'foto',
+      is_gcal: true,
+      gcal_id: ev.id,
+      position: 9999,
+      note: '', price: 0, is_todo: false,
+    }).select().single()
+    if (card) {
+      for (const text of AUTO_CL) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
+      addLog('Karte aus Kalender: ' + ev.summary)
+      loadCards()
+      // Mark as dup
+      setGcalPickerEvents(prev => prev.map(e => e.id === ev.id ? {...e, isDup: true} : e))
+    }
   }
 
   async function createCard(fd) {
@@ -2241,6 +2316,7 @@ export default function Home() {
             <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px' }} />
             <button onClick={() => { setNewCardColId(null); setModal('new-card') }} className='btn-primary-anim' style={{ ...BTNP, padding: '5px 11px', fontSize: 12, display:'flex', alignItems:'center', gap:5 }} onMouseEnter={e=>{const ic=e.currentTarget.querySelector('i');if(ic)ic.style.transform='rotate(90deg)'}} onMouseLeave={e=>{const ic=e.currentTarget.querySelector('i');if(ic)ic.style.transform='none'}}><i className="ti ti-plus" style={{ fontSize:12, transition:'transform .22s cubic-bezier(.34,1.56,.64,1)' }}></i> Neue Karte</button>
             <button onClick={() => setModal('new-col')} style={{ ...BTNG, padding: '5px 11px', fontSize: 12, display:'flex', alignItems:'center', gap:5, transition:'transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .15s,border-color .15s,color .15s' }} onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.08)';e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.color='var(--gold)';const ic=e.currentTarget.querySelector('i');if(ic)ic.style.transform='translateX(3px) scale(1.1)'}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='none';e.currentTarget.style.borderColor='';e.currentTarget.style.color='';const ic=e.currentTarget.querySelector('i');if(ic)ic.style.transform='none'}}><i className="ti ti-columns" style={{ fontSize:12, transition:'transform .2s cubic-bezier(.34,1.56,.64,1)' }}></i> + Spalte</button>
+            <button onClick={openGcalPicker} style={{ ...BTNG, padding: '5px 11px', fontSize: 12, display:'flex', alignItems:'center', gap:5 }}><i className="ti ti-brand-google" style={{ fontSize:12 }}></i> Aus Kalender</button>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 7, padding: '4px 10px', width: 260, transition: 'border-color .15s' }}
                 onFocus={e => e.currentTarget.style.borderColor = 'var(--gold)'}
@@ -3040,6 +3116,40 @@ export default function Home() {
 
             {/* ── CARD DRAWER ── */}
       {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
+      {gcalPickerOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(28,26,22,.6)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={()=>setGcalPickerOpen(false)}>
+          <div style={{ background:'var(--bg2)', borderRadius:14, width:520, maxWidth:'95vw', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,.2)' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
+              <i className="ti ti-brand-google" style={{ fontSize:16, color:'#b8892a' }} />
+              <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Karte aus Google Kalender</span>
+              <button onClick={()=>setGcalPickerOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--t3)', fontSize:18 }}>×</button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'10px 14px' }}>
+              {gcalPickerLoading && <div style={{ textAlign:'center', padding:30, color:'var(--t3)', fontSize:13 }}>Wird geladen...</div>}
+              {!gcalPickerLoading && gcalPickerEvents.length === 0 && (
+                <div style={{ textAlign:'center', padding:30, color:'var(--t3)', fontSize:13 }}>
+                  Keine Termine gefunden. Bitte zuerst Google verbinden (Kalender-Tab).
+                </div>
+              )}
+              {!gcalPickerLoading && gcalPickerEvents.map(ev => (
+                <div key={ev.id} onClick={()=>!ev.isDup&&createCardFromGcal(ev)}
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, marginBottom:5, background: ev.isDup?'var(--bg3)':'var(--bg2)', border:'0.5px solid '+(ev.isDup?'var(--border)':'var(--border)'), cursor:ev.isDup?'default':'pointer', opacity:ev.isDup?0.5:1, transition:'background .12s' }}
+                  onMouseEnter={e=>{ if(!ev.isDup) e.currentTarget.style.background='var(--bg3)' }}
+                  onMouseLeave={e=>{ if(!ev.isDup) e.currentTarget.style.background='var(--bg2)' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.summary}</div>
+                    <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{ev.date}{ev.time?' · '+ev.time:''} · {ev.cal}</div>
+                  </div>
+                  {ev.isDup
+                    ? <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg4)', borderRadius:4, padding:'2px 7px' }}>Bereits erstellt</span>
+                    : <span style={{ fontSize:10, color:'#b8892a', background:'#b8892a14', border:'0.5px solid #b8892a44', borderRadius:4, padding:'2px 7px' }}>+ Karte</span>
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {activeCard && (
         <CardModal
           card={activeCard}
