@@ -425,6 +425,8 @@ export default function Home() {
   const [modal, setModal] = useState(null)
   const [newCardColId, setNewCardColId] = useState(null)
   const [gcalPickerOpen, setGcalPickerOpen] = useState(false)
+  const [colCardLimit, setColCardLimit] = useState({})
+  const PAGE_SIZE = 10
   const [gcalPickerEvents, setGcalPickerEvents] = useState([])
   const [gcalPickerLoading, setGcalPickerLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
