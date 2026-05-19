@@ -751,7 +751,12 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>
-              <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
+              {localCard.is_gcal && localCard.description?.includes('<') ? (
+                <div style={{ fontSize: 13, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word' }}
+                  dangerouslySetInnerHTML={{ __html: localCard.description }} />
+              ) : (
+                <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
+              )}
             </div>
           </div>
 
