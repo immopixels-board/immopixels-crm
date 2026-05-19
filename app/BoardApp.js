@@ -1803,9 +1803,8 @@ export default function Home() {
   }
 
   async function renameCol(colId, title) {
-    const n = prompt('Spalte neve:', title)
-    if (n && n !== title) await supabase.from('columns').update({ title: n }).eq('id', colId)
-    loadCols()
+    const col = cols.find(c => c.id === colId)
+    setEditColModal({ id: colId, title, dot_color: col?.dot_color || '#b8892a' })
   }
 
   async function deleteColConfirmed(colId) {
