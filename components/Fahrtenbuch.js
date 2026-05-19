@@ -112,13 +112,17 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       for(let i=0;i<dayCards.length;i++){
         const c = dayCards[i]
         const startTime = c.card_time ? c.card_time.slice(0,5) : null
-        // Check gap from previous end time
+        // Check gap from previous END time (card_time_to) to current START
         let fromAddr = prevAddr
         if(prevEndTime && startTime){
           const [ph,pm] = prevEndTime.split(':').map(Number)
           const [sh,sm] = startTime.split(':').map(Number)
           const gapMins = (sh*60+sm) - (ph*60+pm)
-          if(gapMins >= 180) fromAddr = home // 3h gap = went home
+          // Only reset to home if gap >= 3h AND previous had an end time
+          if(gapMins >= 180) fromAddr = home
+        } else if(!prevEndTime && prevAddr !== home) {
+          // Previous had no end time — can't determine gap, stay chained
+          fromAddr = prevAddr
         }
         const shortFrom = fromAddr.split(',')[0]
         const shortTo = (c.addr||'').split(',')[0]
@@ -138,7 +142,8 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           _saved: false, source_card_id: c.id,
         })
         prevAddr = c.addr||prevAddr
-        prevEndTime = c.card_time_to?.slice(0,5) || startTime
+        // Use card_time_to if available, otherwise estimate end = start (no gap calc possible)
+        prevEndTime = c.card_time_to?.slice(0,5) || null
       }
       // Last leg: home return
       const lastCard = dayCards[dayCards.length-1]
