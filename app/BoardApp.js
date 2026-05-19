@@ -2701,7 +2701,7 @@ export default function Home() {
       )}
 
       {tab === 'fahrtenbuch' && (
-        <Fahrtenbuch staff={staff} cards={cards} me={me} isAdmin={isAdminOrSub} />
+        <Fahrtenbuch staff={staff} cards={cards} me={me} isAdmin={isAdminOrSub} supabase={supabase} />
       )}
       {tab === 'amelia' && (
         <AmeliaView staff={staff} me={me} />
