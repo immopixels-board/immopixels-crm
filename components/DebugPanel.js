@@ -53,6 +53,8 @@ export default function DebugPanel({ supabase, localLog, me }) {
   const [selectedCards, setSelectedCards] = useState(new Set())
   const [kartenCol, setKartenCol] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [kartenSort, setKartenSort] = useState('date') // date | title | client | col
+  const [showDupsOnly, setShowDupsOnly] = useState(false)
 
   useEffect(() => {
     loadLogs()
@@ -161,6 +163,36 @@ export default function DebugPanel({ supabase, localLog, me }) {
     return true
   })
 
+  function getKartenFiltered() {
+    // Find dup keys
+    const seen = {}
+    const dupIds = new Set()
+    for(const c of allCards){
+      const k=(c.card_date||'')+'_'+(c.addr||c.title||'').toLowerCase().trim()
+      if(seen[k]) { dupIds.add(c.id); dupIds.add(seen[k]) }
+      else seen[k]=c.id
+    }
+    let filtered = allCards.filter(c=>!kartenCol||c.column_id===kartenCol)
+    if(showDupsOnly) filtered = filtered.filter(c=>dupIds.has(c.id))
+    // Sort
+    filtered = [...filtered].sort((a,b)=>{
+      if(kartenSort==='dups') {
+        const ad=dupIds.has(a.id)?0:1, bd=dupIds.has(b.id)?0:1
+        if(ad!==bd) return ad-bd
+        // Group dups by key
+        const ka=(a.card_date||'')+'_'+(a.addr||a.title||'').toLowerCase().trim()
+        const kb=(b.card_date||'')+'_'+(b.addr||b.title||'').toLowerCase().trim()
+        return ka.localeCompare(kb)
+      }
+      if(kartenSort==='title') return (a.title||'').localeCompare(b.title||'')
+      if(kartenSort==='client') return (a.client_name||'').localeCompare(b.client_name||'')
+      if(kartenSort==='col') return (a.column_id||'').localeCompare(b.column_id||'')
+      // default: date desc
+      return (b.card_date||'').localeCompare(a.card_date||'')
+    })
+    return filtered
+  }
+
   const tabStyle = (t) => ({
     padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
     borderBottom: tab === t ? '2px solid var(--gold)' : '2px solid transparent',
@@ -186,9 +218,21 @@ export default function DebugPanel({ supabase, localLog, me }) {
               <option value="">Alle Spalten</option>
               {allCols.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
+            <select value={kartenSort} onChange={e=>setKartenSort(e.target.value)}
+              style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 7px', fontSize:11, outline:'none', color:'var(--t1)' }}>
+              <option value="date">📅 Datum</option>
+              <option value="title">🔤 Titel</option>
+              <option value="client">👤 Kunde</option>
+              <option value="col">📋 Spalte</option>
+              <option value="dups">🔴 Duplikate zuerst</option>
+            </select>
+            <label style={{ fontSize:11, color:'var(--t3)', display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
+              <input type="checkbox" checked={showDupsOnly} onChange={e=>setShowDupsOnly(e.target.checked)} />
+              Nur Duplikate
+            </label>
             <label style={{ fontSize:11, color:'var(--t3)', display:'flex', alignItems:'center', gap:5, cursor:'pointer' }}>
               <input type="checkbox" onChange={e=>{
-                const filtered = allCards.filter(c=>!kartenCol||c.column_id===kartenCol)
+                const filtered = getKartenFiltered()
                 if(e.target.checked) setSelectedCards(new Set(filtered.map(c=>c.id)))
                 else setSelectedCards(new Set())
               }} /> Alle auswählen
@@ -196,24 +240,39 @@ export default function DebugPanel({ supabase, localLog, me }) {
             {selectedCards.size > 0 && (
               <button onClick={deleteSelectedCards} disabled={deleting}
                 style={{ background:'#b91c1c', color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer', marginLeft:'auto' }}>
-                {deleting ? '...' : `${selectedCards.size} Karten löschen`}
+                {deleting ? '...' : `${selectedCards.size} löschen`}
               </button>
             )}
           </div>
           <div style={{ flex:1, overflowY:'auto', padding:'8px 14px' }}>
-            {allCards.filter(c=>!kartenCol||c.column_id===kartenCol).map(c=>(
-              <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, background:selectedCards.has(c.id)?'#b8892a14':'var(--bg3)', border:'0.5px solid '+(selectedCards.has(c.id)?'#b8892a':'var(--border)'), marginBottom:4, cursor:'pointer' }}
-                onClick={()=>setSelectedCards(prev=>{ const n=new Set(prev); n.has(c.id)?n.delete(c.id):n.add(c.id); return n })}>
-                <input type="checkbox" checked={selectedCards.has(c.id)} readOnly style={{ flexShrink:0 }} />
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title||'—'}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>
-                    {c.card_date} {c.client_name&&`· ${c.client_name}`} {c.is_gcal&&<span style={{color:'#b8892a'}}>· GCal</span>}
+            {(()=>{
+              const cards = getKartenFiltered()
+              // Find dup keys
+              const seen = {}
+              const dupIds = new Set()
+              for(const c of allCards){
+                const k=(c.card_date||'')+'_'+(c.addr||c.title||'').toLowerCase().trim()
+                if(seen[k]) { dupIds.add(c.id); dupIds.add(seen[k]) }
+                else seen[k]=c.id
+              }
+              return cards.map(c=>{
+                const isDup = dupIds.has(c.id)
+                return (
+                  <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, background:selectedCards.has(c.id)?'#b8892a14':isDup?'#fef2f2':'var(--bg3)', border:'0.5px solid '+(selectedCards.has(c.id)?'#b8892a':isDup?'#fecaca':'var(--border)'), marginBottom:4, cursor:'pointer' }}
+                    onClick={()=>setSelectedCards(prev=>{ const n=new Set(prev); n.has(c.id)?n.delete(c.id):n.add(c.id); return n })}>
+                    <input type="checkbox" checked={selectedCards.has(c.id)} readOnly style={{ flexShrink:0 }} />
+                    {isDup && <span style={{ fontSize:9, color:'#b91c1c', fontWeight:700, flexShrink:0 }}>DUP</span>}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:11, fontWeight:600, color:isDup?'#b91c1c':'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title||'—'}</div>
+                      <div style={{ fontSize:10, color:'var(--t3)' }}>
+                        {c.card_date} {c.client_name&&`· ${c.client_name}`} {c.is_gcal&&<span style={{color:'#b8892a'}}>· GCal</span>}
+                      </div>
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--t3)', flexShrink:0 }}>{allCols.find(col=>col.id===c.column_id)?.title||'?'}</div>
                   </div>
-                </div>
-                <div style={{ fontSize:10, color:'var(--t3)', flexShrink:0 }}>{allCols.find(col=>col.id===c.column_id)?.title||'?'}</div>
-              </div>
-            ))}
+                )
+              })
+            })()}
           </div>
         </div>
       )}

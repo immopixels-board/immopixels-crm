@@ -508,6 +508,7 @@ export default function Home() {
   const [draggingWidget, setDraggingWidget] = useState(null)
   const [customWidgetModal, setCustomWidgetModal] = useState(false)
   const [unreadEmail, setUnreadEmail] = useState(0)
+  const [ameliaPending, setAmeliaPending] = useState(0)
   const [showTutorial, setShowTutorial] = useState(false)
   const [colModal, setColModal] = useState(null)
   const [undoToast, setUndoToast] = useState(null) // { message, onUndo, timer }
@@ -632,6 +633,19 @@ export default function Home() {
     }
     fetchUnread()
     const t = setInterval(fetchUnread, 5 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Amelia pending poll
+  useEffect(() => {
+    function fetchAmelia() {
+      fetch('/api/amelia?action=appointments&status=pending&limit=20')
+        .then(r=>r.json())
+        .then(d=>{ if(d.ok) setAmeliaPending(d.appointments?.length||0) })
+        .catch(()=>{})
+    }
+    fetchAmelia()
+    const t = setInterval(fetchAmelia, 5 * 60 * 1000)
     return () => clearInterval(t)
   }, [])
 
@@ -2083,12 +2097,15 @@ export default function Home() {
             { id: 'staff', label: 'Mitarbeiter', icon: 'ti-id-badge' },
             ...(!isDemo ? [{ id: 'phonebook', label: 'Telefonbuch', icon: 'ti-address-book' }] : []),
           ].map(tb => (
-            <div key={tb.id} onClick={() => setTab(tb.id)}
-              style={{ padding: '0 11px', height: '100%', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: tab === tb.id ? 'var(--gold)' : 'var(--t3)', cursor: 'pointer', borderBottom: tab === tb.id ? '2px solid var(--gold)' : '2px solid transparent', transition: 'color .15s, background .15s' }}
+            <div key={tb.id} onClick={() => { setTab(tb.id); if(tb.id==='amelia') setAmeliaPending(0) }}
+              style={{ padding: '0 11px', height: '100%', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: tab === tb.id ? 'var(--gold)' : 'var(--t3)', cursor: 'pointer', borderBottom: tab === tb.id ? '2px solid var(--gold)' : '2px solid transparent', transition: 'color .15s, background .15s', position:'relative' }}
               onMouseEnter={e => { if(tab!==tb.id){e.currentTarget.style.color='var(--gold)';e.currentTarget.style.background='rgba(184,137,42,.05)'} const ic=e.currentTarget.querySelector('i'); if(ic) ic.style.transform='scale(1.18) rotate(-6deg)' }}
               onMouseLeave={e => { if(tab!==tb.id){e.currentTarget.style.color='var(--t3)';e.currentTarget.style.background='none'} const ic=e.currentTarget.querySelector('i'); if(ic) ic.style.transform='none' }}>
               <i className={'ti ' + tb.icon} style={{ fontSize: 13, transition: 'transform .2s cubic-bezier(.34,1.56,.64,1)' }}></i>
               {tb.label}
+              {tb.id==='amelia' && ameliaPending > 0 && (
+                <span style={{ position:'absolute', top:8, right:4, width:8, height:8, borderRadius:'50%', background:'#b91c1c', border:'1.5px solid var(--bg)' }} />
+              )}
             </div>
           ))}
           <div onClick={() => setShowWidgets(p => !p)} style={{ padding: '0 13px', height: '100%', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 600, color: showWidgets ? 'var(--gold)' : 'var(--t3)', cursor: 'pointer', borderBottom: showWidgets ? '2px solid var(--gold)' : '2px solid transparent' }}>
