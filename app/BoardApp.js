@@ -1733,6 +1733,7 @@ export default function Home() {
             events.push({
               id: ev.id,
               summary: ev.summary || ev.location,
+              description: ev.description || '',
               location: ev.location,
               date: (ev.start?.dateTime || ev.start?.date || '').slice(0,10),
               time: ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'}) : null,
