@@ -678,6 +678,7 @@ export default function Home() {
   }
 
   async function doCheckIn() {
+    if (demoBlock()) return
     if (activeSession) return
     const { data } = await supabase.from('work_sessions').insert({
       staff_id: me.id, check_in: new Date().toISOString(), break_minutes: 0
@@ -688,6 +689,7 @@ export default function Home() {
   }
 
   async function doCheckOut(note) {
+    if (demoBlock()) return
     if (!activeSession) return
     const checkOut = new Date()
     const checkIn = new Date(activeSession.check_in)
@@ -1716,6 +1718,7 @@ export default function Home() {
   }
 
   async function createCardFromGcal(ev) {
+    if (demoBlock()) return
     if (ev.isDup) return
     const shootingsCol = cols.find(c => c.title.toLowerCase().includes('shooting')) || cols[0]
     if (!shootingsCol) return
@@ -3685,6 +3688,7 @@ export default function Home() {
                   <div style={{ gridColumn:'1/-1' }}>
                     <label style={LS}>Zugriffsrecht</label>
                     <select name="role_level" defaultValue={editStaff?.role_level||'mitarbeiter'} style={IS}>
+                      <option value="demo">Demo — Nur lesen, keine Änderungen</option>
                       <option value="mitarbeiter">Mitarbeiter — Nur eigenes Profil</option>
                       <option value="subadmin">Subadmin — Kunden + Mitarbeiter verwalten</option>
                       <option value="admin">Admin — Vollzugriff</option>
