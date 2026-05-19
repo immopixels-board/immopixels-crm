@@ -1764,9 +1764,19 @@ export default function Home() {
       gcal_id: ev.id,
       position: 9999,
       note: '', price: 0, is_todo: false,
+      client_name: (() => {
+        const title = (ev.summary||'').toLowerCase()
+        const match = clients.find(c =>
+          (c.short_name && title.includes(c.short_name.toLowerCase())) ||
+          (c.name && title.includes(c.name.toLowerCase()))
+        ) || clients.find(c =>
+          c.short_name && c.short_name.toLowerCase().split(' ').some(w => w.length>2 && title.includes(w))
+        )
+        return match ? (match.short_name||match.name) : ''
+      })(),
     }).select().single()
     if (card) {
-      for (const text of getAutoChecklist(inp?.card_type||'foto')) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
+      for (const text of getAutoChecklist('foto')) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
       // Add staff to card_team based on calendar owner
       if (ev.cal) {
         const staffMember = staff.find(s => s.init === ev.cal)
@@ -1797,8 +1807,10 @@ export default function Home() {
         // Auto-match client from title
         const title = (fd.get('title') || '').toLowerCase()
         const match = clients.find(c =>
-          (c.short_name && title.startsWith(c.short_name.toLowerCase())) ||
-          (c.name && title.startsWith(c.name.toLowerCase()))
+          (c.short_name && title.includes(c.short_name.toLowerCase())) ||
+          (c.name && title.includes(c.name.toLowerCase()))
+        ) || clients.find(c =>
+          c.short_name && c.short_name.toLowerCase().split(' ').some(w => w.length>2 && title.includes(w))
         )
         return match ? (match.short_name || match.name) : ''
       })(),
