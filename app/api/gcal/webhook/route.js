@@ -12,8 +12,13 @@ const CALS_PULL = [
 
 function detectCategory(description = '', title = '') {
   const text = (description + ' ' + title).toLowerCase()
-  if (text.includes('drohne') || text.includes('drone')) return 'foto+drohne'
-  if (text.includes('reel') && (text.includes('foto') || text.includes('photo'))) return 'foto+reel'
+  const hasDrone = text.includes('drohne')||text.includes('drone')
+  const hasReel = text.includes('reel')
+  const hasFoto = text.includes('foto')||text.includes('photo')
+  if(hasDrone&&hasReel) return 'foto-reel'
+  if(hasDrone) return 'foto-dron'
+  if(hasReel&&hasFoto) return 'foto-reel'
+  if(hasReel) return 'reel'
   if (text.includes('reel')) return 'reel'
   return 'foto'
 }

@@ -1759,7 +1759,17 @@ export default function Home() {
       addr: ev.location,
       card_date: ev.date,
       card_time: ev.time,
-      card_type: 'foto',
+      card_type: (() => {
+        const t = ((ev.summary||'')+' '+(ev.description||'')).toLowerCase()
+        const hasDrone = t.includes('drohne')||t.includes('drone')
+        const hasReel = t.includes('reel')
+        const hasFoto = t.includes('foto')||t.includes('photo')
+        if(hasDrone&&hasReel) return 'foto-reel'
+        if(hasDrone) return 'foto-dron'
+        if(hasReel&&hasFoto) return 'foto-reel'
+        if(hasReel) return 'reel'
+        return 'foto'
+      })(),
       is_gcal: true,
       gcal_id: ev.id,
       position: 9999,
@@ -1776,7 +1786,7 @@ export default function Home() {
       })(),
     }).select().single()
     if (card) {
-      for (const text of getAutoChecklist('foto')) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
+      for (const text of getAutoChecklist(card.card_type||'foto')) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
       // Add staff to card_team based on calendar owner
       if (ev.cal) {
         const staffMember = staff.find(s => s.init === ev.cal)

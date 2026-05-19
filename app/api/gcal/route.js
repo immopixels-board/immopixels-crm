@@ -22,8 +22,9 @@ function detectCategory(description = '', title = '') {
   const hasDrone = text.includes('drohne') || text.includes('drone') || text.includes('drón')
   const hasReel = text.includes('reel')
   const hasFoto = text.includes('foto') || text.includes('photo')
-  if (hasDrone) return 'foto+drohne'
-  if (hasReel && hasFoto) return 'foto+reel'
+  if (hasDrone && hasReel) return 'foto-reel' // prioritize reel if both
+  if (hasDrone) return 'foto-dron'
+  if (hasReel && hasFoto) return 'foto-reel'
   if (hasReel) return 'reel'
   return 'foto'
 }
