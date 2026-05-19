@@ -119,28 +119,23 @@ function WatchActivateButton() {
 
 function ColWidgetToggle() {
   const [on, setOn] = React.useState(false)
-  const [sb, setSb] = React.useState(null)
 
   React.useEffect(() => {
-    const { createClient } = require('@supabase/supabase-js')
-    const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    setSb(s)
-    s.auth.getUser().then(async({data:{user}})=>{
+    supabase.auth.getUser().then(async({data:{user}})=>{
       if(!user) return
-      const {data:st} = await s.from('staff').select('id').eq('email',user.email).single()
+      const {data:st} = await supabase.from('staff').select('id').eq('email',user.email).single()
       if(!st) return
-      const {data:us} = await s.from('user_settings').select('col_widget_header').eq('staff_id',st.id).single()
+      const {data:us} = await supabase.from('user_settings').select('col_widget_header').eq('staff_id',st.id).single()
       setOn(!!us?.col_widget_header)
     })
   },[])
 
   async function toggle() {
-    if(!sb) return
     const newVal = !on
     setOn(newVal)
-    const {data:{user}} = await sb.auth.getUser()
-    const {data:st} = await sb.from('staff').select('id').eq('email',user.email).single()
-    await sb.from('user_settings').upsert({staff_id:st.id,col_widget_header:newVal},{onConflict:'staff_id'})
+    const {data:{user}} = await supabase.auth.getUser()
+    const {data:st} = await supabase.from('staff').select('id').eq('email',user.email).single()
+    if(st) await supabase.from('user_settings').upsert({staff_id:st.id,col_widget_header:newVal},{onConflict:'staff_id'})
   }
 
   return (
