@@ -729,6 +729,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Kunde</div>
               <EditableField value={localCard.client_name} onSave={v => save('client_name', v)} placeholder="Kunden eingeben..." style={{ fontSize: 13, fontWeight: 600, color: '#1c1a16' }} />
+              {(() => { const cl = clients.find(c => c.short_name === localCard.client_name || c.name === localCard.client_name); return cl && cl.short_name && cl.name && cl.short_name !== cl.name ? <div style={{ fontSize:11, color:'#8a8278', marginTop:3 }}>{cl.name}</div> : null })()}
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Termin</div>
@@ -740,6 +741,12 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 onTimeChange={v=>save('card_time',v)}
                 onTimeToChange={v=>save('card_time_to',v)}
               />
+              {localCard.card_date && (
+                <button onClick={()=>{save('card_date',null);save('card_time',null);save('card_time_to',null)}}
+                  style={{ marginTop:6, background:'#fef2f2', color:'#b91c1c', border:'0.5px solid #fecaca', borderRadius:6, padding:'4px 10px', fontSize:11, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:3 }}>
+                  <i className="ti ti-trash" style={{ fontSize:10 }} /> Datum löschen
+                </button>
+              )}
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>

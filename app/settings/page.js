@@ -117,6 +117,39 @@ function WatchActivateButton() {
   )
 }
 
+function ColWidgetToggle() {
+  const [on, setOn] = React.useState(false)
+  const [sb, setSb] = React.useState(null)
+
+  React.useEffect(() => {
+    const { createClient } = require('@supabase/supabase-js')
+    const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    setSb(s)
+    s.auth.getUser().then(async({data:{user}})=>{
+      if(!user) return
+      const {data:st} = await s.from('staff').select('id').eq('email',user.email).single()
+      if(!st) return
+      const {data:us} = await s.from('user_settings').select('col_widget_header').eq('staff_id',st.id).single()
+      setOn(!!us?.col_widget_header)
+    })
+  },[])
+
+  async function toggle() {
+    if(!sb) return
+    const newVal = !on
+    setOn(newVal)
+    const {data:{user}} = await sb.auth.getUser()
+    const {data:st} = await sb.from('staff').select('id').eq('email',user.email).single()
+    await sb.from('user_settings').upsert({staff_id:st.id,col_widget_header:newVal},{onConflict:'staff_id'})
+  }
+
+  return (
+    <div onClick={toggle} style={{ width:44, height:24, borderRadius:12, background:on?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+      <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:on?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+    </div>
+  )
+}
+
 export default function Settings() {
   const [activeNav, setActiveNav] = useState('appearance')
   const [cats, setCats] = useState(DEFAULTS)
@@ -331,6 +364,22 @@ export default function Settings() {
                   <div style={{ fontSize:11, color:'#aaa8a0', marginTop:10 }}>Wird nur für dich gespeichert.</div>
                 </div>
               </>
+            )}
+
+            {activeNav === 'appearance' && (
+              <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+                  <i className="ti ti-columns" style={{ fontSize:16, color:'#b8892a' }} />
+                  Spalten-Header Stil
+                </div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div>
+                    <div style={{ fontSize:13, color:'#1c1a16', fontWeight:600 }}>Widget-Header</div>
+                    <div style={{ fontSize:11, color:'#8a8278', marginTop:2 }}>Farbiger Header wie bei Widgets</div>
+                  </div>
+                  <ColWidgetToggle />
+                </div>
+              </div>
             )}
 
             {activeNav === 'categories' && (
