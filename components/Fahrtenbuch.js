@@ -97,21 +97,69 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       return
     }
 
-    const newRows = staffCards.map(c=>({
-      id: 'new_'+c.id+'_'+Date.now(),
-      staff_id: currentStaff.id,
-      date: c.card_date,
-      time_from: c.card_time?.slice(0,5)||'08:00',
-      time_to: c.card_time_to?.slice(0,5)||'',
-      shooting: c.title||'—',
-      fahrstrecke: home && c.addr ? home.split(',')[0]+' → '+c.addr.split(',')[0] : c.addr||'',
-      from_addr: home,
-      to_addr: c.addr||'',
-      kunde: c.client_name||'',
-      zweck: 'Fotoshooting',
-      km_start: null, km_end: null, km: null,
-      _saved: false, source_card_id: c.id,
-    }))
+    // Group by date, then chain stops with 3h gap = home return
+    const byDate = {}
+    for(const c of staffCards){
+      if(!byDate[c.card_date]) byDate[c.card_date] = []
+      byDate[c.card_date].push(c)
+    }
+    const newRows = []
+    for(const [date, dayCards] of Object.entries(byDate)){
+      dayCards.sort((a,b)=>(a.card_time||'').localeCompare(b.card_time||''))
+      // Build legs: chain stops, reset to home if gap > 3h
+      let prevAddr = home
+      let prevEndTime = null
+      for(let i=0;i<dayCards.length;i++){
+        const c = dayCards[i]
+        const startTime = c.card_time ? c.card_time.slice(0,5) : null
+        // Check gap from previous end time
+        let fromAddr = prevAddr
+        if(prevEndTime && startTime){
+          const [ph,pm] = prevEndTime.split(':').map(Number)
+          const [sh,sm] = startTime.split(':').map(Number)
+          const gapMins = (sh*60+sm) - (ph*60+pm)
+          if(gapMins >= 180) fromAddr = home // 3h gap = went home
+        }
+        const shortFrom = fromAddr.split(',')[0]
+        const shortTo = (c.addr||'').split(',')[0]
+        newRows.push({
+          id: 'new_'+c.id+'_'+Date.now(),
+          staff_id: currentStaff.id,
+          date: c.card_date,
+          time_from: startTime||'08:00',
+          time_to: c.card_time_to?.slice(0,5)||'',
+          shooting: c.title||'—',
+          fahrstrecke: fromAddr && c.addr ? shortFrom+' → '+shortTo : c.addr||'',
+          from_addr: fromAddr,
+          to_addr: c.addr||'',
+          kunde: c.client_name||'',
+          zweck: 'Fotoshooting',
+          km_start: null, km_end: null, km: null,
+          _saved: false, source_card_id: c.id,
+        })
+        prevAddr = c.addr||prevAddr
+        prevEndTime = c.card_time_to?.slice(0,5) || startTime
+      }
+      // Last leg: home return
+      const lastCard = dayCards[dayCards.length-1]
+      if(lastCard?.addr && home){
+        newRows.push({
+          id: 'new_home_'+date+'_'+Date.now(),
+          staff_id: currentStaff.id,
+          date,
+          time_from: lastCard.card_time_to?.slice(0,5)||'',
+          time_to: '',
+          shooting: 'Heimfahrt',
+          fahrstrecke: lastCard.addr.split(',')[0]+' → '+home.split(',')[0],
+          from_addr: lastCard.addr,
+          to_addr: home,
+          kunde: '',
+          zweck: 'Heimfahrt',
+          km_start: null, km_end: null, km: null,
+          _saved: false, source_card_id: null,
+        })
+      }
+    }
     const allRows = [...existingRows.map(r=>({...r,_saved:true})), ...newRows]
     setRows(allRows)
     if(home) calcAndSave(newRows, home)
