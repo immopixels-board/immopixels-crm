@@ -13,6 +13,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
   const [rows, setRows] = useState([])
   const [calcLoading, setCalcLoading] = useState(false)
   const [licensePlate, setLicensePlate] = useState('')
+  const lpTimer = useRef(null)
   const [saving, setSaving] = useState({})
   const saveTimers = useRef({})
 
@@ -21,6 +22,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
 
   useEffect(()=>{
     if(!currentStaff) return
+    setLicensePlate(currentStaff.license_plate||'')
     loadRows()
   },[currentStaff?.id, from, to])
 
@@ -32,17 +34,16 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       .gte('date', from).lte('date', to)
       .order('date', {ascending:true}).order('time_from', {ascending:true})
     
-    if(data && data.length > 0){
-      setRows(data.map(r=>({...r, _saved:true})))
-      return
-    }
+    // Get existing rows from DB
+    const existingRows = data || []
+    const existingCardIds = new Set(existingRows.filter(r=>r.source_card_id).map(r=>r.source_card_id))
 
-    // Auto-build from cards
+    // Find new cards not yet in DB
     const home = currentStaff.address||''
     const staffCards = cards.filter(c=>{
       if(!c.card_date||!c.addr) return false
       if(c.card_date<from||c.card_date>to) return false
-      // Only cards where this staff member is in card_team
+      if(existingCardIds.has(c.id)) return false // already saved
       if(c.card_team && c.card_team.length > 0){
         return c.card_team.some(t=>t.staff_id===currentStaff.id)
       }
@@ -52,7 +53,10 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       return (a.card_time||''). localeCompare(b.card_time||'')
     })
 
-    if(staffCards.length === 0){ setRows([]); return }
+    if(staffCards.length === 0){
+      setRows(existingRows.map(r=>({...r,_saved:true})))
+      return
+    }
 
     const newRows = staffCards.map(c=>({
       id: 'new_'+c.id+'_'+Date.now(),
@@ -66,13 +70,11 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       to_addr: c.addr||'',
       kunde: c.client_name||'',
       zweck: 'Fotoshooting',
-      km_start: null,
-      km_end: null,
-      km: null,
-      _saved: false,
-      _cardId: c.id,
+      km_start: null, km_end: null, km: null,
+      _saved: false, source_card_id: c.id,
     }))
-    setRows(newRows)
+    const allRows = [...existingRows.map(r=>({...r,_saved:true})), ...newRows]
+    setRows(allRows)
     if(home) calcAndSave(newRows, home)
   }
 
@@ -103,6 +105,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         from_addr: row.from_addr, to_addr: row.to_addr,
         kunde: row.kunde, zweck: row.zweck,
         km_start: row.km_start||null, km_end: row.km_end||null, km: row.km||null,
+        source_card_id: row.source_card_id||null,
       }).select().single()
       if(data){
         setRows(prev=>prev.map(r=>r.id===row.id ? {...data,_saved:true} : r))
@@ -194,7 +197,13 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           <div><span style={{fontSize:9,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.4px'}}>Adresse</span><div style={{fontSize:12,color:'var(--t2)',marginTop:2}}>{currentStaff.address||'—'}</div></div>
           <div>
             <span style={{fontSize:9,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.4px'}}>Kennzeichen</span>
-            <input value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} placeholder="z.B. MA-DB 123"
+            <input value={licensePlate} onChange={e=>{
+              const v=e.target.value; setLicensePlate(v)
+              clearTimeout(lpTimer.current)
+              lpTimer.current=setTimeout(async()=>{
+                await supabase.from('staff').update({license_plate:v}).eq('id',currentStaff.id)
+              },1200)
+            }} placeholder="z.B. MA-DB 123"
               style={{display:'block',marginTop:2,background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:5,padding:'3px 7px',fontSize:12,color:'var(--t1)',outline:'none',width:120}} />
           </div>
         </div>
