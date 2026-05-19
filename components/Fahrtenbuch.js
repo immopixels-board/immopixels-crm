@@ -251,6 +251,65 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
   const monthLabel = new Date(selDate).toLocaleDateString('de-DE',{month:'long',year:'numeric'})
   const clientNames = [...new Set(cards.filter(c=>c.client_name).map(c=>c.client_name))].sort()
 
+  function getExportData() {
+    const headers = ['Datum','Von','Bis','Shooting','Fahrstrecke','Kunde','Zweck','km Anfang','km Ende','km','Kosten (€)']
+    const rowData = rows.map(r => [
+      r.date||'',
+      r.time_from||'',
+      r.time_to||'',
+      r.shooting||'',
+      r.fahrstrecke||'',
+      r.kunde||'',
+      r.zweck||'',
+      r.km_start||'',
+      r.km_end||'',
+      r.km||'',
+      r.km ? (parseFloat(r.km)*RATE).toFixed(2) : ''
+    ])
+    return { headers, rowData }
+  }
+
+  function exportCSV() {
+    const { headers, rowData } = getExportData()
+    const csv = [headers, ...rowData].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'})
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `Fahrtenbuch_${currentStaff?.name||''}_${monthLabel}.csv`; a.click()
+  }
+
+  function exportExcel() {
+    const { headers, rowData } = getExportData()
+    // Build simple XML spreadsheet
+    const xml = ['<?xml version="1.0"?>',
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
+      '<Worksheet ss:Name="Fahrtenbuch"><Table>',
+      '<Row>'+headers.map(h=>`<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')+'</Row>',
+      ...rowData.map(row => '<Row>'+row.map(v=>`<Cell><Data ss:Type="String">${String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</Data></Cell>`).join('')+'</Row>'),
+      '</Table></Worksheet></Workbook>'
+    ].join('')
+    const blob = new Blob([xml], {type:'application/vnd.ms-excel'})
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `Fahrtenbuch_${currentStaff?.name||''}_${monthLabel}.xls`; a.click()
+  }
+
+  function exportPDF() {
+    const { headers, rowData } = getExportData()
+    const totalKmVal = rows.reduce((s,r)=>s+(parseFloat(r.km)||0),0)
+    const totalCostVal = (totalKmVal*RATE).toFixed(2)
+    const style = 'body{font-family:Arial,sans-serif;font-size:11px;margin:20px}h2{font-size:14px;margin-bottom:4px}.meta{font-size:11px;color:#666;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#f4f2ef;font-size:9px;text-transform:uppercase;padding:5px 6px;border:0.5px solid #ddd;text-align:left}td{padding:5px 6px;border:0.5px solid #ddd;font-size:10px}tr:nth-child(even){background:#fafafa}.total{font-weight:bold;background:#f4f2ef}'
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'
+      +'<h2>Fahrtenbuch — '+(currentStaff?.name||'')+'</h2>'
+      +'<div class="meta">'+monthLabel+' · Kennzeichen: '+(licensePlate||'—')+' · Heimadresse: '+(currentStaff?.address||'—')+'</div>'
+      +'<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'
+      +rowData.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('')
+      +'<tr class="total"><td colspan="9">Gesamt</td><td>'+totalKmVal.toFixed(1)+'</td><td>'+totalCostVal+'</td></tr>'
+      +'</tbody></table></body></html>'
+    const w = window.open('','_blank')
+    w.document.write(html)
+    w.document.close()
+    w.print()
+  }
+
   const IS = {background:'transparent',border:'none',outline:'none',fontSize:11,color:'var(--t1)',width:'100%',fontFamily:'Arial',padding:0}
 
   return(
@@ -273,6 +332,17 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           <span style={{fontSize:12,fontWeight:700,color:'var(--t1)',minWidth:130,textAlign:'center'}}>{monthLabel}</span>
           <button onClick={()=>{const d=new Date(selDate);d.setMonth(d.getMonth()+1);setSelDate(d.toISOString().slice(0,10))}}
             style={{background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--t2)',fontSize:14}}>›</button>
+        </div>
+        <div style={{display:'flex',gap:5}}>
+          <button onClick={exportCSV} style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+            <i className="ti ti-file-spreadsheet" style={{fontSize:11}}/> CSV
+          </button>
+          <button onClick={exportExcel} style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+            <i className="ti ti-file-excel" style={{fontSize:11}}/> Excel
+          </button>
+          <button onClick={exportPDF} style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+            <i className="ti ti-file-type-pdf" style={{fontSize:11}}/> PDF
+          </button>
         </div>
         {calcLoading
           ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
