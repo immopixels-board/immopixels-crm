@@ -9,6 +9,7 @@ const BG_IMAGE_OPTIONS = [
   { key:'bg_wa_mint',      label:'Mint',  src:'/bg/bg_wa_mint.png' },
   { key:'bg_wa_lightgray', label:'Gray',  src:'/bg/bg_wa_lightgray.png' },
   { key:'bg_blue',         label:'Blue',  src:'/bg/bg_blue.png' },
+  { key:'dani_special',    label:'Special 🎁', src:'/dani-bg.png', onlyInit:'DB' },
 ]
 const BG_OPTIONS = [
   { key:'linen', color:'#f4f2ef' }, { key:'bluegray', color:'#f0f4f8' },
@@ -530,7 +531,7 @@ export default function ProfilPage() {
                     style={{ width:52, height:36, borderRadius:7, background:'var(--bg3)', border: !userSettings.bg_image?'2px solid var(--gold)':'1px solid var(--border)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'var(--t3)', transition:'all .15s' }}>
                     Keine
                   </div>
-                  {BG_IMAGE_OPTIONS.map(bg => (
+                  {BG_IMAGE_OPTIONS.filter(bg => !bg.onlyInit || bg.onlyInit === me?.init).map(bg => (
                     <div key={bg.key} onClick={()=>saveUserSetting('bg_image', bg.src)}
                       style={{ width:52, height:36, borderRadius:7, backgroundImage:'url('+bg.src+')', backgroundSize:'cover', cursor:'pointer', border: userSettings.bg_image===bg.src?'2px solid var(--gold)':'1px solid var(--border)', transition:'all .15s', position:'relative' }}
                       title={bg.label}>
