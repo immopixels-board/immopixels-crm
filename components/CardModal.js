@@ -661,7 +661,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(28,26,22,.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadeIn .15s ease' }}>
+      className="card-modal-outer" style={{ position: 'fixed', inset: 0, background: 'rgba(28,26,22,.45)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadeIn .15s ease' }}>
       <style>{`
         @keyframes fadeIn { from { opacity:0; transform:scale(.97) } to { opacity:1; transform:scale(1) } }
         .card-modal-scroll::-webkit-scrollbar { width: 4px }

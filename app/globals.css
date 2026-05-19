@@ -160,10 +160,45 @@ body{background:var(--bg);font-family:Arial,sans-serif;color:var(--t1)}
 
 @keyframes slideInRight { from { opacity:0; transform:translateX(40px) scale(.95) } to { opacity:1; transform:none } }
 
-/* ─── Mobil responsive topbar ─── */
+/* ─── Mobil responsive ─── */
 @media (max-width: 768px) {
   .desktop-nav { display: none !important; }
   .mobile-menu-btn { display: flex !important; }
+
+  /* Widgets hidden on mobile */
+  .widget-overlay { display: none !important; }
+
+  /* Board columns full width, horizontal scroll */
+  .board-cols-wrap {
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+  .bcol {
+    width: 88vw !important;
+    min-width: 88vw !important;
+  }
+
+  /* Cards full width */
+  .board-card { font-size: 13px !important; }
+
+  /* Modal full screen */
+  .card-modal-outer {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .card-modal-inner {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 92vh !important;
+    max-height: 92vh !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+
+  /* Hide hover menus on touch */
+  .card-hover-menu { display: none !important; }
+
+  /* Topbar compact */
+  .topbar-logo-text { display: none !important; }
 }
 @media (min-width: 769px) {
   .mobile-menu-btn { display: none !important; }
