@@ -42,6 +42,29 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: 'delete_cards_in_column',
+    description: 'Löscht alle Karten in einer bestimmten Spalte. NUR verwenden wenn der Benutzer explizit "lösche alle Karten in [Spalte]" sagt. Gibt die Anzahl der gelöschten Karten zurück.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        column_title: { type: 'string', description: 'Name der Spalte deren Karten gelöscht werden sollen' },
+        is_gcal_only: { type: 'boolean', description: 'Nur GCal-importierte Karten löschen (is_gcal=true)' },
+      },
+      required: ['column_title'],
+    },
+  },
+  {
+    name: 'find_duplicates',
+    description: 'Findet und listet doppelte Karten auf dem Board (gleiche Adresse oder gleicher Titel am gleichen Datum). Optional auch löschen.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        delete: { type: 'boolean', description: 'Wenn true, werden die Duplikate automatisch gelöscht' },
+        column_title: { type: 'string', description: 'Optional: nur in dieser Spalte suchen' },
+      },
+    },
+  },
 ]
 
 export async function POST(request) {

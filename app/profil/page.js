@@ -219,7 +219,7 @@ export default function ProfilPage() {
   async function saveProfile(e) {
     e.preventDefault()
     const fd = new FormData(e.target)
-    await supabase.from('staff').update({ name: fd.get('name'), email: fd.get('email'), tel: fd.get('tel'), role: fd.get('role') }).eq('id', me.id)
+    await supabase.from('staff').update({ name: fd.get('name'), email: fd.get('email'), tel: fd.get('tel'), role: fd.get('role'), address: fd.get('address')||null, init: fd.get('init')||null }).eq('id', me.id)
     loadMe(); setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
@@ -265,7 +265,7 @@ export default function ProfilPage() {
     { key:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard' },
     { key:'profil', label:'Mein Profil', icon:'ti-user' },
     { key:'gehaltszettel', label:'Gehaltszettel', icon:'ti-file-invoice' },
-    { key:'fahrtenbuch', label:'Fahrtenbuch', icon:'ti-car' },
+
     { key:'aussehen', label:'Aussehen', icon:'ti-palette' },
     ...(me?.role_level === 'admin' || me?.role_level === 'subadmin' ? [{ key:'preistabelle', label:'Preistabelle', icon:'ti-table' }] : []),
   ]
@@ -300,7 +300,7 @@ export default function ProfilPage() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <div style={{ width:200, background:'var(--bg2)', borderRight:'0.5px solid var(--border)', display:'flex', flexDirection:'column', flexShrink:0 }}>
           <div style={{ padding:'16px 14px 12px', borderBottom:'0.5px solid var(--border)', textAlign:'center' }}>
-            <div style={{ width:52, height:52, borderRadius:'50%', background:(viewStaff?.color||'#b8892a')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:viewStaff?.color||'var(--gold)', margin:'0 auto 8px', border:'2px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ width:52, height:52, borderRadius:'50%', background:(viewStaff?.color||'#b8892a')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:viewStaff?.color||'var(--gold)', margin:'0 auto 8px', border:'2px dashed '+(viewStaff?.color||'#b8892a'), overflow:'hidden' }}>
               {viewStaff?.avatar_url ? <img src={viewStaff.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : (viewStaff?.init || '?')}
             </div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{viewStaff?.name}</div>
@@ -359,9 +359,11 @@ export default function ProfilPage() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
                   <div><label style={LS}>Name</label><input name="name" defaultValue={me?.name} style={IS} /></div>
-                  <div><label style={LS}>Rolle</label><input name="role" defaultValue={me?.role} style={IS} /></div>
+                  <div><label style={LS}>Kürzel</label><input name="init" maxLength={3} defaultValue={me?.init} placeholder="CD" style={IS} /></div>
                   <div><label style={LS}>E-Mail</label><input name="email" defaultValue={me?.email} style={IS} /></div>
                   <div><label style={LS}>Telefon</label><input name="tel" defaultValue={me?.tel} style={IS} /></div>
+                  <div><label style={LS}>Rolle</label><input name="role" defaultValue={me?.role} style={IS} /></div>
+                  <div><label style={LS}>Adresse (Heimadresse)</label><input name="address" defaultValue={me?.address} placeholder="Straße, PLZ Stadt" style={IS} /></div>
                 </div>
                 <button type="submit" style={{ background:'var(--gold)', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
                   <i className="ti ti-check" style={{ fontSize:13 }} /> Speichern
@@ -404,35 +406,13 @@ export default function ProfilPage() {
             </div>
           )}
           {activeNav === 'fahrtenbuch' && (
-            <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:11, padding:'14px 16px' }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:7, marginBottom:14 }}>
-                <i className="ti ti-car" style={{ fontSize:15, color:'var(--gold)' }} /> Fahrtenbuch
-                <button onClick={() => setFahrtModal(true)} style={{ marginLeft:'auto', background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
-                  <i className="ti ti-plus" style={{ fontSize:11 }} /> Fahrt
-                </button>
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg3)', borderRadius:8, padding:'9px 12px', marginBottom:12 }}>
-                <div style={{ fontSize:18, fontWeight:700, color:'var(--gold)' }}>{totalKm} km</div>
-                <div style={{ fontSize:11, color:'var(--t3)' }}>diesen Monat · {thisMonthFahrten.length} Fahrten</div>
-              </div>
-              {fahrten.length === 0 ? (
-                <div style={{ color:'var(--t3)', fontSize:12, textAlign:'center', padding:24 }}>
-                  <i className="ti ti-car-off" style={{ fontSize:28, display:'block', marginBottom:8, opacity:.3 }} />
-                  Noch keine Fahrten
-                </div>
-              ) : fahrten.map(f => (
-                <div key={f.id} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 0', borderBottom:'0.5px solid var(--bg3)' }}>
-                  <div style={{ width:7, height:7, borderRadius:'50%', background:'#7BBFCB', flexShrink:0 }} />
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)' }}>{f.von} → {f.nach}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)' }}>{new Date(f.date).toLocaleDateString('de-DE')}{f.zweck?' · '+f.zweck:''}</div>
-                  </div>
-                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>{f.km} km</div>
-                  <button onClick={async()=>{await supabase.from('fahrtenbuch').delete().eq('id',f.id);loadData(viewStaff||me)}} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t3)', fontSize:13, padding:'2px 4px' }}>
-                    <i className="ti ti-trash" />
-                  </button>
-                </div>
-              ))}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:40, gap:16 }}>
+              <i className="ti ti-car" style={{ fontSize:40, color:'var(--gold)', opacity:.6 }} />
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Fahrtenbuch</div>
+              <div style={{ fontSize:12, color:'var(--t3)', textAlign:'center', maxWidth:280 }}>Das Fahrtenbuch ist jetzt im Hauptbereich verfügbar — mit automatischer Routenberechnung.</div>
+              <a href="/?tab=fahrtenbuch" style={{ background:'#b8892a', color:'#fff', borderRadius:8, padding:'9px 20px', fontSize:13, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:6 }}>
+                <i className="ti ti-external-link" style={{ fontSize:13 }} /> Zum Fahrtenbuch
+              </a>
             </div>
           )}
           {activeNav === 'preistabelle' && (me?.role_level === 'admin' || me?.role_level === 'subadmin') && (

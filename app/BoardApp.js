@@ -1925,6 +1925,48 @@ export default function Home() {
               }
               result = filtered.length === 0 ? 'Keine Karten gefunden.' :
                 filtered.map(c => c.title + (c.card_date ? ' (' + c.card_date + (c.card_time?' '+c.card_time.slice(0,5):'') + ')' : '')).join('\n')
+            } else if (tool.name === 'delete_cards_in_column') {
+              const inp = tool.input
+              const col = cols.find(c => c.title.toLowerCase().includes(inp.column_title.toLowerCase()))
+              if (!col) { result = 'Spalte nicht gefunden: ' + inp.column_title; continue }
+              let toDelete = cards.filter(c => c.column_id === col.id)
+              if (inp.is_gcal_only) toDelete = toDelete.filter(c => c.is_gcal)
+              const ids = toDelete.map(c => c.id)
+              if (ids.length === 0) { result = 'Keine Karten zum Löschen gefunden.'; continue }
+              await supabase.from('card_team').delete().in('card_id', ids)
+              await supabase.from('checklist_items').delete().in('card_id', ids)
+              await supabase.from('comments').delete().in('card_id', ids)
+              await supabase.from('cards').delete().in('id', ids)
+              addLog('AI löschte ' + ids.length + ' Karten aus "' + col.title + '"')
+              loadCards()
+              result = ids.length + ' Karten aus "' + col.title + '" wurden gelöscht.'
+            } else if (tool.name === 'find_duplicates') {
+              const inp = tool.input
+              let filtered = [...cards]
+              if (inp.column_title) {
+                const col = cols.find(c => c.title.toLowerCase().includes(inp.column_title.toLowerCase()))
+                if (col) filtered = filtered.filter(c => c.column_id === col.id)
+              }
+              // Find duplicates by same title+date or same addr+date
+              const seen = {}
+              const dups = []
+              for (const c of filtered) {
+                const key = (c.card_date||'') + '_' + (c.addr||c.title||'').toLowerCase().trim()
+                if (seen[key]) { dups.push(c) }
+                else seen[key] = c
+              }
+              if (dups.length === 0) { result = 'Keine Duplikate gefunden.'; continue }
+              if (inp.delete) {
+                const ids = dups.map(c => c.id)
+                await supabase.from('card_team').delete().in('card_id', ids)
+                await supabase.from('checklist_items').delete().in('card_id', ids)
+                await supabase.from('cards').delete().in('id', ids)
+                addLog('AI löschte ' + ids.length + ' Duplikate')
+                loadCards()
+                result = ids.length + ' Duplikate wurden gelöscht.'
+              } else {
+                result = dups.length + ' Duplikate gefunden:\n' + dups.map(c => '- ' + c.title + (c.card_date?' ('+c.card_date+')':'')).join('\n') + '\nSoll ich sie löschen? Antworte mit "Ja, lösche die Duplikate".'
+              }
             }
           } catch(e) {
             result = 'Fehler: ' + e.message

@@ -26,8 +26,8 @@ async function getToken(supabase) {
 
 async function syncCalendar(supabase, token, cal, staffList) {
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-  const end = new Date(now.getFullYear(), now.getMonth() + 4, 0).toISOString()
+  const start = now.toISOString() // only future events
+  const end = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
 
   const r = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${start}&timeMax=${end}&singleEvents=true&orderBy=startTime`,

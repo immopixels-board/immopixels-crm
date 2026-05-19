@@ -120,7 +120,7 @@ export async function GET(req) {
   const existingIds = new Set((existingCards || []).map(c => c.gcal_id))
 
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const start = now.toISOString() // only from now onwards — no past events
   const end = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
 
   let created = 0, skipped = 0

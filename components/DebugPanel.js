@@ -48,6 +48,11 @@ export default function DebugPanel({ supabase, localLog, me }) {
   const [cols, setCols] = useState([])
   const [backups, setBackups] = useState([])
   const [restoring, setRestoring] = useState(null)
+  const [allCards, setAllCards] = useState([])
+  const [allCols, setAllCols] = useState([])
+  const [selectedCards, setSelectedCards] = useState(new Set())
+  const [kartenCol, setKartenCol] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadLogs()
@@ -62,6 +67,7 @@ export default function DebugPanel({ supabase, localLog, me }) {
   useEffect(() => {
     if (tab === 'deleted') loadDeleted()
     if (tab === 'backup') loadBackups()
+    if (tab === 'karten') loadKarten()
   }, [tab])
 
   async function loadLogs() {
@@ -86,6 +92,29 @@ export default function DebugPanel({ supabase, localLog, me }) {
     const { data: hardDeleted } = await supabase.from('cards').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
     allDeleted = [...allDeleted, ...(hardDeleted || [])]
     setDeleted(allDeleted)
+  }
+
+  async function loadKarten() {
+    const [{ data: columns }, { data: cards }] = await Promise.all([
+      supabase.from('columns').select('*').order('position'),
+      supabase.from('cards').select('id,title,card_date,column_id,is_gcal,client_name').order('card_date', { ascending: false })
+    ])
+    setAllCols(columns || [])
+    setAllCards(cards || [])
+    setSelectedCards(new Set())
+  }
+
+  async function deleteSelectedCards() {
+    if (selectedCards.size === 0) return
+    setDeleting(true)
+    const ids = [...selectedCards]
+    await supabase.from('card_team').delete().in('card_id', ids)
+    await supabase.from('checklist_items').delete().in('card_id', ids)
+    await supabase.from('comments').delete().in('card_id', ids)
+    await supabase.from('cards').delete().in('id', ids)
+    setSelectedCards(new Set())
+    await loadKarten()
+    setDeleting(false)
   }
 
   async function loadBackups() {
@@ -143,10 +172,51 @@ export default function DebugPanel({ supabase, localLog, me }) {
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 2, padding: '6px 14px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        {[['logs', '📋 Log'], ['deleted', '🗑 Törölt'], ['backup', '💾 Backup'], ['changelog', '📝 Changelog']].map(([t, l]) => (
+        {[['logs', '📋 Log'], ['karten', '🗂 Karten'], ['deleted', '🗑 Törölt'], ['backup', '💾 Backup'], ['changelog', '📝 Changelog']].map(([t, l]) => (
           <button key={t} onClick={() => setTab(t)} style={tabStyle(t)}>{l}</button>
         ))}
       </div>
+
+      {/* KARTEN TAB */}
+      {tab === 'karten' && (
+        <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'8px 14px', borderBottom:'1px solid var(--border)', display:'flex', gap:7, flexShrink:0, flexWrap:'wrap', alignItems:'center' }}>
+            <select value={kartenCol} onChange={e=>{ setKartenCol(e.target.value); setSelectedCards(new Set()) }}
+              style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 7px', fontSize:11, outline:'none', color:'var(--t1)' }}>
+              <option value="">Alle Spalten</option>
+              {allCols.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+            <label style={{ fontSize:11, color:'var(--t3)', display:'flex', alignItems:'center', gap:5, cursor:'pointer' }}>
+              <input type="checkbox" onChange={e=>{
+                const filtered = allCards.filter(c=>!kartenCol||c.column_id===kartenCol)
+                if(e.target.checked) setSelectedCards(new Set(filtered.map(c=>c.id)))
+                else setSelectedCards(new Set())
+              }} /> Alle auswählen
+            </label>
+            {selectedCards.size > 0 && (
+              <button onClick={deleteSelectedCards} disabled={deleting}
+                style={{ background:'#b91c1c', color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer', marginLeft:'auto' }}>
+                {deleting ? '...' : `${selectedCards.size} Karten löschen`}
+              </button>
+            )}
+          </div>
+          <div style={{ flex:1, overflowY:'auto', padding:'8px 14px' }}>
+            {allCards.filter(c=>!kartenCol||c.column_id===kartenCol).map(c=>(
+              <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, background:selectedCards.has(c.id)?'#b8892a14':'var(--bg3)', border:'0.5px solid '+(selectedCards.has(c.id)?'#b8892a':'var(--border)'), marginBottom:4, cursor:'pointer' }}
+                onClick={()=>setSelectedCards(prev=>{ const n=new Set(prev); n.has(c.id)?n.delete(c.id):n.add(c.id); return n })}>
+                <input type="checkbox" checked={selectedCards.has(c.id)} readOnly style={{ flexShrink:0 }} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title||'—'}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)' }}>
+                    {c.card_date} {c.client_name&&`· ${c.client_name}`} {c.is_gcal&&<span style={{color:'#b8892a'}}>· GCal</span>}
+                  </div>
+                </div>
+                <div style={{ fontSize:10, color:'var(--t3)', flexShrink:0 }}>{allCols.find(col=>col.id===c.column_id)?.title||'?'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* LOGS TAB */}
       {tab === 'logs' && (
