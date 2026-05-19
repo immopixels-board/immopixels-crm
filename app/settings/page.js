@@ -124,6 +124,7 @@ export default function Settings() {
   const [cats, setCats] = useState(DEFAULTS)
   const [colWidgetOn, setColWidgetOn] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [compactCardsOn, setCompactCardsOn] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [bgColor, setBgColor] = useState('linen')
@@ -158,6 +159,7 @@ export default function Settings() {
       if (us.font_size) setFontSize(us.font_size)
       if (us.card_size) setCardSize(us.card_size)
       setColWidgetOn(!!us.col_widget_header)
+      setCompactCardsOn(!!us.compact_cards_enabled)
     }
     // Load admin role — reuse existing user/st from above
     if (st?.id) {
@@ -357,6 +359,25 @@ export default function Settings() {
                   <div onClick={()=>{ const nv=!colWidgetOn; setColWidgetOn(nv); saveUserSetting('col_widget_header',nv) }}
                     style={{ width:44, height:24, borderRadius:12, background:colWidgetOn?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:colWidgetOn?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeNav === 'appearance' && (
+              <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+                  <i className="ti ti-layout-list" style={{ fontSize:16, color:'#b8892a' }} />
+                  Kompakt Karten
+                </div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div>
+                    <div style={{ fontSize:13, color:'#1c1a16', fontWeight:600 }}>Kompakt-Modus aktivieren</div>
+                    <div style={{ fontSize:11, color:'#8a8278', marginTop:2 }}>Zeigt nur Titel + Notiz je Karte (Toggle per Karte im Hover-Menü)</div>
+                  </div>
+                  <div onClick={()=>{ const newVal=!compactCardsOn; setCompactCardsOn(newVal); saveUserSetting('compact_cards_enabled',newVal) }}
+                    style={{ width:44, height:24, borderRadius:12, background:compactCardsOn?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+                    <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:compactCardsOn?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
                   </div>
                 </div>
               </div>
