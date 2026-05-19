@@ -158,6 +158,11 @@ export default function Settings() {
       if (us.card_size) setCardSize(us.card_size)
       setColWidgetOn(!!us.col_widget_header)
     }
+    // Load admin role — reuse existing user/st from above
+    if (st?.id) {
+      const { data: stRole } = await supabase.from('staff').select('role_level').eq('id', st.id).single()
+      setIsAdmin(stRole?.role_level === 'admin')
+    }
   }
 
   async function getStaffId() {
@@ -213,7 +218,7 @@ export default function Settings() {
     { key:'appearance', label:'Aussehen', icon:'ti-palette', color:'#b8892a', bg:'rgba(184,137,42,.12)' },
     { key:'categories', label:'Kategorien', icon:'ti-camera', color:'#1d5ec7', bg:'rgba(29,94,199,.10)' },
     { key:'staff', label:'Mitarbeiter', icon:'ti-id-badge', color:'#15803d', bg:'rgba(21,128,61,.10)' },
-    { key:'integrations', label:'Integrationen', icon:'ti-plug', color:'#6d28d9', bg:'rgba(109,40,217,.10)' },
+    ...(isAdmin ? [{ key:'integrations', label:'Integrationen', icon:'ti-plug', color:'#6d28d9', bg:'rgba(109,40,217,.10)' }] : []),
   ]
 
   if (loading) return <div style={{padding:40,fontFamily:'Arial',color:'#8a8278',display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f4f2ef'}}>Wird geladen...</div>
