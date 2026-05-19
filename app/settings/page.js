@@ -117,37 +117,12 @@ function WatchActivateButton() {
   )
 }
 
-function ColWidgetToggle() {
-  const [on, setOn] = React.useState(false)
 
-  React.useEffect(() => {
-    supabase.auth.getUser().then(async({data:{user}})=>{
-      if(!user) return
-      const {data:st} = await supabase.from('staff').select('id').eq('email',user.email).single()
-      if(!st) return
-      const {data:us} = await supabase.from('user_settings').select('col_widget_header').eq('staff_id',st.id).single()
-      setOn(!!us?.col_widget_header)
-    })
-  },[])
-
-  async function toggle() {
-    const newVal = !on
-    setOn(newVal)
-    const {data:{user}} = await supabase.auth.getUser()
-    const {data:st} = await supabase.from('staff').select('id').eq('email',user.email).single()
-    if(st) await supabase.from('user_settings').upsert({staff_id:st.id,col_widget_header:newVal},{onConflict:'staff_id'})
-  }
-
-  return (
-    <div onClick={toggle} style={{ width:44, height:24, borderRadius:12, background:on?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
-      <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:on?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
-    </div>
-  )
-}
 
 export default function Settings() {
   const [activeNav, setActiveNav] = useState('appearance')
   const [cats, setCats] = useState(DEFAULTS)
+  const [colWidgetOn, setColWidgetOn] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [bgColor, setBgColor] = useState('linen')
@@ -181,6 +156,7 @@ export default function Settings() {
       if (us.bg_image) setBgImage(us.bg_image)
       if (us.font_size) setFontSize(us.font_size)
       if (us.card_size) setCardSize(us.card_size)
+      setColWidgetOn(!!us.col_widget_header)
     }
   }
 
@@ -372,7 +348,10 @@ export default function Settings() {
                     <div style={{ fontSize:13, color:'#1c1a16', fontWeight:600 }}>Widget-Header</div>
                     <div style={{ fontSize:11, color:'#8a8278', marginTop:2 }}>Farbiger Header wie bei Widgets</div>
                   </div>
-                  <ColWidgetToggle />
+                  <div onClick={()=>{ const nv=!colWidgetOn; setColWidgetOn(nv); saveUserSetting('col_widget_header',nv) }}
+                    style={{ width:44, height:24, borderRadius:12, background:colWidgetOn?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+                    <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:colWidgetOn?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+                  </div>
                 </div>
               </div>
             )}
