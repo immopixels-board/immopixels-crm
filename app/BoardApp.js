@@ -192,7 +192,14 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
   )
 }
 
-var AUTO_CL = ['Fotografiert', 'In Bearbeitung', 'Rausgeschickt']
+var AUTO_CL = ['Fotografiert', 'Beim Bearbeiten', 'In Bearbeitung', 'Rausgeschickt']
+function getAutoChecklist(cardType) {
+  const base = ['Fotografiert', 'Beim Bearbeiten', 'In Bearbeitung', 'Rausgeschickt']
+  if (cardType && (cardType.includes('reel') || cardType === 'reel')) {
+    return [...base, 'Reel Fertig']
+  }
+  return base
+}
 
 var COLORS = [
   '#FFBE98','#A67B5B','#7BBFCB','#E8A87C','#9CAF88','#C9A96E',
@@ -1419,6 +1426,13 @@ export default function Home() {
     if (days >= 5) return '1.5px solid #e24b4a'
     if (days >= 2) return '1.5px solid #e24b4a'
     if (cardLateWarning(card)) return '1.5px solid #f97316'
+    // Reel ausstehend — yellow border after 4 days
+    const isReel = card.card_type && (card.card_type.includes('reel') || card.card_type === 'reel')
+    if (isReel && card.drive_link && !card.is_todo) {
+      const daysSince = card.card_date ? Math.floor((Date.now()-new Date(card.card_date).getTime())/86400000) : 0
+      const reelDone = (card.checklist_items||[]).some(ci=>ci.text==='Reel Fertig'&&ci.done)
+      if (daysSince >= 4 && !reelDone) return '1.5px solid #eab308'
+    }
     return '1px solid var(--border)'
   }
 
@@ -1752,7 +1766,7 @@ export default function Home() {
       note: '', price: 0, is_todo: false,
     }).select().single()
     if (card) {
-      for (const text of AUTO_CL) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
+      for (const text of getAutoChecklist(inp?.card_type||'foto')) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
       // Add staff to card_team based on calendar owner
       if (ev.cal) {
         const staffMember = staff.find(s => s.init === ev.cal)
@@ -1798,7 +1812,7 @@ export default function Home() {
       note: '',
     }).select().single()
     if (card) {
-      const cls = ct === 'todo' ? [] : AUTO_CL
+      const cls = ct === 'todo' ? [] : getAutoChecklist(ct)
       for (const text of cls) {
         await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
       }
@@ -3925,12 +3939,29 @@ function CardItem({ card, staff, border, overdueDays = 0, overdueBg, onNoteChang
           {Math.floor(overdueDays)} Tage überfällig
         </div>
       )}
-      {!card.is_todo && card.addr && card.card_date && !card.drive_link && !hideNotSentBadge && (
+      {!card.is_todo && card.addr && card.card_date && !card.drive_link && !hideNotSentBadge &&
+        !(card.checklist_items||[]).some(ci=>ci.text==='Beim Bearbeiten'&&ci.done) && (
         <div style={{ position:'absolute', top: overdueDays >= 2 ? 8 : -9, left:10, background:'#fff7ed', border:'0.5px solid #fed7aa', color:'#c2410c', fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:10, display:'flex', alignItems:'center', gap:3, zIndex:5, pointerEvents:'none' }}>
           <i className="ti ti-send" style={{ fontSize:9 }}></i>
           Noch nicht gesendet
         </div>
       )}
+      {(() => {
+        const isReel = card.card_type && (card.card_type.includes('reel') || card.card_type === 'reel')
+        if (!isReel || card.is_todo) return null
+        const reelFertig = (card.checklist_items||[]).some(ci=>ci.text==='Reel Fertig'&&ci.done)
+        if (reelFertig) return null
+        const hasDriveLink = !!card.drive_link
+        if (!hasDriveLink) return null // covered by Noch nicht gesendet
+        const daysSince = card.card_date ? Math.floor((Date.now()-new Date(card.card_date).getTime())/86400000) : 0
+        if (daysSince < 4) return null
+        return (
+          <div style={{ position:'absolute', top: overdueDays>=2?8:-9, left:10, background:'#fefce8', border:'0.5px solid #fde047', color:'#854d0e', fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:10, display:'flex', alignItems:'center', gap:3, zIndex:5, pointerEvents:'none' }}>
+            <i className="ti ti-video" style={{fontSize:9}}></i>
+            Reel ausstehend
+          </div>
+        )
+      })()}
       <div className="card-hover-menu" onClick={e=>e.stopPropagation()} style={{ position:'absolute', top:6, right:6, background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:8, boxShadow:'0 2px 8px rgba(0,0,0,.08)', padding:'4px', display:'flex', alignItems:'center', gap:3, zIndex:10 }}>
 
         {onCompactToggle && (
