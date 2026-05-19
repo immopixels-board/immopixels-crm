@@ -26,6 +26,14 @@ var TYPES = {
   todo:        { i:'',  l:'To Do',       c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
 }
 
+function hexToGradient(hex) {
+  if (!hex || !hex.startsWith('#') || hex.length < 7) return 'linear-gradient(135deg,#c49a75,#A67B5B)'
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16)
+  const light=`rgb(${Math.min(255,r+45)},${Math.min(255,g+45)},${Math.min(255,b+45)})`
+  const dark=`rgb(${Math.max(0,r-25)},${Math.max(0,g-25)},${Math.max(0,b-25)})`
+  return `linear-gradient(135deg,${light},${dark})`
+}
+
 function getTypes(photoCats) {
   const result = {}
   const src = (photoCats && photoCats.length) ? photoCats : [
@@ -2210,7 +2218,7 @@ export default function Home() {
                       </div>
                     ) : (
                       <>
-                        <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: colWidgetHeader?(col.dot_color||'#b8892a'):'none', borderRadius: colWidgetHeader?'10px 10px 0 0':0 }}>
+                        <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: colWidgetHeader?hexToGradient(col.dot_color||'#b8892a'):'none', borderRadius: colWidgetHeader?'10px 10px 0 0':0 }}>
                           <div
                             onMouseDown={e => {
                               e.preventDefault()
