@@ -1197,7 +1197,7 @@ export default function Home() {
     const meNow = getMe()
     if (!meNow?.id) return
     supabase.from('user_settings').select('*').eq('staff_id', meNow.id).single().then(({ data: us }) => {
-      if (us) applyUserSettings(us)
+      if (us) applyUserSettings(us, meNow)
     })
     loadNotifications()
   }, [staff])
@@ -1249,7 +1249,7 @@ export default function Home() {
     } catch(e) {}
   }
 
-  function applyUserSettings(us) {
+  function applyUserSettings(us, currentUser) {
     if (!us) return
     const bgMap = { linen:'#f4f2ef', bluegray:'#f0f4f8', sand:'#f5f0eb', sage:'#eef4ee', lavender:'#f8f0f5', dark:'#1c1a16', white:'#fff' }
     const fsMap = { sm:'13px', md:'14px', lg:'16px' }
@@ -1259,7 +1259,7 @@ export default function Home() {
     setColWidgetHeader(!!us.col_widget_header)
     setCompactEnabled(!!us.compact_cards_enabled)
     // Daniel's special background — only for DB
-    if (meNow?.init === 'DB' && !us.bg_image) {
+    if ((currentUser?.init === 'DB' || getMe()?.init === 'DB') && !us.bg_image) {
       document.body.style.backgroundImage = 'url(/dani-bg.png)'
       document.body.style.backgroundSize = 'cover'
       document.body.style.backgroundAttachment = 'fixed'
