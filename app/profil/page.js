@@ -78,6 +78,11 @@ function BgImageUploader({ staffId, supabase, currentBgImage, onUploaded, onRemo
 
 export default function ProfilPage() {
   const [me, setMe] = useState(null)
+  const [workSessions, setWorkSessions] = useState([])
+  const [wsView, setWsView] = useState('month') // week | month
+  const [wsDate, setWsDate] = useState(new Date().toISOString().slice(0,10))
+  const [wsEditId, setWsEditId] = useState(null)
+  const [wsEditForm, setWsEditForm] = useState({})
   const [activeNav, setActiveNav] = useState('dashboard')
   const [loading, setLoading] = useState(true)
   const [gehaltszettel, setGehaltszettel] = useState([])
@@ -105,6 +110,10 @@ export default function ProfilPage() {
     })
     loadMe()
   }, [])
+
+  useEffect(() => {
+    if (activeNav === 'arbeitszeit') loadWorkSessions(selectedStaff||me, wsDate)
+  }, [activeNav, wsDate, wsView, selectedStaff])
 
   async function loadMe() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -153,6 +162,34 @@ export default function ProfilPage() {
     a.href = 'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv)
     a.download = 'ImmoPixels_Preistabelle.csv'
     a.click()
+  }
+
+  async function loadWorkSessions(staffMember, date) {
+    if (!staffMember?.id) return
+    const d = new Date(date)
+    let from, to
+    if (wsView === 'week') {
+      const day = d.getDay()||7
+      const mon = new Date(d); mon.setDate(d.getDate()-day+1)
+      const sun = new Date(mon); sun.setDate(mon.getDate()+6)
+      from = mon.toISOString().slice(0,10)+'T00:00:00'
+      to = sun.toISOString().slice(0,10)+'T23:59:59'
+    } else {
+      from = new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10)+'T00:00:00'
+      to = new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10)+'T23:59:59'
+    }
+    const { data } = await supabase.from('work_sessions').select('*')
+      .eq('staff_id', staffMember.id)
+      .gte('check_in', from).lte('check_in', to)
+      .order('check_in', {ascending: false})
+    setWorkSessions(data || [])
+  }
+
+  function fmtSessionDur(s) {
+    const start = new Date(s.check_in)
+    const end = s.check_out ? new Date(s.check_out) : new Date()
+    const mins = Math.max(0, Math.round((end-start)/60000) - (s.break_minutes||0))
+    return Math.floor(mins/60)+'h '+String(mins%60).padStart(2,'0')+'m'
   }
 
   async function loadData(staffMember) {
@@ -265,6 +302,7 @@ export default function ProfilPage() {
   const NAV = [
     { key:'dashboard', label:'Dashboard', icon:'ti-layout-dashboard' },
     { key:'profil', label:'Mein Profil', icon:'ti-user' },
+    { key:'arbeitszeit', label:'Arbeitszeit', icon:'ti-clock' },
     { key:'gehaltszettel', label:'Gehaltszettel', icon:'ti-file-invoice' },
 
     { key:'aussehen', label:'Aussehen', icon:'ti-palette' },
@@ -372,6 +410,108 @@ export default function ProfilPage() {
               </div>
             </form>
           )}
+          {activeNav === 'arbeitszeit' && (
+            <div>
+              <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:11, overflow:'hidden' }}>
+                <div style={{ padding:'12px 16px', borderBottom:'0.5px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  <i className="ti ti-clock" style={{ fontSize:15, color:'var(--gold)' }} />
+                  <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>Arbeitszeiten</span>
+                  <div style={{ display:'flex', gap:4, marginLeft:8 }}>
+                    {['week','month'].map(v=>(
+                      <button key={v} onClick={()=>setWsView(v)}
+                        style={{ padding:'3px 9px', borderRadius:5, border:'0.5px solid '+(wsView===v?'#b8892a':'var(--border)'), background:wsView===v?'#b8892a14':'none', color:wsView===v?'#b8892a':'var(--t3)', fontSize:10, fontWeight:wsView===v?700:400, cursor:'pointer' }}>
+                        {v==='week'?'Woche':'Monat'}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
+                    <button onClick={()=>{const d=new Date(wsDate);wsView==='week'?d.setDate(d.getDate()-7):d.setMonth(d.getMonth()-1);setWsDate(d.toISOString().slice(0,10))}}
+                      style={{ background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:5, padding:'3px 7px', cursor:'pointer', fontSize:12, color:'var(--t2)' }}>‹</button>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t1)' }}>
+                      {wsView==='month' ? new Date(wsDate).toLocaleDateString('de-DE',{month:'long',year:'numeric'}) : 'KW '+(() => { const d=new Date(wsDate),day=d.getDay()||7,mon=new Date(d);mon.setDate(d.getDate()-day+1);return Math.ceil(((mon-new Date(mon.getFullYear(),0,1))/86400000+1)/7) })()}
+                    </span>
+                    <button onClick={()=>{const d=new Date(wsDate);wsView==='week'?d.setDate(d.getDate()+7):d.setMonth(d.getMonth()+1);setWsDate(d.toISOString().slice(0,10))}}
+                      style={{ background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:5, padding:'3px 7px', cursor:'pointer', fontSize:12, color:'var(--t2)' }}>›</button>
+                  </div>
+                  <button onClick={()=>loadWorkSessions(viewStaff||me, wsDate)}
+                    style={{ background:'none', border:'0.5px solid var(--border)', borderRadius:5, padding:'3px 7px', cursor:'pointer', fontSize:11, color:'var(--t3)' }}>
+                    <i className="ti ti-refresh" style={{fontSize:11}} />
+                  </button>
+                </div>
+                {workSessions.length === 0 ? (
+                  <div style={{ padding:30, textAlign:'center', color:'var(--t3)', fontSize:12 }}>Keine Einträge in diesem Zeitraum</div>
+                ) : (
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <thead>
+                      <tr style={{ background:'var(--bg3)' }}>
+                        {['Datum','Check-in','Check-out','Std.','Pause','Auto','Notiz',...(me?.role_level==='admin'?['']:[])]
+                          .map((h,i)=><th key={i} style={{ padding:'7px 10px', fontSize:9, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', textAlign:i===3?'right':'left', borderBottom:'0.5px solid var(--border)' }}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workSessions.map(s=>{
+                        const isEditing = wsEditId === s.id
+                        return (
+                          <tr key={s.id} style={{ borderBottom:'0.5px solid var(--border)', background:s.auto_checkout?'#fffbeb':'none' }}>
+                            <td style={{ padding:'7px 10px', fontSize:11, color:'var(--t1)' }}>
+                              {new Date(s.check_in).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})}
+                            </td>
+                            <td style={{ padding:'7px 10px', fontSize:11 }}>
+                              {isEditing ? <input type="time" defaultValue={new Date(s.check_in).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} onChange={e=>setWsEditForm(p=>({...p,check_in:e.target.value}))} style={{ fontSize:11, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:4, padding:'2px 5px', color:'var(--t1)', outline:'none' }} /> : new Date(s.check_in).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}
+                            </td>
+                            <td style={{ padding:'7px 10px', fontSize:11, color: !s.check_out?'var(--t3)':s.auto_checkout?'#92400e':'var(--t1)' }}>
+                              {isEditing ? <input type="time" defaultValue={s.check_out?new Date(s.check_out).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):''} onChange={e=>setWsEditForm(p=>({...p,check_out:e.target.value}))} style={{ fontSize:11, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:4, padding:'2px 5px', color:'var(--t1)', outline:'none' }} /> : s.check_out ? new Date(s.check_out).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : <span style={{fontStyle:'italic'}}>aktiv</span>}
+                            </td>
+                            <td style={{ padding:'7px 10px', fontSize:11, fontWeight:700, color:'#b8892a', textAlign:'right' }}>{fmtSessionDur(s)}</td>
+                            <td style={{ padding:'7px 10px', fontSize:11, color:'var(--t3)' }}>{s.break_minutes ? s.break_minutes+'m' : '—'}</td>
+                            <td style={{ padding:'7px 10px', textAlign:'center' }}>{s.auto_checkout && <i className="ti ti-clock-bolt" style={{fontSize:12,color:'#b8892a'}} title="Automatischer Checkout" />}</td>
+                            <td style={{ padding:'7px 10px', fontSize:10, color:'var(--t3)', maxWidth:100, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.note||'—'}</td>
+                            {me?.role_level==='admin' && (
+                              <td style={{ padding:'7px 6px', textAlign:'center' }}>
+                                {isEditing ? (
+                                  <div style={{ display:'flex', gap:3 }}>
+                                    <button onClick={async()=>{
+                                      const d = s.check_in.slice(0,10)
+                                      const ci = wsEditForm.check_in ? d+'T'+wsEditForm.check_in+':00' : s.check_in
+                                      const co = wsEditForm.check_out ? d+'T'+wsEditForm.check_out+':00' : s.check_out
+                                      await supabase.from('work_sessions').update({ check_in:ci, check_out:co, auto_checkout:false }).eq('id',s.id)
+                                      setWsEditId(null); setWsEditForm({}); loadWorkSessions(viewStaff||me,wsDate)
+                                    }} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:4, padding:'2px 7px', fontSize:10, cursor:'pointer' }}>✓</button>
+                                    <button onClick={()=>{setWsEditId(null);setWsEditForm({})}} style={{ background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:4, padding:'2px 6px', fontSize:10, cursor:'pointer', color:'var(--t2)' }}>✕</button>
+                                  </div>
+                                ) : (
+                                  <button onClick={()=>{setWsEditId(s.id);setWsEditForm({})}}
+                                    style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t3)', fontSize:12 }}>
+                                    <i className="ti ti-pencil" style={{fontSize:11}} />
+                                  </button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background:'var(--bg3)', borderTop:'1px solid var(--border)' }}>
+                        <td colSpan={3} style={{ padding:'8px 10px', fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px' }}>Gesamt</td>
+                        <td style={{ padding:'8px 10px', fontSize:13, fontWeight:700, color:'#b8892a', textAlign:'right' }}>
+                          {(()=>{
+                            const total = workSessions.reduce((s,ws)=>{
+                              const start=new Date(ws.check_in),end=ws.check_out?new Date(ws.check_out):new Date()
+                              return s+Math.max(0,Math.round((end-start)/60000)-(ws.break_minutes||0))
+                            },0)
+                            return Math.floor(total/60)+'h '+String(total%60).padStart(2,'0')+'m'
+                          })()}
+                        </td>
+                        <td colSpan={10}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
           {activeNav === 'gehaltszettel' && (
             <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:11, padding:'14px 16px' }}>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:7, marginBottom:14 }}>

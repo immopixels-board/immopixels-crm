@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabase'
 
 var CLAUDE_SVG = 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSJub25lIiBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9IjAgLS4wMSAzOS41IDM5LjUzIiB3aWR0aD0iMjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtNy43NSAyNi4yNyA3Ljc3LTQuMzYuMTMtLjM4LS4xMy0uMjFoLS4zOGwtMS4zLS4wOC00LjQ0LS4xMi0zLjg1LS4xNi0zLjczLS4yLS45NC0uMi0uODgtMS4xNi4wOS0uNTguNzktLjUzIDEuMTMuMSAyLjUuMTcgMy43NS4yNiAyLjcyLjE2IDQuMDMuNDJoLjY0bC4wOS0uMjYtLjIyLS4xNi0uMTctLjE2LTMuODgtMi42My00LjItMi43OC0yLjItMS42LTEuMTktLjgxLS42LS43Ni0uMjYtMS42NiAxLjA4LTEuMTkgMS40NS4xLjM3LjEgMS40NyAxLjEzIDMuMTQgMi40MyA0LjEgMy4wMi42LjUuMjQtLjE3LjAzLS4xMi0uMjctLjQ1LTIuMjMtNC4wMy0yLjM4LTQuMS0xLjA2LTEuNy0uMjgtMS4wMmMtLjEtLjQyLS4xNy0uNzctLjE3LTEuMmwxLjIzLTEuNjcuNjgtLjIyIDEuNjQuMjIuNjkuNiAxLjAyIDIuMzMgMS42NSAzLjY3IDIuNTYgNC45OS43NSAxLjQ4LjQgMS4zNy4xNS40MmguMjZ2LS4yNGwuMjEtMi44MS4zOS0zLjQ1LjM4LTQuNDQuMTMtMS4yNS42Mi0xLjUgMS4yMy0uODEuOTYuNDYuNzkgMS4xMy0uMTEuNzMtLjQ3IDMuMDUtLjkyIDQuNzgtLjYgMy4yaC4zNWwuNC0uNCAxLjYyLTIuMTUgMi43Mi0zLjQgMS4yLTEuMzUgMS40LTEuNDkuOS0uNzFoMS43bDEuMjUgMS44Ni0uNTYgMS45Mi0xLjc1IDIuMjItMS40NSAxLjg4LTIuMDggMi44LTEuMyAyLjI0LjEyLjE4LjMxLS4wMyA0LjctMSAyLjU0LS40NiAzLjAzLS41MiAxLjM3LjY0LjE1LjY1LS41NCAxLjMzLTMuMjQuOC0zLjguNzYtNS42NiAxLjM0LS4wNy4wNS4wOC4xIDIuNTUuMjQgMS4wOS4wNmgyLjY3bDQuOTcuMzcgMS4zLjg2Ljc4IDEuMDUtLjEzLjgtMiAxLjAyLTIuNy0uNjQtNi4zLTEuNS0yLjE2LS41NGgtLjN2LjE4bDEuOCAxLjc2IDMuMyAyLjk4IDQuMTMgMy44NC4yMS45NS0uNTMuNzUtLjU2LS4wOC0zLjYzLTIuNzMtMS40LTEuMjMtMy4xNy0yLjY3aC0uMjF2LjI4bC43MyAxLjA3IDMuODYgNS44LjIgMS43OC0uMjguNTgtMSAuMzUtMS4xLS4yLTIuMjYtMy4xNy0yLjMzLTMuNTctMS44OC0zLjItLjIzLjEzLTEuMTEgMTEuOTUtLjUyLjYxLTEuMi40Ni0xLS43Ni0uNTMtMS4yMy41My0yLjQzLjY0LTMuMTcuNTItMi41Mi40Ny0zLjEzLjI4LTEuMDQtLjAyLS4wNy0uMjMuMDMtMi4zNiAzLjI0LTMuNTkgNC44NS0yLjg0IDMuMDQtLjY4LjI3LTEuMTgtLjYxLjExLTEuMDkuNjYtLjk3IDMuOTMtNSAyLjM3LTMuMSAxLjUzLTEuNzktLjAxLS4yNmgtLjA5bC0xMC40NCA2Ljc4LTEuODYuMjQtLjgtLjc1LjEtMS4yMy4zOC0uNCAzLjE0LTIuMTZ6IiBmaWxsPSIjZDk3NzU3Ii8+PC9zdmc+'
 var LOGO = 'data:image/png;base64,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'
-var VER = 'v3.1.2'
+var VER = 'v3.2.0'
 
 
 
@@ -465,6 +465,9 @@ export default function Home() {
   const [clInput, setClInput] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
+  const [activeSession, setActiveSession] = useState(null) // {id, check_in, break_minutes}
+  const [sessionTick, setSessionTick] = useState(0) // for live timer
+  const [teamSessions, setTeamSessions] = useState([]) // today's sessions for all staff
   const [showDebug, setShowDebug] = useState(false)
   const [debugLog, setDebugLog] = useState([])
   const [chatOpen, setChatOpen] = useState(false)
@@ -645,6 +648,68 @@ export default function Home() {
     const t = setInterval(fetchUnread, 5 * 60 * 1000)
     return () => clearInterval(t)
   }, [])
+
+  // Work session — load active + team sessions
+  useEffect(() => {
+    if (!me?.id) return
+    loadActiveSession()
+    loadTeamSessions()
+    const t = setInterval(() => { setSessionTick(p => p+1); loadTeamSessions() }, 60000)
+    // Live timer tick every minute
+    return () => clearInterval(t)
+  }, [me?.id])
+
+  async function loadActiveSession() {
+    try {
+      const { data } = await supabase.from('work_sessions')
+        .select('*').eq('staff_id', me.id).is('check_out', null).single()
+      setActiveSession(data || null)
+    } catch(e) { setActiveSession(null) }
+  }
+
+  async function loadTeamSessions() {
+    try {
+      const today = new Date().toISOString().slice(0,10)
+      const { data } = await supabase.from('work_sessions')
+        .select('*, staff:staff_id(id,name,init,color,avatar_url)')
+        .gte('check_in', today+'T00:00:00').order('check_in', {ascending:false})
+      setTeamSessions(data || [])
+    } catch(e) {}
+  }
+
+  async function doCheckIn() {
+    if (activeSession) return
+    const { data } = await supabase.from('work_sessions').insert({
+      staff_id: me.id, check_in: new Date().toISOString(), break_minutes: 0
+    }).select().single()
+    setActiveSession(data)
+    addLog('Check-in: ' + new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))
+    loadTeamSessions()
+  }
+
+  async function doCheckOut(note) {
+    if (!activeSession) return
+    const checkOut = new Date()
+    const checkIn = new Date(activeSession.check_in)
+    const totalMin = Math.round((checkOut - checkIn) / 60000)
+    const breakMin = totalMin > 360 ? 60 : 0 // auto 60min break if >6h
+    await supabase.from('work_sessions').update({
+      check_out: checkOut.toISOString(),
+      break_minutes: breakMin,
+      note: note || null
+    }).eq('id', activeSession.id)
+    setActiveSession(null)
+    addLog('Check-out: ' + checkOut.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))
+    loadTeamSessions()
+  }
+
+  function getSessionDuration(session) {
+    if (!session) return '0:00'
+    const start = new Date(session.check_in)
+    const end = session.check_out ? new Date(session.check_out) : new Date()
+    const mins = Math.max(0, Math.round((end - start) / 60000) - (session.break_minutes||0))
+    return Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm'
+  }
 
   // Amelia pending poll
   useEffect(() => {
@@ -2270,23 +2335,71 @@ export default function Home() {
                 : <span>{me?.init || 'CD'}</span>}
             </div>
             {showProfile && (
-              <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', right: 16, top: 58, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 11, padding: 14, width: 230, boxShadow: '0 8px 32px rgba(0,0,0,.15)', zIndex: 501 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#d4a845,#8a5e20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                    {me?.avatar_url
-                      ? <img src={me.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span>{me?.init || 'CD'}</span>}
+              <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', right: 16, top: 58, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 11, width: 248, boxShadow: '0 8px 32px rgba(0,0,0,.15)', zIndex: 501, overflow:'hidden' }}>
+                {/* Header */}
+                <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
+                  <div style={{ width:40, height:40, borderRadius:'50%', overflow:'hidden', background:(me?.color||'#b8892a')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:me?.color||'#b8892a', flexShrink:0, border:'2px solid '+(me?.color||'#b8892a'), position:'relative' }}>
+                    {me?.avatar_url ? <img src={me.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <span>{me?.init||'?'}</span>}
+                    <div style={{ position:'absolute', bottom:-1, right:-1, width:9, height:9, borderRadius:'50%', background:activeSession?'#15803d':'#8a8278', border:'1.5px solid var(--bg2)' }} />
                   </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{me?.name || 'Cristian'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--t3)' }}>{me?.role || ''}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{me?.name||'?'}</div>
+                    <div style={{ fontSize:10, color:'var(--t3)' }}>{activeSession ? '● Eingecheckt seit '+new Date(activeSession.check_in).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : '○ Nicht eingecheckt'}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>{currentUser?.email || ''}</div>
-                <a href="/profil" onClick={() => setShowProfile(false)} style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px', fontSize: 12, cursor: 'pointer', marginBottom: 6, display:'flex', alignItems:'center', justifyContent:'center', gap:5, textDecoration:'none', color:'var(--t1)' }}>
-                <i className="ti ti-user" style={{fontSize:12}} /> Mein Bereich
-              </a>
-              <button onClick={() => { setShowProfile(false); supabase.auth.signOut() }} style={{ width: '100%', background: 'var(--rdbg)', border: '1px solid var(--rdbr)', borderRadius: 7, padding: '7px', fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}>🚪 Abmelden</button>
+
+                {/* Check-in/out */}
+                <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+                  {activeSession ? (
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                        <span style={{ fontSize:11, color:'var(--t2)' }}>Arbeitszeit</span>
+                        <span style={{ fontSize:13, fontWeight:700, color:'#b8892a' }}>{getSessionDuration(activeSession)}</span>
+                      </div>
+                      <button onClick={()=>{ const n=prompt('Notiz (optional):',''); doCheckOut(n); setShowProfile(false) }}
+                        style={{ width:'100%', background:'#b91c1c', color:'#fff', border:'none', borderRadius:7, padding:'8px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                        <i className="ti ti-clock-stop" style={{fontSize:13}} /> Check-out
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={()=>{ doCheckIn(); setShowProfile(false) }}
+                      style={{ width:'100%', background:'#15803d', color:'#fff', border:'none', borderRadius:7, padding:'8px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                      <i className="ti ti-clock-play" style={{fontSize:13}} /> Check-in
+                    </button>
+                  )}
+                </div>
+
+                {/* Team today */}
+                {teamSessions.filter(s=>s.staff_id!==me?.id).length > 0 && (
+                  <div style={{ padding:'8px 14px', borderBottom:'1px solid var(--border)' }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:6 }}>Team heute</div>
+                    {(()=>{
+                      const seen = new Set()
+                      return teamSessions.filter(s=>{ if(s.staff_id===me?.id||seen.has(s.staff_id)) return false; seen.add(s.staff_id); return true }).slice(0,4).map(s=>(
+                        <div key={s.id} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
+                          <div style={{ width:22, height:22, borderRadius:'50%', background:(s.staff?.color||'#888')+'22', color:s.staff?.color||'#888', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, border:'1.5px solid '+(s.staff?.color||'#888'), flexShrink:0 }}>
+                            {s.staff?.init||'?'}
+                          </div>
+                          <div style={{ flex:1, fontSize:11, color:'var(--t2)' }}>{s.staff?.name||'?'}</div>
+                          <div style={{ width:7, height:7, borderRadius:'50%', background: s.check_out?'#8a8278':'#15803d', flexShrink:0 }} />
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                )}
+
+                {/* Nav links */}
+                <div style={{ padding:'8px 14px', display:'flex', flexDirection:'column', gap:4 }}>
+                  <a href="/profil" onClick={()=>setShowProfile(false)} style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, fontSize:12, color:'var(--t2)', textDecoration:'none', background:'none' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                    <i className="ti ti-user" style={{fontSize:13}} /> Mein Bereich
+                  </a>
+                  <a href="/settings" onClick={()=>setShowProfile(false)} style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, fontSize:12, color:'var(--t2)', textDecoration:'none' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                    <i className="ti ti-settings" style={{fontSize:13}} /> Einstellungen
+                  </a>
+                  <button onClick={()=>{ setShowProfile(false); supabase.auth.signOut() }} style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, fontSize:12, color:'var(--red)', background:'none', border:'none', cursor:'pointer', width:'100%', textAlign:'left' }} onMouseEnter={e=>e.currentTarget.style.background='var(--rdbg)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                    <i className="ti ti-door-exit" style={{fontSize:13}} /> Abmelden
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -3184,7 +3297,14 @@ export default function Home() {
               {gcalPickerLoading && <div style={{ textAlign:'center', padding:30, color:'var(--t3)', fontSize:13 }}>Wird geladen...</div>}
               {!gcalPickerLoading && gcalPickerEvents.length === 0 && (
                 <div style={{ textAlign:'center', padding:30, color:'var(--t3)', fontSize:13 }}>
-                  Keine Termine gefunden. Bitte zuerst Google verbinden (Kalender-Tab).
+                  <i className="ti ti-calendar-off" style={{ fontSize:28, display:'block', marginBottom:10, opacity:.3 }} />
+                  Keine Termine gefunden
+                  <div style={{ marginTop:12 }}>
+                    <button onClick={()=>{ setGcalPickerOpen(false); setTab('gcal') }}
+                      style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+                      <i className="ti ti-brand-google" style={{fontSize:13}} /> Mit Google verbinden
+                    </button>
+                  </div>
                 </div>
               )}
               {!gcalPickerLoading && gcalPickerEvents.map(ev => (
