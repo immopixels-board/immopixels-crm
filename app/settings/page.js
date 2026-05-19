@@ -123,6 +123,7 @@ export default function Settings() {
   const [activeNav, setActiveNav] = useState('appearance')
   const [cats, setCats] = useState(DEFAULTS)
   const [colWidgetOn, setColWidgetOn] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saved, setSaved] = useState(false)
   const [bgColor, setBgColor] = useState('linen')

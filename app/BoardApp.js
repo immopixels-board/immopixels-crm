@@ -8,6 +8,7 @@ import TeamChat from '../components/TeamChat'
 var GoogleCalendarView = dynamic(() => import('../components/GoogleCalendarView'), { ssr: false })
 import CardModal from '../components/CardModal'
 import TutorialOverlay from '../components/TutorialOverlay'
+import AmeliaView from '../components/AmeliaView'
 import ColumnModal, { PANTONE, getColStyle, ConfirmDialog } from '../components/ColumnModal'
 import { supabase } from '../lib/supabase'
 
