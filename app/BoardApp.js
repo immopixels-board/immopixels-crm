@@ -1736,9 +1736,13 @@ export default function Home() {
     }).select().single()
     if (card) {
       for (const text of AUTO_CL) await supabase.from('checklist_items').insert({ card_id: card.id, text, done: false })
+      // Add staff to card_team based on calendar owner
+      if (ev.cal) {
+        const staffMember = staff.find(s => s.init === ev.cal)
+        if (staffMember) await supabase.from('card_team').insert({ card_id: card.id, staff_id: staffMember.id })
+      }
       addLog('Karte aus Kalender: ' + ev.summary)
       loadCards()
-      // Mark as dup
       setGcalPickerEvents(prev => prev.map(e => e.id === ev.id ? {...e, isDup: true} : e))
     }
   }

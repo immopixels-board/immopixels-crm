@@ -42,7 +42,11 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     const staffCards = cards.filter(c=>{
       if(!c.card_date||!c.addr) return false
       if(c.card_date<from||c.card_date>to) return false
-      return true
+      // Only cards where this staff member is in card_team
+      if(c.card_team && c.card_team.length > 0){
+        return c.card_team.some(t=>t.staff_id===currentStaff.id)
+      }
+      return false
     }).sort((a,b)=>{
       if(a.card_date!==b.card_date) return a.card_date.localeCompare(b.card_date)
       return (a.card_time||''). localeCompare(b.card_time||'')
