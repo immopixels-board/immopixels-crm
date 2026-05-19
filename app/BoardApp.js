@@ -1771,6 +1771,7 @@ export default function Home() {
         if(hasReel) return 'reel'
         return 'foto'
       })(),
+      description: ev.description || '',
       is_gcal: true,
       gcal_id: ev.id,
       position: 9999,

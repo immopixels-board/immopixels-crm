@@ -32,7 +32,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       try{
         const res = await fetch('/api/fahrtenbuch/distance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stops:[row.from_addr,row.to_addr]})})
         const d = await res.json()
-        if(d.ok&&d.legs[0]){
+        if(d.ok&&d.legs[0]&&d.legs[0].distance){
           const km = parseFloat((d.legs[0].distance/1000).toFixed(1))
           await supabase.from('fahrtenbuch_rows').update({km}).eq('id',row.id)
           setRows(prev=>prev.map(r=>r.id===row.id?{...r,km}:r))
@@ -53,8 +53,28 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     // Get existing rows from DB
     const existingRows = data || []
     const existingCardIds = new Set(existingRows.filter(r=>r.source_card_id).map(r=>r.source_card_id))
+    // Fill missing to_addr from cards
+    const fixedRows = existingRows.map(r => {
+      if(!r.to_addr && r.source_card_id) {
+        const card = cards.find(c => c.id === r.source_card_id)
+        if(card?.addr) return {...r, to_addr: card.addr}
+      }
+      if(!r.from_addr && currentStaff?.address) {
+        return {...r, from_addr: currentStaff.address}
+      }
+      return r
+    })
+    // Save fixed addresses back to DB
+    for(const r of fixedRows) {
+      if(existingRows.find(er => er.id === r.id && (!er.to_addr || !er.from_addr))) {
+        await supabase.from('fahrtenbuch_rows').update({
+          to_addr: r.to_addr||null,
+          from_addr: r.from_addr||null
+        }).eq('id', r.id)
+      }
+    }
     // Recalc km for rows missing it
-    const needsKm = existingRows.filter(r=>r.km===null&&r.from_addr&&r.to_addr)
+    const needsKm = fixedRows.filter(r=>(r.km===null||r.km===0)&&r.from_addr&&r.to_addr)
     if(needsKm.length>0) recalcMissingKm(needsKm)
 
     // Find new cards not yet in DB
@@ -73,7 +93,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     })
 
     if(staffCards.length === 0){
-      setRows(existingRows.map(r=>({...r,_saved:true})))
+      setRows(fixedRows.map(r=>({...r,_saved:true})))
       return
     }
 
@@ -208,7 +228,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         </div>
         {calcLoading
           ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
-          : <button onClick={()=>recalcMissingKm(rows.filter(r=>!r.km&&r.from_addr&&r.to_addr))}
+          : <button onClick={()=>recalcMissingKm(rows.filter(r=>(!r.km||r.km===0)&&r.from_addr&&r.to_addr))}
               style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
               <i className="ti ti-refresh" style={{fontSize:11}}/> km neu
             </button>

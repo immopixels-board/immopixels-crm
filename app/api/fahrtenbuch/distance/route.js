@@ -10,8 +10,9 @@ export async function POST(req) {
 
   const legs = []
   for (let i = 0; i < stops.length - 1; i++) {
-    const origin = encodeURIComponent(stops[i])
-    const destination = encodeURIComponent(stops[i + 1])
+    const addDE = (addr) => addr && !addr.toLowerCase().includes('germany') && !addr.toLowerCase().includes('deutschland') && !addr.includes(',DE') ? addr + ', Deutschland' : addr
+    const origin = encodeURIComponent(addDE(stops[i]))
+    const destination = encodeURIComponent(addDE(stops[i + 1]))
     try {
       const r = await fetch(
         `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&mode=driving&language=de&key=${key}`
@@ -19,9 +20,9 @@ export async function POST(req) {
       const d = await r.json()
       const el = d.rows?.[0]?.elements?.[0]
       if (el?.status === 'OK') {
-        legs.push({ distance: el.distance.value, distanceText: el.distance.text, duration: el.duration.value, durationText: el.duration.text })
+        legs.push({ distance: el.distance.value, distanceText: el.distance.text, duration: el.duration.value, durationText: el.duration.text, status: 'OK' })
       } else {
-        legs.push({ distance: 0, distanceText: '—', duration: 0, durationText: '—' })
+        legs.push({ distance: null, distanceText: '—', duration: null, durationText: '—', status: el?.status || 'ERROR' })
       }
     } catch(e) {
       legs.push({ distance: 0, distanceText: '—', duration: 0, durationText: '—' })
