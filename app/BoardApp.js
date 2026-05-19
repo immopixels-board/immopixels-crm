@@ -4067,7 +4067,14 @@ function CardItem({ card, staff, border, overdueDays = 0, overdueBg, onNoteChang
           </a>
         ) : null
       })()}
-      {card.description && <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 2, lineHeight: 1.4, wordBreak:'break-word' }}>{renderText(card.description, staff)}</div>}
+      {card.description && (
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 2, lineHeight: 1.4, wordBreak:'break-word', display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+          {card.is_gcal && card.description.includes('<')
+            ? card.description.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim()
+            : renderText(card.description, staff)
+          }
+        </div>
+      )}
       <div style={{ position:'relative' }}>
         <textarea value={noteVal} placeholder="Schnellnotiz... (@name taggeléshez)" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} draggable={false}
           onChange={e => {
