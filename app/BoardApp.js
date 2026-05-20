@@ -2296,8 +2296,8 @@ export default function Home() {
       <div style={{ height: 52, background: 'var(--bg2)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', flexShrink: 0, boxShadow: 'var(--sh)', zIndex: 100 }}>
         <div onClick={() => setTab('board')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', borderRight: '1px solid var(--border)', height: '100%', cursor: 'pointer' }}>
           <img src={LOGO} style={{ width: 30, height: 30, borderRadius: '50%' }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>ImmoPixels</span>
-          <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+          <span className="topbar-logo-text" style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>ImmoPixels</span>
+          <div className="topbar-logo-text" style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
           <span style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>CRM</span>
         </div>
         {/* Desktop nav */}
@@ -2362,22 +2362,29 @@ export default function Home() {
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px' }}>
-          {(me?.role_level === 'admin') && <div onClick={() => setShowDebug(p => !p)} style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:showDebug?'var(--gdbg)':'var(--bg3)', border:'0.5px solid '+(showDebug?'var(--gold)':'var(--border)'), borderRadius:6, color:showDebug?'var(--gold)':'var(--t3)', cursor:'pointer' }} title='Debug'><i className='ti ti-bug' style={{fontSize:14}}></i></div>}
-          <a href="https://webmail.alfahosting.de" target="_blank" rel="noopener"
+          {(me?.role_level === 'admin') && <div className="mobile-hide" onClick={() => setShowDebug(p => !p)} style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:showDebug?'var(--gdbg)':'var(--bg3)', border:'0.5px solid '+(showDebug?'var(--gold)':'var(--border)'), borderRadius:6, color:showDebug?'var(--gold)':'var(--t3)', cursor:'pointer' }} title='Debug'><i className='ti ti-bug' style={{fontSize:14}}></i></div>}
+          <a className="mobile-hide" href="https://webmail.alfahosting.de" target="_blank" rel="noopener"
             style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:unreadEmail>0?'#fff3e0':'var(--bg3)', border:'0.5px solid '+(unreadEmail>0?'#f97316':'var(--border)'), borderRadius:6, color:unreadEmail>0?'#f97316':'var(--t3)', textDecoration:'none', position:'relative' }} title={'E-Mail: '+unreadEmail+' ungelesen'}>
             <i className='ti ti-mail' style={{fontSize:14}}></i>
             {unreadEmail > 0 && <span style={{ position:'absolute', top:-4, right:-4, background:'#f97316', color:'#fff', fontSize:9, fontWeight:700, borderRadius:10, minWidth:14, height:14, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px' }}>{unreadEmail > 99 ? '99+' : unreadEmail}</span>}
           </a>
-          <button onClick={()=>setShowTutorial(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', cursor:'pointer' }} title='Tutorial'>
+          <button className="mobile-hide" onClick={()=>setShowTutorial(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', cursor:'pointer' }} title='Tutorial'>
             <i className='ti ti-help' style={{fontSize:14}}></i>
           </button>
-          <a href="/settings" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', textDecoration:'none' }} title='Einstellungen'><i className='ti ti-settings' style={{fontSize:14}}></i></a>
+          <a className="mobile-hide" href="/settings" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', textDecoration:'none' }} title='Einstellungen'><i className='ti ti-settings' style={{fontSize:14}}></i></a>
           {me?.role_level === 'admin' && (
-            <a href="/stats" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', textDecoration:'none' }} title='Statistik'><i className='ti ti-chart-bar' style={{fontSize:14}}></i></a>
+            <a className="mobile-hide" href="/stats" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', textDecoration:'none' }} title='Statistik'><i className='ti ti-chart-bar' style={{fontSize:14}}></i></a>
           )}
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 7px', fontFamily: 'monospace' }}>{version}</div>
+          <div className="mobile-hide" style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 7px', fontFamily: 'monospace' }}>{version}</div>
 
-          <div onClick={syncGcal} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--grbg)', border: '0.5px solid var(--grbr)', borderRadius: 16, padding: '4px 11px', fontSize: 11, fontWeight: 700, color: 'var(--green)', cursor: 'pointer' }}>
+          <button className="mobile-only" onClick={()=>setChatOpen(p=>!p)} style={{ display:'none', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', cursor:'pointer', position:'relative' }}>
+            <i className='ti ti-message-circle' style={{fontSize:14}}></i>
+            {unreadChat>0 && <span style={{ position:'absolute', top:-3, right:-3, background:'#b91c1c', color:'#fff', fontSize:8, fontWeight:700, borderRadius:10, minWidth:12, height:12, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 2px' }}>{unreadChat}</span>}
+          </button>
+          <button className="mobile-only" onClick={()=>{setChatOpen(true); setTimeout(()=>document.querySelector('.claude-input')?.focus(),100)}} style={{ display:'none', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', cursor:'pointer' }}>
+            <ClaudeAvatar size={14} />
+          </button>
+          <div className="mobile-hide" onClick={syncGcal} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--grbg)', border: '0.5px solid var(--grbr)', borderRadius: 16, padding: '4px 11px', fontSize: 11, fontWeight: 700, color: 'var(--green)', cursor: 'pointer' }}>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', animation: 'pulse 2s infinite' }} />
             {syncTxt}
           </div>
@@ -3350,6 +3357,27 @@ export default function Home() {
           </div>
         </div>
       )}
+      {/* Mobile bottom nav */}
+      <div className="mobile-bottom-nav" style={{ display:'none' }}>
+        {[
+          { id:'board', icon:'ti-layout-kanban', label:'Board' },
+          { id:'gcal', icon:'ti-calendar', label:'Kalender' },
+          { id:'mitarbeiter', icon:'ti-users', label:'Team' },
+          { id:'fahrtenbuch', icon:'ti-car', label:'Fahrten' },
+          { id:'profil-link', icon:'ti-user', label:'Profil', href:'/profil' },
+        ].map(t => (
+          t.href
+            ? <a key={t.id} href={t.href} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, fontSize:9, color:'var(--t3)', textDecoration:'none', padding:'6px 0', flex:1 }}>
+                <i className={'ti '+t.icon} style={{ fontSize:20 }} />
+                {t.label}
+              </a>
+            : <div key={t.id} onClick={()=>setTab(t.id)}
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, fontSize:9, color: tab===t.id?'#b8892a':'var(--t3)', padding:'6px 0', flex:1, cursor:'pointer' }}>
+                <i className={'ti '+t.icon} style={{ fontSize:20 }} />
+                {t.label}
+              </div>
+        ))}
+      </div>
       {birthdayPerson && (
         <BirthdayOverlay
           person={birthdayPerson}
