@@ -368,7 +368,7 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
   )
 }
 
-export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], onFertig, onSend }) {
+export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], phonebook = [], maklers = {}, onFertig, onSend }) {
   const [saved, setSaved] = useState(false)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => {
@@ -731,6 +731,49 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Kunde</div>
               <EditableField value={localCard.client_name} onSave={v => save('client_name', v)} placeholder="Kunden eingeben..." style={{ fontSize: 13, fontWeight: 600, color: '#1c1a16' }} />
               {(() => { const cl = clients.find(c => c.short_name === localCard.client_name || c.name === localCard.client_name); return cl && cl.short_name && cl.name && cl.short_name !== cl.name ? <div style={{ fontSize:11, color:'#8a8278', marginTop:3 }}>{cl.name}</div> : null })()}
+            </div>
+            <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Makler</div>
+              {localCard.makler_name ? (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'#1c1a16' }}>{localCard.makler_name}</div>
+                    {localCard.makler_tel && <div style={{ fontSize:11, color:'#8a8278' }}>{localCard.makler_tel}</div>}
+                  </div>
+                  <button onClick={()=>{save('makler_name','');save('makler_tel','');save('makler_email','')}}
+                    style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontSize:13 }}>✕</button>
+                </div>
+              ) : (
+                <div>
+                  <select onChange={e=>{
+                    if(!e.target.value) return
+                    const [src,id] = e.target.value.split('::')
+                    if(src==='phone') {
+                      const pb = phonebook.find(x=>x.id===id)
+                      if(pb){ save('makler_name',pb.name); save('makler_tel',pb.tel||''); save('makler_email',pb.email||'') }
+                    } else {
+                      const cl = clients.find(c=>c.id===id)
+                      const ms = maklers[id]||[]
+                      const m = ms[0]
+                      if(m){ save('makler_name',m.name); save('makler_tel',m.tel||''); save('makler_email',m.email||'') }
+                      else if(cl){ save('makler_name',cl.contact_name||cl.name); save('makler_tel',cl.contact_tel||cl.tel||''); save('makler_email',cl.contact_email||cl.email||'') }
+                    }
+                    e.target.value=''
+                  }} defaultValue="" style={{ width:'100%', fontSize:12, background:'#fff', border:'0.5px solid #ddd9d2', borderRadius:6, padding:'5px 8px', color:'#1c1a16', outline:'none' }}>
+                    <option value="">— Aus Telefonbuch wählen —</option>
+                    {phonebook.length > 0 && <optgroup label="Telefonbuch">
+                      {phonebook.map(pb=><option key={'pb_'+pb.id} value={'phone::'+pb.id}>{pb.name}{pb.company?' · '+pb.company:''}</option>)}
+                    </optgroup>}
+                    {clients.filter(c=>maklers[c.id]?.length||c.contact_name).map(c=>(
+                      <optgroup key={c.id} label={c.short_name||c.name}>
+                        {(maklers[c.id]||[{id:'c_'+c.id,name:c.contact_name,tel:c.contact_tel,email:c.contact_email}]).filter(m=>m.name).map(m=>(
+                          <option key={m.id} value={'client::'+c.id}>{m.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Termin</div>
