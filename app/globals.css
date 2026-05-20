@@ -165,6 +165,13 @@ body{background:var(--bg);font-family:Arial,sans-serif;color:var(--t1)}
   .desktop-nav { display: none !important; }
   .mobile-menu-btn { display: flex !important; }
 
+  /* Allow scrolling */
+  .main-layout { overflow: auto !important; height: auto !important; min-height: 100vh; }
+  .bcol-board { overflow-x: auto !important; overflow-y: visible !important; }
+
+  /* Touch scrolling */
+  * { -webkit-overflow-scrolling: touch; }
+
   /* Widgets hidden on mobile */
   .widget-overlay { display: none !important; }
 

@@ -2268,7 +2268,7 @@ export default function Home() {
     '&ctz=Europe%2FBerlin&mode=' + calView + '&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&bgcolor=%23f4f2ef'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }} className="main-layout">
 
       <style>{`
         :root {
