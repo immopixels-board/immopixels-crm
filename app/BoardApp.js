@@ -1308,7 +1308,10 @@ export default function Home() {
 
   useEffect(() => {
     function onMove(e) {
-      if (e.cancelable) e.preventDefault()
+      // Only preventDefault when actually dragging — otherwise allow scroll
+      if (isDraggingRef.current || isColDraggingRef.current) {
+        if (e.cancelable) e.preventDefault()
+      }
       const c = e.touches ? e.touches[0] : e
       if (isDraggingRef.current) moveCustomDragRef.current?.(c.clientX, c.clientY)
       if (isColDraggingRef.current) moveColDragRef.current?.(c.clientX)
