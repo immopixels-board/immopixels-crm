@@ -29,14 +29,17 @@ export async function GET(req) {
       { status: 400, headers: CORS })
   }
 
+  const debug = searchParams.get('debug') === '1'
   try {
-    const slots = await getDaySlots(serviceId, date)
-    // a frontendnek nem kell tudnia melyik fotós — csak az időpontok
+    const slots = await getDaySlots(serviceId, date, debug)
     const times = slots.map(s => s.time)
+    if (debug) {
+      return NextResponse.json({ date, times, slots_full: slots }, { headers: CORS })
+    }
     return NextResponse.json({ date, times }, { headers: CORS })
   } catch (e) {
     console.error('slots error', e)
-    return NextResponse.json({ error: 'szerver hiba' },
+    return NextResponse.json({ error: e.message || 'szerver hiba' },
       { status: 500, headers: CORS })
   }
 }

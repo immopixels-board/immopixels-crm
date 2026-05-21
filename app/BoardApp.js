@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import AvatarCrop from '../components/AvatarCrop'
 import DebugPanel from '../components/DebugPanel'
 import BirthdayOverlay from '../components/BirthdayOverlay'
+import BuchungenView from '../components/BuchungenView'
 import MaklerEditor from '../components/MaklerEditor'
 import TeamChat from '../components/TeamChat'
 var GoogleCalendarView = dynamic(() => import('../components/GoogleCalendarView'), { ssr: false })
@@ -2716,17 +2717,7 @@ export default function Home() {
         <Fahrtenbuch staff={staff} cards={cards} me={me} isAdmin={isAdminOrSub} supabase={supabase} />
       )}
       {tab === 'buchen' && (
-        <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-          <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:8 }}>
-            <i className="ti ti-calendar-plus" style={{ fontSize:15, color:'#b8892a' }} />
-            <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Buchungs-Vorschau</span>
-            <a href="/buchen" target="_blank" rel="noopener"
-              style={{ marginLeft:'auto', background:'#b8892a', color:'#fff', borderRadius:7, padding:'5px 12px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:5 }}>
-              <i className="ti ti-external-link" style={{fontSize:11}} /> Buchungsseite öffnen
-            </a>
-          </div>
-          <iframe src="/buchen" style={{ flex:1, border:'none', width:'100%' }} title="Buchung" />
-        </div>
+        <BuchungenView supabase={supabase} staff={staff} />
       )}
       {tab === 'amelia' && (
         <AmeliaView staff={staff} me={me} />
