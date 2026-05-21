@@ -19,6 +19,10 @@
     {
       "path": "/api/work/midnight",
       "schedule": "59 23 * * *"
+    },
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 7 * * *"
     }
   ]
 }

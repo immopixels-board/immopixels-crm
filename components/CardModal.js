@@ -583,6 +583,22 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
         const link = `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`
         await save('drive_link', link)
         setUploadProgress(null)
+        // 5. Send email notification
+        try {
+          const cl = clients.find(c => c.name === localCard.client_name || c.short_name === localCard.client_name)
+          await fetch('/api/email/drive-notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardTitle: localCard.title,
+              driveLink: link,
+              clientName: localCard.client_name || '',
+              staffName: currentStaff?.name || '',
+              cardDate: localCard.card_date || '',
+              extraEmail: cl?.email || ''
+            })
+          })
+        } catch(e) { console.warn('Drive notify email failed', e) }
       })
     } catch(e) {
       setUploadError(e.message)
