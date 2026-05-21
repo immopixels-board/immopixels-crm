@@ -162,39 +162,44 @@ async function safeTravel(a, b, depart) {
 }
 
 async function sendEmails({ customerName, customerEmail, svc, date, time, address, staffInit, status }) {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return
-  const dt = new Date(`${date}T${time}:00`).toLocaleString('de-DE', {
-    weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
-  })
-  const confirmed = status === 'approved'
-  const send = (to, subject, html) => fetch('https://api.resend.com/emails', {
-    method:'POST',
-    headers:{ 'Authorization':`Bearer ${key}`, 'Content-Type':'application/json' },
-    body: JSON.stringify({ from:'ImmoPixels <termin@immopixels.de>', to, subject, html }),
-  }).catch(e=>console.warn('resend',e))
+  try {
+    const nodemailer = require('nodemailer')
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_IMAP_HOST,
+      port: 465, secure: true,
+      auth: { user: process.env.EMAIL_IMAP_USER, pass: process.env.EMAIL_IMAP_PASS }
+    })
+    const dt = new Date(`${date}T${time}:00`).toLocaleString('de-DE', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
+    })
+    const confirmed = status === 'approved'
+    const from = `"ImmoPixels" <${process.env.EMAIL_IMAP_USER}>`
 
-  // ügyfélnek
-  await send(customerEmail,
-    confirmed ? 'Ihr Termin bei ImmoPixels ist bestätigt' : 'Ihre Terminanfrage bei ImmoPixels',
-    `<div style="font-family:Arial,sans-serif;max-width:520px">
-       <h2 style="color:#c8a84b">${confirmed?'Termin bestätigt':'Anfrage erhalten'}</h2>
-       <p>Hallo ${customerName},</p>
-       <p>${confirmed
-         ? 'Ihr Termin wurde erfolgreich gebucht:'
-         : 'wir haben Ihre Anfrage erhalten und melden uns in Kürze zur Bestätigung:'}</p>
-       <table style="font-size:14px">
-         <tr><td><b>Leistung:</b></td><td>${svc.name}</td></tr>
-         <tr><td><b>Termin:</b></td><td>${dt} Uhr</td></tr>
-         <tr><td><b>Adresse:</b></td><td>${address}</td></tr>
-       </table>
-       <p style="color:#888;font-size:12px">ImmoPixels · Immobilienfotografie Mannheim</p>
-     </div>`)
+    // Ügyfélnek
+    await transporter.sendMail({
+      from, to: customerEmail,
+      subject: confirmed ? 'Ihr Termin bei ImmoPixels ist bestätigt' : 'Ihre Terminanfrage bei ImmoPixels',
+      html: `<div style="font-family:Arial,sans-serif;max-width:520px">
+        <h2 style="color:#c8a84b">${confirmed?'Termin bestätigt ✓':'Anfrage erhalten'}</h2>
+        <p>Hallo ${customerName},</p>
+        <p>${confirmed ? 'Ihr Termin wurde erfolgreich gebucht:' : 'wir haben Ihre Anfrage erhalten und melden uns in Kürze:'}</p>
+        <table style="font-size:14px;line-height:1.8">
+          <tr><td><b>Leistung:</b></td><td>${svc.name}</td></tr>
+          <tr><td><b>Termin:</b></td><td>${dt} Uhr</td></tr>
+          <tr><td><b>Adresse:</b></td><td>${address}</td></tr>
+        </table>
+        <p style="color:#888;font-size:12px;margin-top:20px">ImmoPixels · Immobilienfotografie Mannheim · immopixels.de</p>
+      </div>`
+    })
 
-  // belső értesítés
-  await send('info@immopixels.de',
-    `${confirmed?'Neue Buchung':'Buchung PRÜFEN'}: ${svc.name} — ${address.split(',')[0]}`,
-    `<p>Fotograf: <b>${staffInit}</b> · Status: <b>${status}</b></p>
-     <p>${dt} · ${svc.name} · ${address}</p>
-     <p>Kunde: ${customerName} · ${customerEmail}</p>`)
+    // Belső értesítés
+    await transporter.sendMail({
+      from, to: process.env.EMAIL_IMAP_USER,
+      subject: `${confirmed?'✅ Neue Buchung':'⚠️ Buchung PRÜFEN'}: ${svc.name} — ${address.split(',')[0]}`,
+      html: `<p>Fotograf: <b>${staffInit}</b> · Status: <b>${status}</b></p>
+        <p>${dt} · ${svc.name}</p>
+        <p>Adresse: ${address}</p>
+        <p>Kunde: ${customerName} · ${customerEmail}</p>`
+    })
+  } catch(e) { console.warn('email send failed', e.message) }
 }
