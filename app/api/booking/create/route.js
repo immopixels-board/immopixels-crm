@@ -137,6 +137,56 @@ export async function POST(req) {
   // fotós hozzárendelés
   await supabase.from('card_team').insert({ card_id: card.id, staff_init: staffInit })
 
+  // ügyfél domain matching → client_name auto-fill
+  if (customerEmail) {
+    const domain = customerEmail.split('@')[1]
+    // Check booking_customers exact match
+    const { data: bc } = await supabase
+      .from('booking_customers')
+      .select('name, company, client_id')
+      .eq('email', customerEmail)
+      .maybeSingle()
+    
+    if (bc) {
+      // Known customer — update card with client info
+      await supabase.from('booking_customers')
+        .update({ amelia_id: null }) // touch to update
+        .eq('email', customerEmail)
+      
+      // Find client by domain if not directly linked
+      let clientName = bc.company || bc.name
+      if (!bc.client_id && domain) {
+        const { data: cl } = await supabase
+          .from('clients')
+          .select('id, short_name, name')
+          .eq('email_domain', domain)
+          .maybeSingle()
+        if (cl) clientName = cl.short_name || cl.name
+      }
+      if (clientName) {
+        await supabase.from('cards').update({ client_name: clientName }).eq('id', card.id)
+      }
+    } else if (domain) {
+      // Unknown customer — try domain match
+      const { data: cl } = await supabase
+        .from('clients')
+        .select('id, short_name, name')
+        .eq('email_domain', domain)
+        .maybeSingle()
+      if (cl) {
+        await supabase.from('cards').update({ client_name: cl.short_name || cl.name }).eq('id', card.id)
+      }
+      // Save as new booking_customer
+      await supabase.from('booking_customers').upsert({
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone || '',
+        email_domain: domain,
+        client_id: cl?.id || null
+      }, { onConflict: 'email' })
+    }
+  }
+
   // konfliktus-jegyzet a boardra (ha pending)
   if (conflictNote) {
     await supabase.from('cards').update({
