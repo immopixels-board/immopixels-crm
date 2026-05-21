@@ -286,28 +286,15 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   }
 
   function connectGoogle() {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-    const redirect = window.location.origin + '/auth/google/callback'
-    const scope = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file'
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(scope)}`
-    window.open(url, '_blank', 'width=500,height=600')
-    // Listen for token from popup
+    // Server-side OAuth flow with refresh token support
+    const url = `/api/gcal/oauth?staff_id=${me?.id||'admin'}`
+    const popup = window.open(url, '_blank', 'width=520,height=640')
     const handler = (e) => {
       if (e.data?.type === 'gcal_token') {
         localStorage.setItem('gcal_token', e.data.token)
         setGcalConnected(true)
         loadEvents(e.data.token)
         window.removeEventListener('message', handler)
-        // Save token to Supabase for cron jobs
-        if (me?.id) {
-          const exp = new Date(); exp.setHours(exp.getHours() + 1)
-          supabase.from('gcal_tokens').upsert({
-            staff_id: me.id,
-            access_token: e.data.token,
-            expires_at: exp.toISOString(),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'staff_id' }).then(() => {})
-        }
       }
     }
     window.addEventListener('message', handler)
