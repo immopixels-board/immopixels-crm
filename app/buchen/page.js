@@ -35,7 +35,7 @@ export default function Buchen() {
 
   // ── Google Places autocomplete (a meglévő API kulccsal) ───────────
   useEffect(() => {
-    if (step !== 4 || !addrRef.current) return
+    if (step !== 3 || !addrRef.current) return
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     function init() {
       const ac = new window.google.maps.places.Autocomplete(addrRef.current, {
