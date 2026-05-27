@@ -171,6 +171,15 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
     if (token) {
       setGcalConnected(true)
       loadEvents(token)
+    } else {
+      // Auto-load from DB if available
+      supabase.from('gcal_tokens').select('access_token,expires_at').order('updated_at',{ascending:false}).limit(1).maybeSingle().then(({data})=>{
+        if(data?.access_token && new Date(data.expires_at) > new Date()){
+          localStorage.setItem('gcal_token',data.access_token)
+          setGcalConnected(true)
+          loadEvents(data.access_token)
+        }
+      })
     }
     // Also load cards as events
     loadCardEvents()
@@ -382,11 +391,23 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
         </div>
         {/* Google Calendar connect */}
         {!gcalConnected ? (
-          <button onClick={connectGoogle}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #ddd9d2', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#4a4640' }}>
-            <i className="ti ti-brand-google" style={{ fontSize: 13, color: '#4285F4' }} />
-            Google verbinden
-          </button>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <button onClick={connectGoogle}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #ddd9d2', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#4a4640' }}>
+              <i className="ti ti-brand-google" style={{ fontSize: 13, color: '#4285F4' }} />
+              Google verbinden
+            </button>
+            <button onClick={async()=>{
+              const {data}=await supabase.from('gcal_tokens').select('access_token,expires_at').order('updated_at',{ascending:false}).limit(1).maybeSingle()
+              if(data?.access_token){
+                localStorage.setItem('gcal_token',data.access_token)
+                setGcalConnected(true)
+                loadEvents(data.access_token)
+              } else { alert('Kein Token in DB') }
+            }} style={{display:'flex',alignItems:'center',gap:4,background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:7,padding:'5px 10px',fontSize:11,cursor:'pointer',color:'var(--t3)'}}>
+              <i className="ti ti-refresh" style={{fontSize:12}} /> Token laden
+            </button>
+          </div>
         ) : (
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize: 10, color: '#15803d', display: 'flex', alignItems: 'center', gap: 3 }}>
