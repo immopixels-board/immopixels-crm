@@ -1363,8 +1363,12 @@ export default function Home() {
       document.body.style.backgroundAttachment = 'fixed'
       document.body.style.backgroundRepeat = 'no-repeat'
     }
-    if (us.bg_color || us.bg_image) {
-      addLog('Hintergrund: ' + (us.bg_image ? us.bg_image.split('/').pop() : us.bg_color))
+    // Only log if background actually changed
+    const prevBg = window.__lastBg
+    const curBg = us.bg_image ? us.bg_image.split('/').pop() : us.bg_color
+    if ((us.bg_color || us.bg_image) && prevBg !== curBg) {
+      window.__lastBg = curBg
+      addLog('Hintergrund: ' + curBg)
     }
     if (us.bg_image) {
       document.body.style.backgroundImage = 'url(' + us.bg_image + ')'
