@@ -74,15 +74,8 @@ export async function GET(req) {
       }, { onConflict: 'staff_id' })
     }
 
-    return new NextResponse(
-      `<html><body><script>
-        if(window.opener){
-          window.opener.postMessage({type:'gcal_token',token:'${tokens.access_token}'},location.origin)
-        }
-        window.close()
-      </script><p style="font-family:Arial;text-align:center;padding:40px">✓ Google Calendar verbunden. Fenster schließt sich...</p></body></html>`,
-      { headers: { 'Content-Type': 'text/html' } }
-    )
+    // Redirect back to app
+    return NextResponse.redirect(`https://immopixels-crm.vercel.app/?gcal_connected=1`)
   }
 
   return NextResponse.json({ error: 'invalid request' }, { status: 400 })

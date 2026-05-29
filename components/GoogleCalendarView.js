@@ -295,18 +295,9 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
   }
 
   function connectGoogle() {
-    // Server-side OAuth flow with refresh token support
-    const url = `/api/gcal/oauth?staff_id=${me?.id||'admin'}`
-    const popup = window.open(url, '_blank', 'width=520,height=640')
-    const handler = (e) => {
-      if (e.data?.type === 'gcal_token') {
-        localStorage.setItem('gcal_token', e.data.token)
-        setGcalConnected(true)
-        loadEvents(e.data.token)
-        window.removeEventListener('message', handler)
-      }
-    }
-    window.addEventListener('message', handler)
+    // Save current tab state and redirect to Google OAuth
+    sessionStorage.setItem('gcal_return', window.location.href)
+    window.location.href = `/api/gcal/oauth?staff_id=${me?.id||'admin'}`
   }
 
   function navigate(dir) {

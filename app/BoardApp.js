@@ -659,6 +659,26 @@ export default function Home() {
     return () => clearInterval(t)
   }, [])
 
+  // GCal OAuth return handler
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('gcal_connected') === '1') {
+      // Clean URL
+      window.history.replaceState({}, '', '/')
+      // Load fresh token from DB
+      setTimeout(async () => {
+        const { data } = await supabase.from('gcal_tokens')
+          .select('access_token,expires_at')
+          .order('updated_at', { ascending: false })
+          .limit(1).maybeSingle()
+        if (data?.access_token) {
+          localStorage.setItem('gcal_token', data.access_token)
+          toast('✓ Google Calendar erfolgreich verbunden!')
+        }
+      }, 1000)
+    }
+  }, [])
+
   // Birthday check
   useEffect(() => {
     if (!staff.length) return
