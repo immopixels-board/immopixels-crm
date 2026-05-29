@@ -4,6 +4,7 @@
 // Visszaadja az adott nap szabad időpontjait. Nincs Google hívás → gyors.
 // ════════════════════════════════════════════════════════════════════
 import { NextResponse } from 'next/server'
+import { unstable_noStore as noStore } from 'next/cache'
 import { getDaySlots } from '@/lib/booking/slots'
 
 export const runtime = 'nodejs'
@@ -16,10 +17,12 @@ const CORS = {
 }
 
 export async function OPTIONS() {
+  noStore()
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
 export async function GET(req) {
+  noStore()
   const { searchParams } = new URL(req.url)
   const serviceId = parseInt(searchParams.get('serviceId'), 10)
   const date = searchParams.get('date') // YYYY-MM-DD

@@ -7,6 +7,7 @@
 // 4. cards insert (CRM board) + card_team + Resend email
 // ════════════════════════════════════════════════════════════════════
 import { NextResponse } from 'next/server'
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import { getDaySlots, pickLeastBusyProvider } from '@/lib/booking/slots'
 import { getTravelMinutes } from '@/lib/booking/travel'
@@ -20,14 +21,15 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 export async function OPTIONS() {
+  noStore()
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('Supabase env vars missing')
+  return createClient(url, key)
 }
 
 const SLACK = 10 // perc ráhagyás az útidőre (jövőbeli forgalom bizonytalanság)
@@ -36,6 +38,7 @@ function toMin(t){const[h,m]=t.split(':');return +h*60+ +m}
 function toHHMM(min){const h=Math.floor(min/60),m=min%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
 
 export async function POST(req) {
+  noStore()
   const supabase = getSupabase()
   let body
   try { body = await req.json() } catch { return bad('érvénytelen JSON') }

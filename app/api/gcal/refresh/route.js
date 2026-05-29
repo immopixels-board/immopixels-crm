@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ function getSupabase() {
 }
 
 export async function POST() {
+  noStore()
   const supabase = getSupabase()
   const { data: tokens } = await supabase
     .from('gcal_tokens').select('*')

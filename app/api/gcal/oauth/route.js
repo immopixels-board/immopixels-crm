@@ -1,6 +1,7 @@
 // GET /api/gcal/oauth?staff_id=xxx  → redirect to Google
 // GET /api/gcal/oauth?code=xxx&state=xxx  → exchange code, save tokens
 import { NextResponse } from 'next/server'
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +24,7 @@ function getRedirectUri(req) {
 }
 
 export async function GET(req) {
+  noStore()
   const supabase = getSupabase()
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
