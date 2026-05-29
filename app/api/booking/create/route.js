@@ -24,8 +24,8 @@ export async function OPTIONS() {
 }
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 )
 
 const SLACK = 10 // perc ráhagyás az útidőre (jövőbeli forgalom bizonytalanság)
