@@ -5,10 +5,12 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
@@ -21,6 +23,7 @@ function getRedirectUri(req) {
 }
 
 export async function GET(req) {
+  const supabase = getSupabase()
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const state = searchParams.get('state') // staff_id

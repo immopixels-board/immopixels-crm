@@ -3,12 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
 
 export async function POST() {
+  const supabase = getSupabase()
   const { data: tokens } = await supabase
     .from('gcal_tokens').select('*')
     .not('refresh_token', 'is', null)

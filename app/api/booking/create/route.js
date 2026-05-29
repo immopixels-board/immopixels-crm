@@ -23,10 +23,12 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
 
 const SLACK = 10 // perc ráhagyás az útidőre (jövőbeli forgalom bizonytalanság)
 
@@ -34,6 +36,7 @@ function toMin(t){const[h,m]=t.split(':');return +h*60+ +m}
 function toHHMM(min){const h=Math.floor(min/60),m=min%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
 
 export async function POST(req) {
+  const supabase = getSupabase()
   let body
   try { body = await req.json() } catch { return bad('érvénytelen JSON') }
 
