@@ -18,7 +18,11 @@ export async function POST(req) {
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
   if (card.booking_status === 'confirmed') return NextResponse.json({ ok:true, already:true })
 
-  await supabase.from('cards').update({ booking_status:'confirmed' }).eq('id', card.id)
+  // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba
+  const { data: shootCol } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
+  const upd = { booking_status:'confirmed' }
+  if (shootCol?.id) upd.column_id = shootCol.id
+  await supabase.from('cards').update(upd).eq('id', card.id)
 
   // GCal: [AUSSTEHEND] → [BESTÄTIGT] cím frissítés
   try {

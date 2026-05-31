@@ -40,6 +40,16 @@ export default function BuchenClient() {
       .catch(()=>{})
   }, [])
 
+  // Korábbi kontaktadatok visszatöltése (ugyanazon a gépen)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ip_booking_contact') || 'null')
+      if (saved && typeof saved === 'object') {
+        setContact(c => ({ ...c, ...saved, note:'' }))
+      }
+    } catch {}
+  }, [])
+
   // 360° csak nem-Gespräch; Drohne csak fotózás
   const is360Available = service && service.category !== 'Gespräch'
   const isDroneAvailable = service && service.category === 'Immobilienfotografie' && service.name.toLowerCase().indexOf('drohne')===-1
@@ -118,6 +128,13 @@ export default function BuchenClient() {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error||'Fehler')
+      // kontaktadatok mentése a következő foglaláshoz (csak ezen a gépen)
+      try {
+        localStorage.setItem('ip_booking_contact', JSON.stringify({
+          vorname:contact.vorname, nachname:contact.nachname,
+          email:contact.email, phone:contact.phone, office:contact.office,
+        }))
+      } catch {}
       setDone(d)
     } catch(e) { alert(e.message) }
     finally { setSubmitting(false) }

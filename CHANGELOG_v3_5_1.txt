@@ -1,0 +1,25 @@
+# ImmoPixels CRM v3.5.1 — Booking finomítások
+## 2026-05-31
+
+### Token fix (kritikus)
+- A Google refresh_token újragenerálva ÍRÁSI joggal (calendar, nem readonly).
+  Most a foglaláskor a naptár-esemény VALÓBAN létrejön (eddig 403 volt).
+
+### 1. Booking → Shootings munkafolyamat
+- Új online foglalás a "Booking" oszlopba kerül (nem rögtön Shootings).
+- Megerősítéskor (Bestätigen) a kártya átkerül a "Shootings" oszlopba.
+
+### 2. Ügyfél teljes szerkesztés (a /buchung/[token] linken)
+- Nem csak stornieren: dátum, idő (élő szabad slotokkal), név, email, telefon,
+  cím, anmerkung, addonok mind módosíthatók.
+- Mentéskor: kártya + Google naptár esemény automatikusan frissül (PATCH).
+- Értesítő email MINDKÉT félnek (ügyfél + booking@immopixels.de).
+- Új API: /api/booking/update. A slot-ellenőrzés a saját eseményt kizárja.
+
+### 3. Adat-előkitöltés
+- Aki egyszer foglalt ezen a gépen, annak a kontaktadatai (Vorname, Nachname,
+  Email, Handy, Immobilienbüro) legközelebb előre kitöltve (localStorage).
+
+### Technikai
+- slots.js: getDaySlots/busyIntervals excludeGcalId paraméter (saját esemény kizárása)
+- manage API: addon + geo mezők visszaadása a szerkesztőhöz

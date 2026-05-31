@@ -9,14 +9,16 @@ export async function GET(req) {
   if (!token) return NextResponse.json({ error:'token required' }, { status:400 })
 
   const { data: card } = await supabase.from('cards')
-    .select('client_name, customer_email, customer_phone, card_date, card_time, booking_end_time, booking_address, description, booking_status, booking_service_id')
+    .select('client_name, customer_email, customer_phone, card_date, card_time, booking_end_time, booking_address, booking_plz, booking_lat, booking_lng, addon_360, addon_drone, description, booking_status, booking_service_id')
     .eq('booking_token', token).maybeSingle()
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
 
-  let serviceName = ''
+  let serviceName = '', serviceCategory = '', serviceDuration = 0
   if (card.booking_service_id) {
-    const { data: svc } = await supabase.from('booking_services').select('name').eq('id', card.booking_service_id).maybeSingle()
+    const { data: svc } = await supabase.from('booking_services').select('name, category, duration_min').eq('id', card.booking_service_id).maybeSingle()
     serviceName = svc?.name || ''
+    serviceCategory = svc?.category || ''
+    serviceDuration = svc?.duration_min || 0
   }
-  return NextResponse.json({ ...card, serviceName })
+  return NextResponse.json({ ...card, serviceName, serviceCategory, serviceDuration })
 }

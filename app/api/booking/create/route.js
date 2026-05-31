@@ -112,7 +112,8 @@ export async function POST(req) {
   } catch (e) { console.error('[create] gcal error', e.message) }
 
   // ── CRM kártya (pending) ──
-  const { data: col } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
+  // Új online foglalás a "Booking" oszlopba kerül; megerősítés után megy a Shootings-ba
+  const { data: col } = await supabase.from('columns').select('id').ilike('title', 'booking').limit(1).maybeSingle()
   const { data: card, error: cardErr } = await supabase.from('cards').insert({
     title: `${svc.name} — ${customerName}`,
     card_type: (svc.category || '').toLowerCase().includes('video') ? 'reel' : 'foto',
