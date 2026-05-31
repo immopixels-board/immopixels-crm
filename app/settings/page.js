@@ -417,6 +417,16 @@ export default function Settings() {
                 </div>
                 <WatchActivateButton />
               </div>
+              <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                  <i className="ti ti-photo" style={{ fontSize:16, color:'#b8892a' }} />
+                  Leistungs-Bilder
+                </div>
+                <div style={{ fontSize:12, color:'#8a8278', marginBottom:14, lineHeight:1.6 }}>
+                  Runde Kategorie-Bilder für die Buchungsseite hochladen und verwalten.
+                </div>
+                <a href="/admin/leistungen" style={{ display:'inline-block', padding:'9px 18px', fontSize:13, fontWeight:700, background:'#b8892a', color:'#fff', borderRadius:8, textDecoration:'none' }}>Bilder verwalten →</a>
+              </div>
             </div>
           )}
           </div>

@@ -27,12 +27,14 @@ export async function POST(req) {
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid JSON' }, { status: 400, headers: CORS }) }
 
   const { serviceId, date, time, address, plz, lat, lng,
-          customerName, customerEmail, customerPhone, note } = body
+          customerName, customerEmail, customerPhone, note,
+          immoOffice, addon360, addonDrone } = body
 
   if (!serviceId || !date || !time || !address || !customerName || !customerEmail)
     return NextResponse.json({ error: 'missing required fields' }, { status: 400, headers: CORS })
 
-  const slots = await getDaySlots(serviceId, date)
+  const addonMin = (addon360 ? 30 : 0) + (addonDrone ? 15 : 0)
+  const slots = await getDaySlots(serviceId, date, addonMin)
   const slot = slots.find(s => s.time === time)
   if (!slot) return NextResponse.json({ error: 'slot unavailable' }, { status: 409, headers: CORS })
 
@@ -42,8 +44,15 @@ export async function POST(req) {
   if (!svc) return NextResponse.json({ error: 'service not found' }, { status: 404, headers: CORS })
 
   const startMin = toMin(time)
-  const endMin = startMin + svc.duration_min
+  const endMin = startMin + svc.duration_min + addonMin
   const endTime = toHHMM(endMin)
+
+  const noteFull = [
+    note || '',
+    immoOffice ? `Immobilienbüro: ${immoOffice}` : '',
+    addon360 ? '360°-Tour gewünscht (+30 Min.)' : '',
+    addonDrone ? 'Drohnenaufnahmen gewünscht (+15 Min.)' : '',
+  ].filter(Boolean).join('\n')
 
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
 
@@ -56,8 +65,10 @@ export async function POST(req) {
     client_name: customerName,
     customer_email: customerEmail,
     customer_phone: customerPhone || null,
-    description: note || null,
+    description: noteFull || null,
     booking_service_id: serviceId,
+    addon_360: !!addon360,
+    addon_drone: !!addonDrone,
     booking_address: address,
     booking_plz: plz || null,
     booking_lat: lat || null,

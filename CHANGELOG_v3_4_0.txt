@@ -1,0 +1,29 @@
+# ImmoPixels CRM v3.4.0 — Booking UI nagy frissítés
+## 2026-05-31
+
+### Booking oldal (/buchen)
+1. Profilképek a staff.avatar_url-ből (booking + CRM "Team heute")
+2. Kiválasztott időpontnál a NEM elérhető fotós halványan/szürkén jelenik meg
+3. Utolsó foglalható időpont 17:00 (akkor is, ha 18-ig tart a munkaidő)
+4. Opcionális 360°-Tour (+30 perc) — minden szolgáltatásnál kivéve Gespräch
+5. Opcionális Drohnenaufnahmen (+15 perc) — csak fotózásnál (Drohne-szolg. kivéve)
+6. Adresse + Kontakt egy lépésben (3 lépéses flow), beágyazott Google térkép a címnél
+7. Kontakt mezők: Vorname, Nachname (külön), E-Mail, Handy, Immobilienbüro (opc.)
+8. Anmerkung kötelező mező
+9. Szélesebb booking felület (640 → 860px)
+10. Leistungok kör alakú kategória-képekkel
+
+### Admin
+- Új oldal: /admin/leistungen — kategória-képek feltöltése (auto négyzetre vágás, max 1MB)
+- Új API: /api/booking/config (szolgáltatások + fotósok képekkel)
+- Új API: /api/booking/service-image (kép mentése)
+
+### Backend
+- slots.js: addonMin paraméter (360°/Drohne idő), 17:00 utolsó-slot limit
+- booking/slots route: addon360 + addonDrone query paraméterek
+- booking/create route: addon idő + flag-ek mentése, immoOffice + addonok az Anmerkungban
+- Kötelező validáció: Vorname+Nachname+Email+Handy+Anmerkung
+
+### DB migrációk (már lefuttatva)
+- booking_services.image_url
+- cards.addon_360, cards.addon_drone
