@@ -37,13 +37,12 @@ export async function GET(req) {
   const addon360 = searchParams.get('addon360') === '1'
   const addonDrone = searchParams.get('addonDrone') === '1'
   const addonMin = (addon360 ? 30 : 0) + (addonDrone ? 15 : 0)
+  const address = searchParams.get('address') || null // utazás-tudatos slotokhoz
   try {
-    const slots = await getDaySlots(serviceId, date, addonMin)
+    const slots = await getDaySlots(serviceId, date, addonMin, null, address)
     const times = slots.map(s => s.time)
-    if (debug) {
-      return NextResponse.json({ date, times, slots_full: slots }, { headers: CORS })
-    }
-    return NextResponse.json({ date, times }, { headers: CORS })
+    const warnTimes = slots.filter(s => s.warn).map(s => s.time) // útidő miatt szoros
+    return NextResponse.json({ date, times, warnTimes, slots_full: slots }, { headers: CORS })
   } catch (e) {
     console.error('slots error', e)
     return NextResponse.json({ error: e.message || 'szerver hiba' },

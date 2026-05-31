@@ -44,10 +44,11 @@ export async function POST(req) {
 
   const addonMin = (addon360 ? 30 : 0) + (addonDrone ? 15 : 0)
 
-  // Élő ellenőrzés: tényleg szabad-e még a slot
-  const slots = await getDaySlots(serviceId, date, addonMin)
+  // Élő ellenőrzés: tényleg szabad-e még a slot (+ utazás-tudatos warn)
+  const slots = await getDaySlots(serviceId, date, addonMin, null, address)
   const slot = slots.find(s => s.time === time)
   if (!slot) return NextResponse.json({ error: 'slot unavailable' }, { status: 409, headers: CORS })
+  const travelTight = !!slot.warn
 
   const staffInit = await pickLeastBusyProvider(slot.providers, date)
   const photographer = PHOTOG_NAME[staffInit] || staffInit
@@ -176,6 +177,7 @@ export async function POST(req) {
           <strong>Shooting Ort:</strong> <a href="${mapsLink}">${address}</a></p>
           <p><strong>Zusätzliche Info:</strong><br>${(note||'—').replace(/\n/g,'<br>')}</p>
           <p><strong>Zusätzliche Leistungen:</strong> ${addons.length?addons.join(', '):'—'}</p>
+          ${travelTight ? '<p style="background:#fffbf0;border:1px solid #f0d9a8;border-radius:8px;padding:10px;color:#b8892a"><strong>⚠ Hinweis:</strong> Dieser Termin ist wegen der Anfahrt zwischen anderen Terminen knapp. Bitte Machbarkeit prüfen.</p>' : ''}
           <p style="margin-top:24px">
             <a href="${confirmUrl}" style="display:inline-block;background:#b8892a;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Termin bestätigen</a>
           </p>

@@ -5,13 +5,8 @@ const GOLD = '#b8892a'
 const CREAM = '#faf7f0'
 const DARK = '#2a2a28'
 
-// Kategória → kör-kép fallback ikon (ha nincs feltöltött image_url)
 const CAT_ORDER = ['Immobilienfotografie', 'Immobilienvideo', 'Gespräch']
-const CAT_LABEL = {
-  'Immobilienfotografie': 'Fotografie',
-  'Immobilienvideo': 'Video',
-  'Gespräch': 'Beratung',
-}
+const CAT_LABEL = { 'Immobilienfotografie':'Fotografie', 'Immobilienvideo':'Video', 'Gespräch':'Beratung' }
 
 export default function BuchenClient() {
   const [step, setStep] = useState(1)
@@ -24,6 +19,7 @@ export default function BuchenClient() {
   const [time, setTime] = useState(null)
   const [slots, setSlots] = useState([])
   const [slotsFull, setSlotsFull] = useState([])
+  const [warnTimes, setWarnTimes] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [addr, setAddr] = useState({ address:'', plz:'', lat:null, lng:null })
   const [contact, setContact] = useState({ vorname:'', nachname:'', email:'', phone:'', office:'', note:'' })
@@ -32,32 +28,25 @@ export default function BuchenClient() {
   const addrRef = useRef(null)
   const mapRef = useRef(null)
 
-  // Config betöltése (szolgáltatások + fotósok képekkel)
   useEffect(() => {
-    fetch('/api/booking/config')
-      .then(r=>r.json())
-      .then(d=>{ setServices(d.services||[]); setProviders(d.providers||[]) })
-      .catch(()=>{})
+    fetch('/api/booking/config').then(r=>r.json())
+      .then(d=>{ setServices(d.services||[]); setProviders(d.providers||[]) }).catch(()=>{})
   }, [])
 
-  // Korábbi kontaktadatok visszatöltése (ugyanazon a gépen)
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('ip_booking_contact') || 'null')
-      if (saved && typeof saved === 'object') {
-        setContact(c => ({ ...c, ...saved, note:'' }))
-      }
+      if (saved && typeof saved === 'object') setContact(c => ({ ...c, ...saved, note:'' }))
     } catch {}
   }, [])
 
-  // 360° csak nem-Gespräch; Drohne csak fotózás
   const is360Available = service && service.category !== 'Gespräch'
   const isDroneAvailable = service && service.category === 'Immobilienfotografie' && service.name.toLowerCase().indexOf('drohne')===-1
   const addonMin = (is360Available && addon360 ? 30 : 0) + (isDroneAvailable && addonDrone ? 15 : 0)
 
-  // Google Places autocomplete + térkép (Adresse+Kontakt egy lépés = step 3)
+  // Google Places autocomplete + térkép — STEP 2 (Adresse)
   useEffect(() => {
-    if (step !== 3) return
+    if (step !== 2) return
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!key) return
     function initAC() {
@@ -93,24 +82,23 @@ export default function BuchenClient() {
   function renderMap(lat, lng) {
     if (lat==null || lng==null || !mapRef.current || !window.google?.maps) return
     const pos = { lat, lng }
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: pos, zoom: 15, disableDefaultUI: true, zoomControl: true,
-    })
-    new window.google.maps.Marker({ position: pos, map })
+    const map = new window.google.maps.Map(mapRef.current, { center:pos, zoom:15, disableDefaultUI:true, zoomControl:true })
+    new window.google.maps.Marker({ position:pos, map })
   }
 
-  // Slots betöltése (addon perceket is figyelembe veszi)
+  // Slots betöltése — STEP 3 (Termin), az ADDRESS-szel együtt → utazás-tudatos
   useEffect(() => {
-    if (!service || !date) return
-    setLoadingSlots(true); setTime(null); setSlots([]); setSlotsFull([])
+    if (step !== 3 || !service || !date) return
+    setLoadingSlots(true); setTime(null); setSlots([]); setSlotsFull([]); setWarnTimes([])
     const a360 = (is360Available && addon360) ? 1 : 0
     const aDrone = (isDroneAvailable && addonDrone) ? 1 : 0
-    fetch(`/api/booking/slots?serviceId=${service.id}&date=${date}&debug=1&addon360=${a360}&addonDrone=${aDrone}`)
+    const addrParam = addr.address ? `&address=${encodeURIComponent(addr.address)}` : ''
+    fetch(`/api/booking/slots?serviceId=${service.id}&date=${date}&debug=1&addon360=${a360}&addonDrone=${aDrone}${addrParam}`)
       .then(r=>r.json())
-      .then(d=>{ setSlots(d.times||[]); setSlotsFull(d.slots_full||[]) })
+      .then(d=>{ setSlots(d.times||[]); setSlotsFull(d.slots_full||[]); setWarnTimes(d.warnTimes||[]) })
       .catch(()=>setSlots([]))
       .finally(()=>setLoadingSlots(false))
-  }, [service, date, addon360, addonDrone])
+  }, [step, service, date, addon360, addonDrone])
 
   async function submit() {
     setSubmitting(true)
@@ -128,11 +116,9 @@ export default function BuchenClient() {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error||'Fehler')
-      // kontaktadatok mentése a következő foglaláshoz (csak ezen a gépen)
       try {
         localStorage.setItem('ip_booking_contact', JSON.stringify({
-          vorname:contact.vorname, nachname:contact.nachname,
-          email:contact.email, phone:contact.phone, office:contact.office,
+          vorname:contact.vorname, nachname:contact.nachname, email:contact.email, phone:contact.phone, office:contact.office,
         }))
       } catch {}
       setDone(d)
@@ -146,43 +132,28 @@ export default function BuchenClient() {
     const dt = new Date(d+'T12:00')
     return isNaN(dt) ? '' : dt.toLocaleDateString('de-DE', opts)
   }
-  // step3 = Adresse + Kontakt egyben → minden kötelező kivéve office
   const contactOk = contact.vorname.trim() && contact.nachname.trim() && /\S+@\S+\.\S+/.test(contact.email) && contact.phone.trim() && contact.note.trim()
-  const can = { 2:!!service, 3:!!date&&!!time, submit:!!addr.address&&!!addr.plz&&contactOk }
+  const can = { 2:!!service, 3:!!addr.address && contactOk, submit:!!date && !!time }
 
-  // Provider elérhetőség az adott napra
   const providerSlots = providers.map(pr => {
     const freeCount = slotsFull.filter(s=>s.providers?.includes(pr.init)).length
     return { ...pr, free:freeCount, busy: date && !loadingSlots && freeCount===0 }
   })
-
-  // A kiválasztott időponthoz mely fotós szabad?
   const slotForTime = time ? slotsFull.find(s=>s.time===time) : null
   const freeInitsAtTime = slotForTime ? slotForTime.providers : null
 
-  // Avatar kör — base64 kép vagy iniciálé
   const Avatar = ({ p, size=32, dim=false }) => (
-    <div style={{
-      width:size, height:size, borderRadius:'50%', flexShrink:0, overflow:'hidden',
-      background:p.color, display:'flex', alignItems:'center', justifyContent:'center',
-      fontSize:size*0.36, fontWeight:700, color:'#fff',
-      opacity: dim?0.3:1, filter: dim?'grayscale(1)':'none', transition:'all .2s',
-    }}>
-      {p.avatar_url
-        ? <img src={p.avatar_url} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
-        : p.init}
+    <div style={{ width:size, height:size, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:p.color,
+      display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.36, fontWeight:700, color:'#fff',
+      opacity: dim?0.3:1, filter: dim?'grayscale(1)':'none', transition:'all .2s' }}>
+      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : p.init}
     </div>
   )
-
-  // Kategória kör-kép (Leistung lista)
   const CatCircle = ({ svc, selected }) => (
-    <div style={{
-      width:54, height:54, borderRadius:'50%', flexShrink:0, overflow:'hidden',
-      border: selected?`2px solid ${GOLD}`:'2px solid #e6ddc9',
-      background:'#f0ece4', display:'flex', alignItems:'center', justifyContent:'center',
-    }}>
-      {svc.image_url
-        ? <img src={svc.image_url} alt={svc.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+    <div style={{ width:54, height:54, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+      border: selected?`2px solid ${GOLD}`:'2px solid #e6ddc9', background:'#f0ece4',
+      display:'flex', alignItems:'center', justifyContent:'center' }}>
+      {svc.image_url ? <img src={svc.image_url} alt={svc.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
         : <span style={{fontSize:22}}>{svc.category==='Immobilienvideo'?'🎬':svc.category==='Gespräch'?'💬':'📷'}</span>}
     </div>
   )
@@ -193,10 +164,11 @@ export default function BuchenClient() {
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap');
         .ip-fade{animation:ipf .25s ease}
         @keyframes ipf{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-        .ip-slot{padding:9px 0;font-size:13px;border:0.5px solid #e6ddc9;border-radius:7px;background:#fff;cursor:pointer;color:${DARK};text-align:center;transition:all .12s}
+        .ip-slot{padding:9px 0;font-size:13px;border:0.5px solid #e6ddc9;border-radius:7px;background:#fff;cursor:pointer;color:${DARK};text-align:center;transition:all .12s;position:relative}
         .ip-slot:hover{border-color:${GOLD};color:${GOLD}}
         .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
         .ip-slot.busy{background:#f9f9f9;color:#bbb;cursor:not-allowed;text-decoration:line-through}
+        .ip-slot.warn{border-color:#e0a82e;background:#fffbf0}
         .ip-svc{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:0.5px solid #e6ddc9;border-radius:12px;cursor:pointer;transition:all .12s;text-align:left;width:100%}
         .ip-svc:hover{border-color:${GOLD}}
         .ip-svc.sel{border-color:${GOLD};border-width:1.5px;background:#b8892a08}
@@ -209,22 +181,18 @@ export default function BuchenClient() {
         .ip-addon input{width:auto;margin:0}
       `}</style>
 
-      {/* Logo */}
       <div style={{textAlign:'center',marginBottom:20}}>
         <img src="/ip-logo.png" alt="ImmoPixels" style={{height:40,objectFit:'contain'}} onError={e=>e.target.style.display='none'} />
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:24,fontWeight:600,color:DARK,marginTop:6}}>Termin buchen</div>
       </div>
 
-      {/* Steps */}
       {!done && (
         <div style={{display:'flex',alignItems:'center',marginBottom:24,background:'#f0ece4',borderRadius:10,padding:'10px 14px',gap:4}}>
-          {[['Leistung',1],['Termin',2],['Daten',3]].map(([label,n],i,arr)=>(
+          {[['Leistung',1],['Daten',2],['Termin',3]].map(([label,n],i,arr)=>(
             <div key={n} style={{display:'contents'}}>
               <div style={{display:'flex',alignItems:'center',gap:5,flex:1}}>
                 <div style={{width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0,
-                  background: step>=n?GOLD:'transparent',
-                  color: step>=n?'#fff':'#aaa',
-                  border: step>=n?'none':`1.5px solid #ccc`}}>
+                  background: step>=n?GOLD:'transparent', color: step>=n?'#fff':'#aaa', border: step>=n?'none':`1.5px solid #ccc`}}>
                   {step>n?'✓':n}
                 </div>
                 <span style={{fontSize:11,fontWeight:step===n?700:400,color:step>=n?GOLD:'#aaa',textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</span>
@@ -235,7 +203,7 @@ export default function BuchenClient() {
         </div>
       )}
 
-      {/* STEP 1 — Service (kör-képekkel) */}
+      {/* STEP 1 — Leistung + Zusätze */}
       {step===1 && !done && (
         <div className="ip-fade">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Welche Leistung benötigen Sie?</h2>
@@ -247,7 +215,7 @@ export default function BuchenClient() {
                 <div style={{fontSize:10,fontWeight:700,color:GOLD,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:7}}>{CAT_LABEL[cat]||cat}</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                   {list.map(s=>(
-                    <button key={s.id} className={`ip-svc${service?.id===s.id?' sel':''}`} onClick={()=>{setService(s);setAddon360(false);setAddonDrone(false);setStep(2)}}>
+                    <button key={s.id} className={`ip-svc${service?.id===s.id?' sel':''}`} onClick={()=>{setService(s);setAddon360(false);setAddonDrone(false)}}>
                       <CatCircle svc={s} selected={service?.id===s.id} />
                       <span style={{display:'flex',flexDirection:'column',gap:2}}>
                         <span style={{fontSize:13,fontWeight:700,color:DARK}}>{s.name}</span>
@@ -259,17 +227,9 @@ export default function BuchenClient() {
               </div>
             )
           })}
-        </div>
-      )}
 
-      {/* STEP 2 — Date + Time + Addons */}
-      {step===2 && !done && (
-        <div className="ip-fade">
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Datum & Uhrzeit wählen</h2>
-
-          {/* Addonok */}
-          {(is360Available || isDroneAvailable) && (
-            <div style={{marginBottom:16}}>
+          {service && (is360Available || isDroneAvailable) && (
+            <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Optionale Zusätze</div>
               {is360Available && (
                 <label className={`ip-addon${addon360?' on':''}`}>
@@ -288,100 +248,15 @@ export default function BuchenClient() {
             </div>
           )}
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
-            {/* Left: date + availability */}
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Datum</div>
-              <input type="date" min={minDate} value={date} onChange={e=>setDate(e.target.value)} style={{marginBottom:12}} />
-
-              {date && (
-                <>
-                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Verfügbarkeit</div>
-                  <div style={{background:'#f0ece4',borderRadius:10,padding:10,display:'flex',flexDirection:'column',gap:6}}>
-                    {loadingSlots ? (
-                      <div style={{fontSize:12,color:'#888',padding:8}}>⟳ Wird geladen...</div>
-                    ) : providerSlots.map(pr=>(
-                      <div key={pr.init} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:pr.busy?'#fef2f2':'#f0fdf4'}}>
-                        <Avatar p={pr} size={28} dim={pr.busy} />
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:12,fontWeight:700,color:DARK}}>{pr.name}</div>
-                          <div style={{fontSize:10,color:pr.busy?'#b91c1c':'#15803d'}}>{pr.busy?'Ausgebucht':`${pr.free} freie Termine`}</div>
-                        </div>
-                        <span style={{fontSize:16}}>{pr.busy?'✗':'✓'}</span>
-                      </div>
-                    ))}
-                    {!loadingSlots && slots.length===0 && date && (
-                      <div style={{fontSize:11,color:'#b91c1c',padding:'4px 8px'}}>Keine freien Termine — bitte anderen Tag wählen</div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Summary + ki ér rá a kiválasztott időpontban */}
-              {service && (
-                <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
-                  <div style={{fontWeight:700,color:DARK}}>{service.name}</div>
-                  <div style={{color:'#888',marginTop:2}}>ca. {service.duration_min + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
-                  {time && (
-                    <>
-                      <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
-                      {freeInitsAtTime && (
-                        <div style={{display:'flex',gap:6,marginTop:8,alignItems:'center'}}>
-                          {providers.map(pr=>(
-                            <div key={pr.init} title={freeInitsAtTime.includes(pr.init)?`${pr.name} verfügbar`:`${pr.name} nicht verfügbar`}>
-                              <Avatar p={pr} size={30} dim={!freeInitsAtTime.includes(pr.init)} />
-                            </div>
-                          ))}
-                          <span style={{fontSize:10,color:'#888',marginLeft:2}}>verfügbar zu dieser Zeit</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Right: time slots */}
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Uhrzeit</div>
-              {!date ? (
-                <div style={{fontSize:12,color:'#aaa',padding:16,textAlign:'center'}}>Bitte zuerst Datum wählen</div>
-              ) : loadingSlots ? (
-                <div style={{fontSize:12,color:'#888',padding:16,textAlign:'center'}}>⟳ Lädt...</div>
-              ) : slots.length===0 ? (
-                <div style={{fontSize:12,color:'#b91c1c',padding:16,textAlign:'center',background:'#fef2f2',borderRadius:8}}>Keine freien Termine</div>
-              ) : (
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,maxHeight:360,overflowY:'auto',paddingRight:2}}>
-                  {/* 09:00 – 17:00 utolsó kezdés, csak szabad = kattintható */}
-                  {Array.from({length:33},(_,i)=>{
-                    const h = Math.floor(i/4)+9
-                    const m = (i%4)*15
-                    if(h>17||(h===17&&m>0)) return null
-                    const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-                    const isFree = slots.includes(t)
-                    return (
-                      <button key={t} className={`ip-slot${time===t?' sel':''}${!isFree?' busy':''}`}
-                        onClick={()=>isFree&&setTime(t)} disabled={!isFree}>
-                        {t}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Nav onBack={()=>setStep(1)} onNext={()=>setStep(3)} canNext={can[3]} />
+          {service && <Nav onNext={()=>setStep(2)} canNext={can[2]} />}
         </div>
       )}
 
-      {/* STEP 3 — Adresse + Kontakt egy lépésben */}
-      {step===3 && !done && (
+      {/* STEP 2 — Adresse & Kontaktdaten */}
+      {step===2 && !done && (
         <div className="ip-fade">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Adresse & Kontaktdaten</h2>
           <div style={{display:'flex',flexDirection:'column',gap:24}}>
-
-            {/* Shooting-Adresse + térkép (teljes szélesség) */}
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Shooting-Adresse</div>
               <input ref={addrRef} type="text" placeholder="Straße, PLZ, Ort eingeben…" defaultValue={addr.address} className={!addr.address?'req-empty':''} />
@@ -389,8 +264,6 @@ export default function BuchenClient() {
               <div ref={mapRef} style={{width:'100%',height:220,borderRadius:10,background:'#eee',border:'0.5px solid #e6ddc9',display: addr.lat?'block':'none'}} />
               {!addr.lat && <p style={{fontSize:11,color:'#aaa',margin:'0'}}>Bitte eine Adresse aus den Vorschlägen wählen — die Karte erscheint automatisch.</p>}
             </div>
-
-            {/* Kontaktdaten (teljes szélesség, alatta) */}
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Ihre Kontaktdaten</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -405,14 +278,89 @@ export default function BuchenClient() {
               <textarea placeholder="Anmerkung * (z.B. Schlüsselübergabe, Wünsche…)" value={contact.note} onChange={e=>setContact({...contact,note:e.target.value})} className={!contact.note.trim()?'req-empty':''} style={{minHeight:80,resize:'vertical'}} />
             </div>
           </div>
+          <Nav onBack={()=>setStep(1)} onNext={()=>setStep(3)} canNext={can[3]} />
+        </div>
+      )}
 
-          {/* Zusammenfassung */}
-          <div style={{background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,padding:'12px 14px',margin:'16px 0',fontSize:13}}>
-            <div style={{fontWeight:700,color:DARK,marginBottom:6}}>Zusammenfassung</div>
-            <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'4px 12px',fontSize:12,color:'#555'}}>
-              <span>Leistung:</span><span style={{fontWeight:700,color:DARK}}>{service?.name}{addonMin?` (+${addonMin} Min.)`:''}</span>
-              <span>Termin:</span><span style={{fontWeight:700,color:GOLD}}>{fmtDate(date,{weekday:'long',day:'2-digit',month:'long'})} · {time} Uhr</span>
-              <span>Adresse:</span><span>{addr.address||'—'}</span>
+      {/* STEP 3 — Termin (utazás-tudatos) */}
+      {step===3 && !done && (
+        <div className="ip-fade">
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Datum & Uhrzeit wählen</h2>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Datum</div>
+              <input type="date" min={minDate} value={date} onChange={e=>setDate(e.target.value)} style={{marginBottom:12}} />
+
+              {date && (
+                <>
+                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Verfügbarkeit</div>
+                  <div style={{background:'#f0ece4',borderRadius:10,padding:10,display:'flex',flexDirection:'column',gap:6}}>
+                    {loadingSlots ? <div style={{fontSize:12,color:'#888',padding:8}}>⟳ Wird geladen...</div>
+                    : providerSlots.map(pr=>(
+                      <div key={pr.init} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:pr.busy?'#fef2f2':'#f0fdf4'}}>
+                        <Avatar p={pr} size={28} dim={pr.busy} />
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:700,color:DARK}}>{pr.name}</div>
+                          <div style={{fontSize:10,color:pr.busy?'#b91c1c':'#15803d'}}>{pr.busy?'Ausgebucht':`${pr.free} freie Termine`}</div>
+                        </div>
+                        <span style={{fontSize:16}}>{pr.busy?'✗':'✓'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
+                <div style={{fontWeight:700,color:DARK}}>{service?.name}</div>
+                <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
+                <div style={{color:'#888',marginTop:2}}>📍 {addr.address}</div>
+                {time && (
+                  <>
+                    <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
+                    {freeInitsAtTime && (
+                      <div style={{display:'flex',gap:6,marginTop:8,alignItems:'center'}}>
+                        {providers.map(pr=>(
+                          <div key={pr.init} title={freeInitsAtTime.includes(pr.init)?`${pr.name} verfügbar`:`${pr.name} nicht verfügbar`}>
+                            <Avatar p={pr} size={30} dim={!freeInitsAtTime.includes(pr.init)} />
+                          </div>
+                        ))}
+                        <span style={{fontSize:10,color:'#888',marginLeft:2}}>verfügbar zu dieser Zeit</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Uhrzeit</div>
+              {!date ? <div style={{fontSize:12,color:'#aaa',padding:16,textAlign:'center'}}>Bitte zuerst Datum wählen</div>
+              : loadingSlots ? <div style={{fontSize:12,color:'#888',padding:16,textAlign:'center'}}>⟳ Lädt...</div>
+              : slots.length===0 ? <div style={{fontSize:12,color:'#b91c1c',padding:16,textAlign:'center',background:'#fef2f2',borderRadius:8}}>Keine freien Termine</div>
+              : (
+                <>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,maxHeight:330,overflowY:'auto',paddingRight:2}}>
+                    {Array.from({length:33},(_,i)=>{
+                      const h = Math.floor(i/4)+9, m = (i%4)*15
+                      if(h>17||(h===17&&m>0)) return null
+                      const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+                      const isFree = slots.includes(t)
+                      const isWarn = warnTimes.includes(t)
+                      return (
+                        <button key={t} className={`ip-slot${time===t?' sel':''}${!isFree?' busy':''}${isFree&&isWarn?' warn':''}`}
+                          onClick={()=>isFree&&setTime(t)} disabled={!isFree} title={isWarn?'Knapp wegen Anfahrt':''}>
+                          {t}{isFree&&isWarn?' ⚠':''}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {warnTimes.length>0 && (
+                    <div style={{marginTop:10,fontSize:11,color:'#b8892a',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
+                      ⚠ Markierte Zeiten sind wegen der Anfahrt zwischen Terminen knapp. Buchung möglich — wir bestätigen die Machbarkeit.
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -420,17 +368,12 @@ export default function BuchenClient() {
         </div>
       )}
 
-      {/* DONE */}
       {done && (
         <div className="ip-fade" style={{textAlign:'center',padding:'48px 0'}}>
           <div style={{width:64,height:64,borderRadius:'50%',background:GOLD,color:'#fff',fontSize:28,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>✓</div>
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600,marginBottom:10}}>
-            {done.status==='approved'?'Termin bestätigt!':'Anfrage erhalten!'}
-          </h2>
-          <p style={{fontSize:14,color:'#666',maxWidth:360,margin:'0 auto'}}>
-            {done.status==='approved'
-              ? 'Sie erhalten eine Bestätigung per E-Mail. Wir freuen uns auf den Termin!'
-              : 'Wir prüfen Ihre Anfrage und melden uns in Kürze zur Bestätigung.'}
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600,marginBottom:10}}>Anfrage erhalten!</h2>
+          <p style={{fontSize:14,color:'#666',maxWidth:380,margin:'0 auto'}}>
+            Wir prüfen Ihre Anfrage und melden uns in Kürze zur Bestätigung. Sie erhalten eine E-Mail mit allen Details.
           </p>
         </div>
       )}
@@ -441,7 +384,7 @@ export default function BuchenClient() {
 function Nav({onBack,onNext,canNext,nextLabel='Weiter →'}) {
   return (
     <div style={{display:'flex',justifyContent:'space-between',marginTop:20,gap:12}}>
-      <button onClick={onBack} style={{padding:'11px 22px',fontSize:13,background:'none',border:'0.5px solid #ccc',borderRadius:8,cursor:'pointer',color:'#666'}}>← Zurück</button>
+      {onBack ? <button onClick={onBack} style={{padding:'11px 22px',fontSize:13,background:'none',border:'0.5px solid #ccc',borderRadius:8,cursor:'pointer',color:'#666'}}>← Zurück</button> : <span/>}
       <button onClick={onNext} disabled={!canNext}
         style={{padding:'11px 28px',fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',background:canNext?GOLD:'#ddd',color:canNext?'#fff':'#999',border:'none',borderRadius:8,cursor:canNext?'pointer':'not-allowed',transition:'background .15s'}}>
         {nextLabel}

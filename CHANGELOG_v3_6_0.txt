@@ -1,0 +1,26 @@
+# ImmoPixels CRM v3.6.0 — Utazás-tudatos foglalás
+## 2026-05-31
+
+### Útidő-figyelembevétel (a fő feature)
+- A foglalási folyamat átrendezve: Leistung → Adresse & Kontakt → Termin.
+  A cím MOST a időpont ELŐTT van, így a rendszer ismeri a shooting helyét.
+- A slot-motor minden szabad időponthoz megnézi a fotós naptárában az ELŐZŐ és
+  KÖVETKEZŐ esemény helyszínét, és a Google Distance Matrix-szal kiszámolja az
+  autós útidőt (cím→cím).
+- Ha az útidő miatt szoros a slot (pl. Darmstadt→Speyer ~1 óra, de csak 45 perc
+  a rés), a slot ⚠ jelzést kap — DE foglalható marad (ti döntötök a megerősítésnél).
+- A csapatnak küldött emailbe is bekerül a "⚠ Anfahrt knapp" figyelmeztetés.
+- Az ügyfél-szerkesztőben (/buchung/[token]) is megjelenik a ⚠ jelzés.
+
+### Technikai
+- travel.js: Distance Matrix API (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) + PLZ-cache
+  (30 nap). Azonos PLZ → 12 perc fix, nincs Google hívás. A db-bug javítva.
+- Új tábla: booking_travel_cache (PLZ-pár → perc, cache-elt).
+- slots.js: busyIntervals visszaadja az esemény helyszínét; getDaySlots
+  shootAddress paraméterrel utazás-tudatos warn jelzést számol fotósonként.
+  (Ha bármelyik fotós kényelmesen ráér, nincs warn.)
+- /api/booking/slots: address paraméter + warnTimes a válaszban.
+
+### Megjegyzés a költségről
+Az útidő csak böngészéskor (dátumválasztáskor) hívódik, PLZ-cache-sel.
+Egy napra pár hívás, utána cache-ből ingyen.

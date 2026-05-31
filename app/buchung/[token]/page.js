@@ -20,6 +20,7 @@ export default function ManagePage() {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [slots, setSlots] = useState([])
+  const [warnTimes, setWarnTimes] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [form, setForm] = useState({ vorname:'', nachname:'', email:'', phone:'', address:'', note:'', addon360:false, addonDrone:false })
 
@@ -53,8 +54,9 @@ export default function ManagePage() {
     setLoadingSlots(true)
     const a360 = (is360 && form.addon360) ? 1 : 0
     const aDrone = (isDrone && form.addonDrone) ? 1 : 0
-    fetch(`/api/booking/slots?serviceId=${b.booking_service_id}&date=${date}&addon360=${a360}&addonDrone=${aDrone}`)
-      .then(r=>r.json()).then(d=>setSlots(d.times||[])).catch(()=>setSlots([])).finally(()=>setLoadingSlots(false))
+    const addrParam = form.address ? `&address=${encodeURIComponent(form.address)}` : ''
+    fetch(`/api/booking/slots?serviceId=${b.booking_service_id}&date=${date}&addon360=${a360}&addonDrone=${aDrone}${addrParam}`)
+      .then(r=>r.json()).then(d=>{setSlots(d.times||[]); setWarnTimes(d.warnTimes||[])}).catch(()=>setSlots([])).finally(()=>setLoadingSlots(false))
   }, [editing, date, b, form.addon360, form.addonDrone])
 
   async function save() {
@@ -128,7 +130,7 @@ export default function ManagePage() {
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,marginBottom:12}}>
                   {slots.length===0 ? <p style={{fontSize:12,color:'#b91c1c',gridColumn:'1/-1'}}>Keine freien Zeiten an diesem Tag</p>
                   : slots.map(t=>(
-                    <button key={t} onClick={()=>setTime(t)} style={{padding:'8px 0',fontSize:13,borderRadius:7,cursor:'pointer',border:'0.5px solid '+(time===t?GOLD:'#e6ddc9'),background:time===t?GOLD:'#fff',color:time===t?'#fff':DARK,fontWeight:time===t?700:400}}>{t}</button>
+                    <button key={t} onClick={()=>setTime(t)} title={warnTimes.includes(t)?'Knapp wegen Anfahrt':''} style={{padding:'8px 0',fontSize:13,borderRadius:7,cursor:'pointer',border:'0.5px solid '+(time===t?GOLD:(warnTimes.includes(t)?'#e0a82e':'#e6ddc9')),background:time===t?GOLD:(warnTimes.includes(t)?'#fffbf0':'#fff'),color:time===t?'#fff':DARK,fontWeight:time===t?700:400}}>{t}{warnTimes.includes(t)?' ⚠':''}</button>
                   ))}
                 </div>}
             </>}
