@@ -1,0 +1,17 @@
+ImmoPixels CRM — v2.4.8 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.7 → v2.4.8
+
+• Kártya: 2+ nap lejárt → piros keret + "X Tage überfällig" badge
+• Kártya: 5+ nap lejárt → piros háttér
+• Kártya: Fertig + terminieren oszlopoknál nem aktív
+• Note: broadcast javítva, többieknél is frissül + értesítés
+• Naptár: ‹ › gombok közvetlenül a hónap neve mellett
+• Naptár: Zoom − / + gombok (70%-150%)
+• Naptár: Grid kitölti a teljes képernyőt (minWidth eltávolítva)
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_4_8.zip && mv immopixels-crm-v2.4.8 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.8" && git push

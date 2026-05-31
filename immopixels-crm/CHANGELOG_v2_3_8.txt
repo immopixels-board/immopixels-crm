@@ -1,0 +1,40 @@
+ImmoPixels CRM — v2.3.8 Update Notes
+=====================================
+Datum: 2026-05-16
+Verzió: v2.3.7 → v2.3.8
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. HÁTTÉRKÉPEK — BŐVÍTÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 7 háttérkép elérhető a Beállítások → Aussehen menüben:
+  - bg_lv_blue, bg_lv_cream, bg_lv_green, bg_lv_pink
+  - bg_wa_cream, bg_wa_mint, bg_wa_lightgray
+• Per-user mentés (mindenki a saját beállítását látja)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. ONLINE STÁTUSZ PÖTTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Staff avatarokon megjelenik az online státusz jelzése
+• Zöld = Online, Narancs = Inaktív (5+ perc), Szürke = Offline
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. CHAT NÉMÍTÁS GOMB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Hangértesítő ki/be kapcsoló a chat footerben
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. EMAIL OTP 2FA LOGIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Email alapú OTP bejelentkezés (Supabase Auth)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. TECHNIKAI — REACT #423 FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• StaffAv komponens kivezetése top-level scope-ba
+• Komponens-a-komponensben definiálás megszüntetve
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -q immopixels-crm_2_3_8.zip && mv immopixels-crm-v2.3.8 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ && echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.3.8" && git push

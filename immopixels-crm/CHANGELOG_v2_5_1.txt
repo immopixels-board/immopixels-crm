@@ -1,0 +1,16 @@
+ImmoPixels CRM — v2.5.1 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.5.0 → v2.5.1
+
+• Drag & Drop: Custom engine (mouse + touch)
+• Drag: húzás közben a kártya dől sebességtől függően
+• Drag: arany dashed placeholder mutatja hova esik
+• Drag: oszlop arany kerettel jelzi a drop zone-t
+• Drag: smooth animáció ejtéskor
+• Mobile: touchstart/touchmove/touchend támogatás
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_5_1.zip && mv immopixels-crm-v2.5.1 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.5.1" && git push

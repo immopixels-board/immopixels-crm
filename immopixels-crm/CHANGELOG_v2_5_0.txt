@@ -1,0 +1,15 @@
+ImmoPixels CRM — v2.5.0 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.9 → v2.5.0
+
+• Debug: háttérszín/kép változás rögzítve
+• Debug: Schnellnotiz rögzítve (ki írta, mire)
+• Debug: Archiviert kártyák megjelennek a Törölt fülön
+• Debug: Changelog frissítve minden verzióhoz (v2.3.7-től)
+• Debug: per-user filter működik
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_5_0.zip && mv immopixels-crm-v2.5.0 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.5.0" && git push

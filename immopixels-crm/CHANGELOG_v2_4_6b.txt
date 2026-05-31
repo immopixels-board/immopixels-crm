@@ -1,0 +1,14 @@
+ImmoPixels CRM — v2.4.6b Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.6 → v2.4.6b
+
+• GCal: Esemény részleteinél "Auf Board importieren" gomb
+• GCal: Import csak ha van cím — szűri a Dr./orvos/kávé eseményeket
+• GCal Import oszlop: csak admin látja (Nur für mich sichtbar)
+• Naptár oldalsávban gomb az oszlop létrehozásához (ha még nincs)
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_4_6b.zip && mv immopixels-crm-v2.4.6b board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.6b" && git push

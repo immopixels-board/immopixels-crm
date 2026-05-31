@@ -1,0 +1,16 @@
+ImmoPixels CRM — v2.4.6 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.4.5 → v2.4.6
+
+• Stats: Havi bontás táblázat (mind 12 hónap)
+• Stats: Éves célkörök — Umsatz (arany), Aufnahmen (zöld), Instagram (gradient)
+• Stats: Célok beállítása és mentése (Supabase settings tábla)
+• Stats: Instagram aktuális követőszám manuálisan megadható
+• Stats: Havi bar chart az aktuális hónap kiemelve
+• Stats: Ø pro Aufnahme kártya
+
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -qo immopixels-crm_2_4_6.zip && mv immopixels-crm-v2.4.6 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ 2>/dev/null; echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.6" && git push

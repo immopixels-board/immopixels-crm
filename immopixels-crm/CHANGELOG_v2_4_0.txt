@@ -1,0 +1,76 @@
+ImmoPixels CRM — v2.4.0 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.3.11b → v2.4.0
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. TELEFONBUCH FÜL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Új Telefonbuch fül a navigációban
+• Lista nézet kereséssel (név, cég szerint)
+• Kategória szűrő: Makler / Firma / Privat / Bauträger
+• Hozzáadás mindenki számára, szerkesztés csak admin/subadmin
+• VCF import UI (165 Makler.vcf kontakt betöltve)
+• Csoportos kijelölés (törlés, kategória váltás)
+• CSV export (csak admin)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. BOARD KERESŐ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Kártya keresés cím, ügyfél, leírás szerint
+• Nem egyező kártyák elhalványulnak
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. DROPBOX INTEGRÁCIÓ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Dropbox link mező az ügyfélkártyán
+• Dropbox badge megjelenik a board kártyákon ha van link
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. KUNDE FORM BŐVÍTÉS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Vorname + Nachname külön mezők
+• 2. telefonszám mező
+• Dropbox link mező
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. UI VÁLTOZÁSOK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Claude gomb törölve a navigációból
+• Title input required eltávolítva
+• Drag: az egész kártya húzható (Trello-like)
+• Settings: háttérszín + kép egy szekcióban
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. TECHNIKAI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• moveCardInColumn: pozíciók tisztán újraszámolva
+• user_presence try/catch (400 hiba elnémítva)
+• Google Maps loading=async
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUPABASE SQL (futtatandó)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS contact_firstname text,
+  ADD COLUMN IF NOT EXISTS contact_lastname text,
+  ADD COLUMN IF NOT EXISTS contact_tel2 text,
+  ADD COLUMN IF NOT EXISTS dropbox_link text;
+
+CREATE TABLE IF NOT EXISTS public.phone_book (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text, org text,
+  phones jsonb DEFAULT '[]',
+  emails jsonb DEFAULT '[]',
+  category text DEFAULT 'Makler',
+  created_by uuid REFERENCES public.staff(id),
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.phone_book ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "all_access" ON public.phone_book FOR ALL USING (true) WITH CHECK (true);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd "/Users/cdpic/Pictures/IP CRM" && rm -rf board-deploy-old && mv board-deploy board-deploy-old && unzip -q immopixels-crm_2_4_0.zip && mv immopixels-crm-v2.4.0 board-deploy && mv board-deploy-old/.git board-deploy/ && cp board-deploy-old/.env.local board-deploy/ && echo "kész"
+cd "/Users/cdpic/Pictures/IP CRM/board-deploy" && git add -A && git commit -m "v2.4.0" && git push

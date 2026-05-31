@@ -1,0 +1,11 @@
+ImmoPixels CRM — v2.5.2 Update Notes
+=====================================
+Datum: 2026-05-17
+Verzió: v2.5.1 → v2.5.2
+
+• Oszlop drag: DOM-alapú placeholder (nem React state)
+• Oszlop drag: placeholder felhalmozódás javítva
+• Oszlop drag: opacity 0.8
+• Oszlop drag: userSelect none drag közben
+• Kártya drag: smooth animáció + tilt
+• Kártya/oszlop drag: mobile touch támogatás
