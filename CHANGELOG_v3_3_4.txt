@@ -1,0 +1,9 @@
+# ImmoPixels CRM v3.3.4
+## 2026-05-31
+
+### Fixes
+- GCal token refresh: maxDuration 30s a slots és gcal/refresh route-on (Vercel Hobby timeout fix)
+- GCal token lekérés: staff_id alapján (CD) helyett legutóbb frissített sor helyett
+- Supabase RLS policy: service_role olvashat gcal_tokens táblából
+- SUPABASE_SERVICE_ROLE_KEY env variable hozzáadva Vercel immopixels-crm projekthez
+- VER string javítva: v3.3.4
