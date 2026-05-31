@@ -1,0 +1,23 @@
+# ImmoPixels CRM v3.7.5 — Leistungen + Mitarbeiter teljes kezelés
+## 2026-05-31
+
+### Leistung verwalten (/admin/leistungen) bővítve
+- Kategória szerkeszthető szolgáltatásonként (meglévő közül választható VAGY új beírható,
+  datalist). Új kategória automatikusan megjelenik a foglalási oldalon is.
+- "+ Neue Leistung" gomb: új szolgáltatás létrehozása (név, kategória, dauer, puffer).
+- Szolgáltatás törlése (🗑).
+- Mitarbeiter-hozzárendelés szolgáltatásonként: checkboxok (Cristian/Daniel/Elias).
+  → így pl. Eliast bármikor hozzárendelheted szolgáltatásokhoz.
+- "Mitarbeiter (für Buchungen aktiv)" szekció: fotósonként aktív/inaktív kapcsoló.
+  → Eliast itt tudod aktiválni, hogy tényleg kapjon foglalásokat.
+
+### Technikai
+- Új API: /api/booking/services-admin (GET: szolgáltatások+fotósok+hozzárendelések;
+  POST actions: update, create, assign, unassign, set_provider_active, delete).
+- A foglalási oldal (BuchenClient) most minden kategóriát megjelenít (az ismertek
+  előre, az újak utána), nem csak a 3 fix kategóriát.
+
+### Megjegyzés Eliasról
+Ahhoz hogy Elias ténylegesen foglalható legyen: (1) rendeld hozzá a szolgáltatásokhoz
+(checkbox), (2) kapcsold "aktív"-ra a Mitarbeiter szekcióban. A munkaidejét
+(provider_weekdays) ha még nincs beállítva, az külön lépés — szólj ha kell hozzá felület.

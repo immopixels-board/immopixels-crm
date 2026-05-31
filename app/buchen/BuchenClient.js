@@ -229,7 +229,7 @@ export default function BuchenClient() {
       {step===1 && !done && (
         <div className="ip-fade">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Welche Leistung benötigen Sie?</h2>
-          {CAT_ORDER.map(cat=>{
+          {[...CAT_ORDER, ...[...new Set(services.map(s=>s.category).filter(Boolean))].filter(c=>!CAT_ORDER.includes(c))].map(cat=>{
             const list = services.filter(s=>s.category===cat)
             if(!list.length) return null
             return (
