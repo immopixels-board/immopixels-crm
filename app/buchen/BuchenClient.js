@@ -25,6 +25,7 @@ export default function BuchenClient() {
   const [contact, setContact] = useState({ vorname:'', nachname:'', email:'', phone:'', office:'', note:'' })
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(null)
+  const [inIframe] = useState(() => typeof window !== 'undefined' && window.parent !== window)
   const addrRef = useRef(null)
   const mapRef = useRef(null)
 
@@ -40,19 +41,25 @@ export default function BuchenClient() {
     } catch {}
   }, [])
 
-  // iframe auto-magasság: jelzi a szülő WordPress oldalnak a tartalom magasságát
+  // iframe auto-magasság: a tényleges tartalom magasságát jelzi a szülő oldalnak,
+  // csak valódi változáskor (a 100vh visszacsatolás elkerülésére)
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) return
+    let lastH = 0
     const report = () => {
-      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
-      window.parent.postMessage({ type: 'ip-booking-height', height: h }, '*')
+      const el = document.getElementById('ip-booking-root')
+      const h = el ? Math.ceil(el.getBoundingClientRect().height) : 0
+      if (h > 0 && Math.abs(h - lastH) > 3) {
+        lastH = h
+        window.parent.postMessage({ type: 'ip-booking-height', height: h }, '*')
+      }
     }
     report()
+    const el = document.getElementById('ip-booking-root')
     const ro = new ResizeObserver(report)
-    ro.observe(document.body)
-    const t = setInterval(report, 1000) // biztonsági háló (térkép/slotok betöltése)
+    if (el) ro.observe(el)
     window.addEventListener('load', report)
-    return () => { ro.disconnect(); clearInterval(t); window.removeEventListener('load', report) }
+    return () => { ro.disconnect(); window.removeEventListener('load', report) }
   }, [])
 
   const is360Available = service && service.category !== 'Gespräch'
@@ -174,7 +181,7 @@ export default function BuchenClient() {
   )
 
   return (
-    <div style={{maxWidth:860,margin:'0 auto',padding:'24px 20px',fontFamily:"'Lato',Arial,sans-serif",color:DARK,background:CREAM,minHeight:'100vh'}}>
+    <div id="ip-booking-root" style={{maxWidth:860,margin:'0 auto',padding:'24px 20px',fontFamily:"'Lato',Arial,sans-serif",color:DARK,background:CREAM,minHeight: inIframe ? 'auto' : '100vh'}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap');
         .ip-fade{animation:ipf .25s ease}

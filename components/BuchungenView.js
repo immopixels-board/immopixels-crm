@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const STATUS = {
   confirmed:{ label:'Bestätigt', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0' },
@@ -19,6 +19,7 @@ export default function BuchungenView({ supabase, staff }) {
   const [weekStart, setWeekStart] = useState(()=>mondayOf(new Date()))
   const [updating, setUpdating] = useState(null)
   const [routeOpen, setRouteOpen] = useState(null) // booking id
+  const editAddrRef = useRef(null)
   const [routeInfo, setRouteInfo] = useState({})   // id → {dist,dur,loading}
   const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const BASE_ADDR = 'Gartenstraße 2, 67310 Hettenleidelheim, Germany'
@@ -60,6 +61,7 @@ export default function BuchungenView({ supabase, staff }) {
 
   async function act(token, kind) {
     if (kind==='cancel' && !confirm('Diesen Termin wirklich stornieren? Der Kunde wird per E-Mail informiert.')) return
+    if (kind==='delete' && !confirm('Diesen Termin ENDGÜLTIG löschen? Die Karte und der Kalendereintrag werden entfernt. Dies kann nicht rückgängig gemacht werden.')) return
     setUpdating(token)
     try { await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }); await load() }
     catch(e){ alert('Fehler') }
@@ -82,6 +84,38 @@ export default function BuchungenView({ supabase, staff }) {
       })
     } catch(e){ alert('Konnte Termin nicht laden'); setEditTok(null) }
   }
+
+  // Google Places autocomplete az edit-ablak cím-mezőjén (ugyanúgy mint a /buchen oldalon)
+  useEffect(() => {
+    if (!editTok || !ef) return
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!key) return
+    function initAC() {
+      const el = editAddrRef.current
+      if (!el || el._acDone) return
+      if (!window.google?.maps?.places?.Autocomplete) return
+      el._acDone = true
+      const ac = new window.google.maps.places.Autocomplete(el, {
+        componentRestrictions: { country:'de' },
+        fields: ['formatted_address'],
+      })
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace()
+        const a = place.formatted_address || el.value
+        setEf(prev => prev ? { ...prev, address: a } : prev)
+      })
+    }
+    if (window.google?.maps?.places?.Autocomplete) { setTimeout(initAC, 60) }
+    else if (!document.getElementById('gmap-buchen')) {
+      const s = document.createElement('script')
+      s.id = 'gmap-buchen'
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`
+      s.async = true; s.onload = () => setTimeout(initAC, 100); document.head.appendChild(s)
+    } else {
+      const t = setInterval(() => { if (window.google?.maps?.places?.Autocomplete) { clearInterval(t); initAC() } }, 200)
+      return () => clearInterval(t)
+    }
+  }, [editTok, ef ? true : false])
 
   const is360 = ef && ef.category!=='Gespräch'
   const isDrone = ef && ef.category==='Immobilienfotografie' && (ef.serviceName||'').toLowerCase().indexOf('drohne')===-1
@@ -127,6 +161,7 @@ export default function BuchungenView({ supabase, staff }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)', fontFamily:'Arial,sans-serif' }}>
+      <style>{`.pac-container{z-index:99999 !important}`}</style>
       {/* Header */}
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
         <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:6 }}>
@@ -192,6 +227,9 @@ export default function BuchungenView({ supabase, staff }) {
                   </>}
                   <button onClick={()=>toggleRoute(b)} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid '+(routeOpen===b.id?'#1d5ec7':'var(--border)'), background:routeOpen===b.id?'#1d5ec714':'var(--bg3)', color:routeOpen===b.id?'#1d5ec7':'var(--t2)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     <i className={'ti '+(routeOpen===b.id?'ti-chevron-up':'ti-route')} style={{fontSize:11}} /> Route
+                  </button>
+                  <button onClick={()=>act(b.booking_token,'delete')} disabled={isUp} title="Endgültig löschen" style={{ padding:'5px 10px', borderRadius:6, border:'0.5px solid #fecaca', background:'#fff', color:'#b91c1c', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
+                    <i className="ti ti-trash" style={{fontSize:11}} />
                   </button>
                 </div>
 
@@ -289,7 +327,7 @@ export default function BuchungenView({ supabase, staff }) {
               <label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>E-Mail</label>
               <input value={ef.email} onChange={e=>setEf({...ef,email:e.target.value})} style={{...inp,margin:'4px 0 8px'}} />
               <label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Adresse</label>
-              <input value={ef.address} onChange={e=>setEf({...ef,address:e.target.value})} style={{...inp,margin:'4px 0 8px'}} />
+              <input ref={editAddrRef} value={ef.address} onChange={e=>setEf({...ef,address:e.target.value})} placeholder="Adresse eingeben…" style={{...inp,margin:'4px 0 8px'}} />
               {(is360||isDrone) && <div style={{display:'flex',gap:14,margin:'2px 0 8px'}}>
                 {is360 && <label style={{fontSize:12,display:'flex',gap:5,alignItems:'center',color:'var(--t2)',cursor:'pointer'}}><input type="checkbox" checked={ef.addon360} onChange={e=>setEf({...ef,addon360:e.target.checked,time:''})} /> 360° (+30m)</label>}
                 {isDrone && <label style={{fontSize:12,display:'flex',gap:5,alignItems:'center',color:'var(--t2)',cursor:'pointer'}}><input type="checkbox" checked={ef.addonDrone} onChange={e=>setEf({...ef,addonDrone:e.target.checked,time:''})} /> Drohne (+15m)</label>}

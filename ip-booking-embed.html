@@ -5,7 +5,7 @@
   <iframe
     id="ip-booking-frame"
     src="https://immopixels-crm.vercel.app/buchen"
-    style="width:100%;border:0;display:block;min-height:700px;overflow:hidden;"
+    style="width:100%;border:0;display:block;height:760px;overflow:hidden;"
     scrolling="no"
     title="Termin buchen"
     allow="geolocation"
@@ -15,11 +15,16 @@
 <script>
 (function () {
   var frame = document.getElementById('ip-booking-frame');
+  var current = 0;
   window.addEventListener('message', function (e) {
-    // csak a CRM domainről fogadunk üzenetet
     if (e.origin !== 'https://immopixels-crm.vercel.app') return;
     if (e.data && e.data.type === 'ip-booking-height' && e.data.height) {
-      frame.style.height = (e.data.height + 20) + 'px';
+      var h = Math.round(e.data.height);
+      // csak valódi változásnál méretezünk (megakadályozza a visszacsatolást)
+      if (Math.abs(h - current) > 3) {
+        current = h;
+        frame.style.height = h + 'px';
+      }
     }
   });
 })();

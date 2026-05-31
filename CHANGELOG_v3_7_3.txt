@@ -1,0 +1,7 @@
+# ImmoPixels CRM v3.7.3 — iframe magasság-fix
+## 2026-05-31
+- Javítva a végtelen-scroll / felfúvódó iframe: a /buchen oldal iframe-ben
+  már nem 100vh minimummal renderel (az visszacsatolt a magasság-jelentéssel),
+  hanem a tényleges tartalom magasságát méri (#ip-booking-root), és csak
+  valódi változáskor jelent. A WordPress beágyazó kód is csak >3px változásnál
+  méretez. Nincs több végtelen növekedés.

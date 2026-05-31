@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 
 const GOLD='#b8892a', CREAM='#faf7f0', DARK='#2a2a28'
@@ -15,6 +15,7 @@ export default function ManagePage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const mgAddrRef = useRef(null)
 
   // szerkesztő mezők
   const [date, setDate] = useState('')
@@ -44,6 +45,38 @@ export default function ManagePage() {
     setLoading(false)
   }
   useEffect(() => { if(token) load() }, [token])
+
+  // Google Places autocomplete a cím-mezőn (csak szerkesztés-módban)
+  useEffect(() => {
+    if (!editing) return
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!key) return
+    function initAC() {
+      const el = mgAddrRef.current
+      if (!el || el._acDone) return
+      if (!window.google?.maps?.places?.Autocomplete) return
+      el._acDone = true
+      const ac = new window.google.maps.places.Autocomplete(el, {
+        componentRestrictions: { country:'de' },
+        fields: ['formatted_address'],
+      })
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace()
+        const a = place.formatted_address || el.value
+        setForm(prev => ({ ...prev, address: a }))
+      })
+    }
+    if (window.google?.maps?.places?.Autocomplete) { setTimeout(initAC, 60) }
+    else if (!document.getElementById('gmap-buchen')) {
+      const s = document.createElement('script')
+      s.id = 'gmap-buchen'
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`
+      s.async = true; s.onload = () => setTimeout(initAC, 100); document.head.appendChild(s)
+    } else {
+      const t = setInterval(() => { if (window.google?.maps?.places?.Autocomplete) { clearInterval(t); initAC() } }, 200)
+      return () => clearInterval(t)
+    }
+  }, [editing])
 
   const is360 = b && b.serviceCategory !== 'Gespräch'
   const isDrone = b && b.serviceCategory === 'Immobilienfotografie' && (b.serviceName||'').toLowerCase().indexOf('drohne')===-1
@@ -95,7 +128,7 @@ export default function ManagePage() {
 
   return (
     <div style={{minHeight:'100vh',background:CREAM,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Lato',Arial,sans-serif",padding:20}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap'); .pac-container{z-index:99999 !important;font-family:'Lato',sans-serif !important;border-radius:8px !important}`}</style>
       <div style={{background:'#fff',border:'1px solid #e6ddc9',borderRadius:16,padding:'36px 32px',maxWidth:520,width:'100%'}}>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:24,fontWeight:600,color:DARK,marginBottom:20,textAlign:'center'}}>Ihr Termin</div>
         {loading ? <p style={{color:'#888',textAlign:'center'}}>Wird geladen…</p>
@@ -140,7 +173,7 @@ export default function ManagePage() {
             </div>
             <input placeholder="E-Mail" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={{...inp,marginTop:10}} />
             <input placeholder="Telefon" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={inp} />
-            <input placeholder="Adresse" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} style={inp} />
+            <input ref={mgAddrRef} placeholder="Adresse" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} style={inp} />
             {(is360||isDrone) && <div style={{display:'flex',gap:14,margin:'4px 0 10px'}}>
               {is360 && <label style={{fontSize:13,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.addon360} onChange={e=>{setForm({...form,addon360:e.target.checked});setTime('')}} /> 360° (+30m)</label>}
               {isDrone && <label style={{fontSize:13,display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}><input type="checkbox" checked={form.addonDrone} onChange={e=>{setForm({...form,addonDrone:e.target.checked});setTime('')}} /> Drohne (+15m)</label>}

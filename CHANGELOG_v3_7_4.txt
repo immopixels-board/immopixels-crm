@@ -1,0 +1,19 @@
+# ImmoPixels CRM v3.7.4 — Cím-autocomplete a szerkesztőkben + Törlés
+## 2026-05-31
+
+### Cím-autocomplete a szerkesztő felületeken
+- Admin Buchungen edit-ablak: a cím-mező most Google Places autocomplete-tel
+  (mint a /buchen oldalon) — felhozza a címjavaslatokat.
+- Ügyfél /buchung/[token] szerkesztő: ugyanígy autocomplete a cím-mezőn.
+- A javaslat-lista (.pac-container) a modál fölött jelenik meg (z-index fix).
+
+### Törlés (admin)
+- Új "Löschen" (kuka) gomb minden foglalás-kártyán a Buchungen adminban.
+- Megerősítő kérdés után: törli a Google naptár-eseményt ÉS a kártyát
+  (soft-delete a CRM kukájába, visszaállítható), majd eltűnik a listából.
+- Új API: /api/booking/delete. A /api/booking/list mostantól kiszűri a törölteket.
+
+### Megkülönböztetés
+- Stornieren = lemondás (státusz 'cancelled', naptár-esemény törölve, kártya megmarad
+  előzménynek, ügyfél emailt kap).
+- Löschen = végleges eltávolítás a listából (kártya a kukába, naptár-esemény törölve).
