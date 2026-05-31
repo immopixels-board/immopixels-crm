@@ -1,0 +1,10 @@
+# ImmoPixels CRM v3.3.5
+## 2026-05-31
+
+### GCal Booking Fix — Amelia-szerű megoldás
+- slots.js: nincs több direkt Google API hívás — a kártyák táblájából olvas (GCal + manuális)
+- Új /api/gcal/sync endpoint: szinkronizálja a GCal eseményeket a cards táblába
+- Webhook frissítve: GCal változáskor azonnal meghívja a sync-et (valós idejű)
+- Törlés kezelve: ha GCal-ból törölnek eseményt, a kártya is törlődik
+- vercel.json: sync cron napi 1x (Hobby plan kompatibilis)
+- Nincs több token timeout a booking folyamatban

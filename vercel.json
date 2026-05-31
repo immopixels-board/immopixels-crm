@@ -1,32 +1,12 @@
 {
   "framework": "nextjs",
-  "regions": [
-    "fra1"
-  ],
+  "regions": ["fra1"],
   "crons": [
-    {
-      "path": "/api/cron/backup",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/gcal-snapshot",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/gcal/watch",
-      "schedule": "0 5 * * 1"
-    },
-    {
-      "path": "/api/work/midnight",
-      "schedule": "59 23 * * *"
-    },
-    {
-      "path": "/api/cron/reminders",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/gcal/refresh",
-      "schedule": "0 5 * * *"
-    }
+    { "path": "/api/cron/backup",      "schedule": "0 2 * * *" },
+    { "path": "/api/cron/gcal-snapshot","schedule": "0 3 * * *" },
+    { "path": "/api/gcal/sync",        "schedule": "0 5 * * *" },
+    { "path": "/api/gcal/watch",       "schedule": "0 5 * * 1" },
+    { "path": "/api/work/midnight",    "schedule": "59 23 * * *" },
+    { "path": "/api/cron/reminders",   "schedule": "0 7 * * *" }
   ]
 }
