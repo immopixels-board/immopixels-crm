@@ -9,6 +9,7 @@ import { getDaySlots } from '@/lib/booking/slots'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 const CORS = {
   'Access-Control-Allow-Origin': '*', // iframe immopixels.de-ről; szűkíthető domainre

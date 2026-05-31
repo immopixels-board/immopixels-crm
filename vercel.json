@@ -26,7 +26,7 @@
     },
     {
       "path": "/api/gcal/refresh",
-      "schedule": "*/55 * * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }

@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 function getSupabase() {
   return createClient(
