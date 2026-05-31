@@ -73,7 +73,11 @@ export async function POST(req) {
 
   if (cardErr) return NextResponse.json({ error: 'save error' }, { status: 500, headers: CORS })
 
-  await supabase.from('card_team').insert({ card_id: card.id, staff_init: staffInit })
+  // card_team kapcsolótábla staff_id (UUID) mezőt vár — feloldjuk az init-ből
+  const { data: staffRow } = await supabase.from('staff').select('id').eq('init', staffInit).maybeSingle()
+  if (staffRow?.id) {
+    await supabase.from('card_team').insert({ card_id: card.id, staff_id: staffRow.id })
+  }
 
   // Email
   try {

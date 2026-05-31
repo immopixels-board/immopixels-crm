@@ -27,9 +27,7 @@ export async function POST() {
 
   let refreshed = 0
   for (const t of tokens) {
-    const exp = new Date(t.expires_at)
-    if (exp > new Date(Date.now() + 5*60*1000)) continue // 5+ perc van még
-
+    // Always refresh — don't trust stored expires_at (access_token may be stale)
     const res = await fetch('https://oauth2.googleapis.com/token', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},

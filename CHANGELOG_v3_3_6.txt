@@ -1,0 +1,29 @@
+# ImmoPixels CRM v3.3.6 — GCal Booking végleges (Amelia-modell)
+## 2026-05-31
+
+A foglaltság a Supabase `cards` táblából jön (GCal + manuális). A booking
+SOHA nem hív Google API-t → nincs token/timeout gond a foglalásnál.
+
+## Adatfolyam
+GCal esemény → webhook → /api/gcal/sync (token refresh + cards írás/törlés)
+→ /buchen a cards-ból olvas (azonnal). Napi cron + heti watch a háttérben.
+
+## Javított hibák (kódellenőrzés után)
+1. slots.js busyIntervals: NEM létező card_team.staff_init helyett staff_id-n
+   joinol a staff táblán keresztül → EZ volt a fő ok, amiért semmi nem blokkolt.
+2. pickLeastBusyProvider: ugyanaz a staff_init→staff_id javítás.
+3. create route: card_team insert staff_id-vel (staff_init helyett) → az online
+   foglalás végre hozzárendelődik a fotóshoz és blokkol.
+4. /api/gcal/sync: ÚJ — mindig friss tokent szerez a refresh_token-ből
+   (nem bízik a tárolt access_token-ben), Berlin időzóna, fotósonkénti
+   törlés-kezelés (nem törli ki a másik fotós kártyáit), 3 hónap előre.
+5. /api/gcal/refresh: a hibás "ha 5+ perc van hátra, kihagy" feltétel törölve.
+6. webhook: csak triggereli a sync-et (valós idejű).
+7. BuchenClient: "Invalid Date" hiba védve.
+8. cards tábla: booking_end_time oszlop hozzáadva (Supabase mig
+   — már lefuttatva).
+
+## Egyszeri teendő deploy után
+1. curl -X POST .../api/gcal/sync   → feltölti a cards táblát a jövő eseményeivel
+2. /api/gcal/watch regisztrálása    → valós idejű webhook (opcionális, a napi
+   cron e nélkül is frissít)

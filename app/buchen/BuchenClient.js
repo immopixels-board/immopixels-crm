@@ -91,6 +91,11 @@ export default function BuchenClient() {
   }
 
   const minDate = new Date(Date.now()+86400000).toISOString().slice(0,10)
+  const fmtDate = (d, opts) => {
+    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return ''
+    const dt = new Date(d+'T12:00')
+    return isNaN(dt) ? '' : dt.toLocaleDateString('de-DE', opts)
+  }
   const can = { 2:!!service, 3:!!date&&!!time, 4:!!addr.address&&!!addr.plz, 5:contact.name&&/\S+@\S+/.test(contact.email) }
 
   // Provider availability for selected date
@@ -203,7 +208,7 @@ export default function BuchenClient() {
                 <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
                   <div style={{fontWeight:700,color:DARK}}>{service.name}</div>
                   <div style={{color:'#888',marginTop:2}}>ca. {service.dur} Min.</div>
-                  {time && <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {new Date(date+'T12:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>}
+                  {time && <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>}
                 </div>
               )}
             </div>
@@ -267,7 +272,7 @@ export default function BuchenClient() {
             <div style={{fontWeight:700,color:DARK,marginBottom:6}}>Zusammenfassung</div>
             <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'4px 12px',fontSize:12,color:'#555'}}>
               <span>Leistung:</span><span style={{fontWeight:700,color:DARK}}>{service?.name}</span>
-              <span>Termin:</span><span style={{fontWeight:700,color:GOLD}}>{new Date(date+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'})} · {time} Uhr</span>
+              <span>Termin:</span><span style={{fontWeight:700,color:GOLD}}>{fmtDate(date,{weekday:'long',day:'2-digit',month:'long'})} · {time} Uhr</span>
               <span>Adresse:</span><span>{addr.address}</span>
             </div>
           </div>

@@ -4,127 +4,158 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
+// Csak az aktív foglalós fotósok naptárai (CD, DB). EL inaktív.
 const CALS = [
   { id: 'immopixels@gmail.com', init: 'CD' },
   { id: '66d96a2869c084e8e329d2905619613afbdbbe253fc72b1de8a83cb8a424f966@group.calendar.google.com', init: 'DB' },
 ]
 
+const CD_STAFF_ID = 'af92ceb7-53cc-423c-b24d-b2d306326244'
+
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 }
 
-async function getToken(supabase) {
+// Berlin-ido "HH:MM" egy ISO datetime-bol (a szerver UTC, ezert explicit tz kell)
+function berlinHHMM(iso) {
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date(iso))
+}
+// Berlin-datum "YYYY-MM-DD" egy ISO datetime-bol
+function berlinDate(iso) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(iso))
+}
+
+// Mindig friss access_token a refresh_token-bol (nem bizunk a tarolt access_token-ben)
+async function getFreshToken(supabase) {
   const { data } = await supabase.from('gcal_tokens')
-    .select('access_token, refresh_token, expires_at, id')
-    .eq('staff_id', 'af92ceb7-53cc-423c-b24d-b2d306326244')
+    .select('id, refresh_token')
+    .eq('staff_id', CD_STAFF_ID)
     .maybeSingle()
-  if (!data) return null
-  // Always refresh token to ensure it's valid
-  if (data.refresh_token) {
-    const res = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        refresh_token: data.refresh_token,
-        grant_type: 'refresh_token',
-      })
-    })
-    const refreshed = await res.json()
-    if (refreshed.access_token) {
-      await supabase.from('gcal_tokens').update({
-        access_token: refreshed.access_token,
-        expires_at: new Date(Date.now() + (refreshed.expires_in||3600)*1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', data.id)
-      return refreshed.access_token
-    }
+  if (!data?.refresh_token) return null
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      refresh_token: data.refresh_token,
+      grant_type: 'refresh_token',
+    }),
+  })
+  const j = await res.json()
+  if (!j.access_token) {
+    console.error('[sync] token refresh failed', j.error, j.error_description)
+    return null
   }
-  return data.access_token
+  await supabase.from('gcal_tokens').update({
+    access_token: j.access_token,
+    expires_at: new Date(Date.now() + (j.expires_in || 3600) * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', data.id)
+  return j.access_token
 }
 
 async function doSync() {
   const supabase = sb()
-  const token = await getToken(supabase)
-  if (!token) return { ok: false, reason: 'no token' }
+  const token = await getFreshToken(supabase)
+  if (!token) return { ok: false, reason: 'token refresh failed' }
 
   const { data: staffList } = await supabase.from('staff').select('id, init')
   const { data: cols } = await supabase.from('columns').select('id, title')
-  const shootingsCol = (cols||[]).find(c => c.title?.toLowerCase().includes('shooting')) || (cols||[])[0]
+  const shootingsCol =
+    (cols || []).find(c => c.title && c.title.toLowerCase().includes('shooting')) || (cols || [])[0]
   if (!shootingsCol) return { ok: false, reason: 'no column' }
 
   const now = new Date()
   const timeMin = now.toISOString()
   const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
 
-  let totalCreated = 0, totalUpdated = 0, totalDeleted = 0
+  let created = 0, updated = 0, deleted = 0
 
   for (const cal of CALS) {
-    const r = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
-      { headers: { Authorization: 'Bearer ' + token } }
-    )
-    if (!r.ok) continue
-    const { items = [] } = await r.json()
-
-    const staffMember = (staffList||[]).find(s => s.init === cal.init)
+    const staffMember = (staffList || []).find(s => s.init === cal.init)
     if (!staffMember) continue
 
-    const { data: existing } = await supabase.from('cards')
-      .select('id, gcal_id, card_date, card_time')
+    const r = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(cal.id) + '/events' +
+      '?timeMin=' + encodeURIComponent(timeMin) + '&timeMax=' + encodeURIComponent(timeMax) +
+      '&singleEvents=true&orderBy=startTime&maxResults=2500',
+      { headers: { Authorization: 'Bearer ' + token } }
+    )
+    if (!r.ok) {
+      const err = await r.text()
+      console.error('[sync] GCal error', cal.init, r.status, err.slice(0, 200))
+      continue
+    }
+    const body = await r.json()
+    const items = body.items || []
+
+    // FONTOS: csak EHHEZ A FOTOSHOZ tartozo GCal kartyakat nezzuk,
+    // kulonben a masik fotos kartyait kitorolnenk.
+    const { data: existingRows } = await supabase
+      .from('cards')
+      .select('id, gcal_id, card_date, card_time, card_team!inner(staff_id)')
       .eq('is_gcal', true)
       .not('gcal_id', 'is', null)
+      .eq('card_team.staff_id', staffMember.id)
 
     const existingMap = {}
-    for (const c of existing||[]) existingMap[c.gcal_id] = c
+    for (const c of existingRows || []) existingMap[c.gcal_id] = c
 
     const activeIds = new Set()
 
     for (const ev of items) {
       if (ev.status === 'cancelled') continue
-      if (!ev.start?.dateTime && !ev.start?.date) continue
+      if (!ev.start || !ev.start.dateTime) continue // csak idopontos esemenyek
+
       const gcal_id = ev.id
-      const date = (ev.start.dateTime || ev.start.date).slice(0, 10)
-      const time = ev.start.dateTime
-        ? new Date(ev.start.dateTime).toLocaleTimeString('de', { hour: '2-digit', minute: '2-digit' })
-        : '08:00'
-      const endTime = ev.end?.dateTime
-        ? new Date(ev.end.dateTime).toLocaleTimeString('de', { hour: '2-digit', minute: '2-digit' })
-        : null
+      const date = berlinDate(ev.start.dateTime)
+      const time = berlinHHMM(ev.start.dateTime)
+      const endTime = ev.end && ev.end.dateTime ? berlinHHMM(ev.end.dateTime) : null
       activeIds.add(gcal_id)
+
       const ex = existingMap[gcal_id]
       if (ex) {
-        if (ex.card_date !== date || (ex.card_time?.slice(0,5)||'') !== (time||'')) {
+        const exTime = (ex.card_time || '').slice(0, 5)
+        if (ex.card_date !== date || exTime !== time) {
           await supabase.from('cards').update({
             card_date: date, card_time: time, booking_end_time: endTime,
             title: ev.summary || date, addr: ev.location || '',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           }).eq('id', ex.id)
-          totalUpdated++
+          updated++
         }
       } else {
-        const { data: newCard } = await supabase.from('cards').insert({
+        const ins = await supabase.from('cards').insert({
           column_id: shootingsCol.id,
           title: ev.summary || date,
           addr: ev.location || '',
-          card_date: date, card_time: time, booking_end_time: endTime,
+          card_date: date,
+          card_time: time,
+          booking_end_time: endTime,
           is_gcal: true, is_todo: false, price: 0, position: 9999, note: '', gcal_id,
-        }).select().single()
-        if (newCard?.id) {
-          await supabase.from('card_team').insert({ card_id: newCard.id, staff_id: staffMember.id })
-          totalCreated++
+        }).select('id').single()
+        if (ins.data && ins.data.id) {
+          await supabase.from('card_team').insert({ card_id: ins.data.id, staff_id: staffMember.id })
+          created++
         }
       }
     }
-    for (const [gcal_id, card] of Object.entries(existingMap)) {
+
+    for (const gcal_id of Object.keys(existingMap)) {
       if (!activeIds.has(gcal_id)) {
-        await supabase.from('cards').delete().eq('id', card.id)
-        totalDeleted++
+        await supabase.from('cards').delete().eq('id', existingMap[gcal_id].id)
+        deleted++
       }
     }
   }
-  return { ok: true, created: totalCreated, updated: totalUpdated, deleted: totalDeleted }
+
+  return { ok: true, created, updated, deleted }
 }
 
 export async function POST() { return NextResponse.json(await doSync()) }
