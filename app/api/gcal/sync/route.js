@@ -19,8 +19,8 @@ async function getToken(supabase) {
     .eq('staff_id', 'af92ceb7-53cc-423c-b24d-b2d306326244')
     .maybeSingle()
   if (!data) return null
-  const exp = new Date(data.expires_at)
-  if (exp < new Date(Date.now() + 2*60*1000) && data.refresh_token) {
+  // Always refresh token to ensure it's valid
+  if (data.refresh_token) {
     const res = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
