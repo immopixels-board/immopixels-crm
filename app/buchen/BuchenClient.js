@@ -219,6 +219,7 @@ export default function BuchenClient() {
                       <CatCircle svc={s} selected={service?.id===s.id} />
                       <span style={{display:'flex',flexDirection:'column',gap:2}}>
                         <span style={{fontSize:13,fontWeight:700,color:DARK}}>{s.name}</span>
+                        {s.description && <span style={{fontSize:11,color:'#888',lineHeight:1.35}}>{s.description}</span>}
                         <span style={{fontSize:11,color:GOLD}}>ca. {s.duration_min} Min.</span>
                       </span>
                     </button>

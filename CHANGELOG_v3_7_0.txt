@@ -1,0 +1,30 @@
+# ImmoPixels CRM v3.7.0 — Teljes Booking-admin
+## 2026-05-31
+
+### Buchungen admin (teljesen újraírva)
+- Az összes online foglalás egy helyen, teljes ügyféladattal (név, email, telefon,
+  cím, megjegyzés, fotós, státusz) — szolgáltatás-választás NÉLKÜL.
+- Két nézet: LISTE (kártyák) és KALENDER (heti naptárnézet, fotós-szín szerinti blokkok).
+- Szerkesztés: dátum, idő (élő szabad slotokkal + ⚠ útidő-jelzés), név, email, telefon,
+  cím, anmerkung, addonok. Mentéskor:
+    → kártya frissül, Google naptár frissül, és email megy a Kunde + Team címre.
+- Bestätigen / Stornieren gombok (a naptárral + emaillel szinkronban).
+- Státusz-szűrő: Alle / In Prüfung / Bestätigt / Storniert.
+
+### Leistungen szerkesztő (/admin/leistungen, kibővítve)
+- Minden szolgáltatás szerkeszthető: Name, Kurzbeschreibung (mint Amelián),
+  Dauer, Puffer, Aktiv-kapcsoló, kör-kép.
+- A leírás megjelenik a foglalási oldalon a szolgáltatás alatt.
+- Elérhető a Buchungen admin "Leistungen" gombjáról is.
+
+### Navigáció
+- "Amelia" és "Google Kalender" menük eltávolítva a felső sávból és a mobil menüből.
+- A mobil "Kalender" gomb most a valódi naptárra mutat.
+
+### Technikai
+- booking_services.description oszlop (migráció lefuttatva).
+- /api/booking/config: description visszaadva.
+- /api/booking/service-image: általános szolgáltatás-mentő (name, description,
+  duration_min, buffer_min, active, image_url).
+- BuchungenView a /api/booking/list + manage + update + confirm + cancel + slots
+  endpontokat használja (a régi WordPress Amelia API helyett).

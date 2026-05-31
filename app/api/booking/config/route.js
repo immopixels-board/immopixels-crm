@@ -26,7 +26,7 @@ export async function GET() {
 
   const { data: services } = await supabase
     .from('booking_services')
-    .select('id, name, category, duration_min, buffer_min, position, active, image_url')
+    .select('id, name, category, duration_min, buffer_min, position, active, image_url, description')
     .eq('active', true)
     .order('position')
 
