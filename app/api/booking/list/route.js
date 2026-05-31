@@ -10,7 +10,7 @@ export async function GET(req) {
   const dateFrom = sp.get('date_from')
 
   let q = supabase.from('cards')
-    .select('id, title, client_name, customer_email, customer_phone, card_date, card_time, booking_end_time, booking_address, description, booking_status, booking_token, booking_service_id, addon_360, addon_drone, card_team(staff_id, staff:staff_id(init,name,avatar_url,color))')
+    .select('id, title, client_name, customer_email, customer_phone, card_date, card_time, booking_end_time, booking_address, description, booking_status, booking_token, booking_service_id, addon_360, addon_drone, card_team(staff_id, staff:staff_id(init,name,avatar_url,color,address))')
     .eq('booking_source', 'online')
     .order('card_date', { ascending: true })
     .limit(200)

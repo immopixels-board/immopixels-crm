@@ -18,6 +18,23 @@ export default function BuchungenView({ supabase, staff }) {
   const [mode, setMode] = useState('list') // list | calendar
   const [weekStart, setWeekStart] = useState(()=>mondayOf(new Date()))
   const [updating, setUpdating] = useState(null)
+  const [routeOpen, setRouteOpen] = useState(null) // booking id
+  const [routeInfo, setRouteInfo] = useState({})   // id → {dist,dur,loading}
+  const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const BASE_ADDR = 'Gartenstraße 2, 67310 Hettenleidelheim, Germany'
+
+  function toggleRoute(b) {
+    if (routeOpen === b.id) { setRouteOpen(null); return }
+    setRouteOpen(b.id)
+    if (!routeInfo[b.id]) {
+      const origin = b.staff?.address || BASE_ADDR
+      setRouteInfo(p => ({ ...p, [b.id]: { loading:true } }))
+      fetch('/api/fahrtenbuch/distance', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ stops:[origin, b.booking_address] }) })
+        .then(r=>r.json())
+        .then(d=>{ const leg=d.legs?.[0]; setRouteInfo(p=>({ ...p, [b.id]: { dist:leg?.distanceText||'—', dur:leg?.durationText||'—', loading:false } })) })
+        .catch(()=>setRouteInfo(p=>({ ...p, [b.id]: { dist:'—', dur:'—', loading:false } })))
+    }
+  }
 
   // edit modal
   const [editTok, setEditTok] = useState(null)
@@ -173,7 +190,39 @@ export default function BuchungenView({ supabase, staff }) {
                       <i className="ti ti-x" style={{fontSize:11}} /> Stornieren
                     </button>
                   </>}
+                  <button onClick={()=>toggleRoute(b)} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid '+(routeOpen===b.id?'#1d5ec7':'var(--border)'), background:routeOpen===b.id?'#1d5ec714':'var(--bg3)', color:routeOpen===b.id?'#1d5ec7':'var(--t2)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                    <i className={'ti '+(routeOpen===b.id?'ti-chevron-up':'ti-route')} style={{fontSize:11}} /> Route
+                  </button>
                 </div>
+
+                {/* Route lenyíló: fotós címe → shooting cím */}
+                {routeOpen===b.id && (
+                  <div style={{ marginTop:10, border:'0.5px solid var(--border)', borderRadius:10, overflow:'hidden', background:'var(--bg3)' }}>
+                    <div style={{ padding:'8px 12px', fontSize:11, color:'var(--t2)', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', borderBottom:'0.5px solid var(--border)' }}>
+                      <span><i className="ti ti-home" style={{fontSize:11,color:staffColor(b.staff?.init)}} /> {b.staff?.name||'Basis'}: <span style={{color:'var(--t3)'}}>{(b.staff?.address||BASE_ADDR).split(',')[0]}</span></span>
+                      <span style={{color:'var(--t3)'}}>→</span>
+                      <span><i className="ti ti-map-pin" style={{fontSize:11,color:'#b91c1c'}} /> {(b.booking_address||'').split(',')[0]}</span>
+                      <span style={{ marginLeft:'auto', fontWeight:700, color:'#1d5ec7' }}>
+                        {routeInfo[b.id]?.loading ? '⟳ …' : `${routeInfo[b.id]?.dist||'—'} · ${routeInfo[b.id]?.dur||'—'}`}
+                      </span>
+                    </div>
+                    {MAPS_KEY ? (
+                      <iframe
+                        title={'route-'+b.id}
+                        width="100%" height="260" style={{ border:0, display:'block' }}
+                        loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/directions?key=${MAPS_KEY}&origin=${encodeURIComponent(b.staff?.address||BASE_ADDR)}&destination=${encodeURIComponent(b.booking_address||'')}&mode=driving`}
+                      />
+                    ) : <div style={{padding:12,fontSize:11,color:'var(--t3)'}}>Kein Maps-Key konfiguriert.</div>}
+                    <div style={{ padding:'8px 12px', borderTop:'0.5px solid var(--border)' }}>
+                      <a href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(b.staff?.address||BASE_ADDR)}&destination=${encodeURIComponent(b.booking_address||'')}&travelmode=driving`}
+                        target="_blank" rel="noopener"
+                        style={{ fontSize:11, fontWeight:700, color:'#1d5ec7', textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5 }}>
+                        <i className="ti ti-external-link" style={{fontSize:12}} /> Route in Google Maps öffnen
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })

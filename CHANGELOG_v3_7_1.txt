@@ -1,0 +1,17 @@
+# ImmoPixels CRM v3.7.1 — Route-Vorschau a Buchungen adminban
+## 2026-05-31
+
+### Útvonal-előnézet minden terminnél (admin)
+- A Buchungen lista minden kártyáján egy "Route" gomb → lenyíló panel:
+  • Beágyazott Google Maps útvonal: a FOTÓS saját címe → a shooting címe
+    (CD: Hettenleidelheim, DB/EL: saját profilcím — staff.address-ből)
+  • Távolság + becsült útidő (km · perc) szövegesen (forgalom NÉLKÜL, fix)
+  • "Route in Google Maps öffnen" külső link (teljes navigáció)
+- Így egy pillantással eldönthető, belefér-e a termin — nem kell kézzel csekkolni.
+
+### Technikai
+- /api/booking/list: a hozzárendelt fotós address mezője is visszaadva.
+- Beágyazott térkép: Google Maps Embed API (directions) a
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY-vel. Távolság: a meglévő
+  /api/fahrtenbuch/distance (Distance Matrix) végpont.
+- Origin fallback: ha a fotósnak nincs címe, a bázis (Hettenleidelheim).
