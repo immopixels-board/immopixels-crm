@@ -173,7 +173,7 @@ export default function BuchenClient() {
   )
   const CatCircle = ({ svc, selected }) => (
     <div style={{ width:54, height:54, borderRadius:'50%', flexShrink:0, overflow:'hidden',
-      border: selected?`2px solid ${GOLD}`:'2px solid #e6ddc9', background:'#f0ece4',
+      border: selected?`2px solid ${GOLD}`:'2px solid #e6ddc9', background:'#fff',
       display:'flex', alignItems:'center', justifyContent:'center' }}>
       {svc.image_url ? <img src={svc.image_url} alt={svc.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
         : <span style={{fontSize:22}}>{svc.category==='Immobilienvideo'?'🎬':svc.category==='Gespräch'?'💬':'📷'}</span>}
@@ -188,12 +188,13 @@ export default function BuchenClient() {
         @keyframes ipf{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
         .ip-slot{padding:9px 0;font-size:13px;border:0.5px solid #e6ddc9;border-radius:7px;background:#fff;cursor:pointer;color:${DARK};text-align:center;transition:all .12s;position:relative}
         .ip-slot:hover{border-color:${GOLD};color:${GOLD}}
-        .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
-        .ip-slot.busy{background:#f9f9f9;color:#bbb;cursor:not-allowed;text-decoration:line-through}
         .ip-slot.warn{border-color:#e0a82e;background:#fffbf0}
-        .ip-svc{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:0.5px solid #e6ddc9;border-radius:12px;cursor:pointer;transition:all .12s;text-align:left;width:100%}
-        .ip-svc:hover{border-color:${GOLD}}
-        .ip-svc.sel{border-color:${GOLD};border-width:1.5px;background:#b8892a08}
+        .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
+        .ip-slot.warn.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
+        .ip-slot.busy{background:#f9f9f9;color:#bbb;cursor:not-allowed;text-decoration:line-through}
+        .ip-svc{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:0.5px solid #e6ddc9;border-radius:12px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;text-align:left;width:100%;position:relative}
+        .ip-svc:hover{border-color:${GOLD};transform:scale(1.025);box-shadow:0 6px 18px rgba(0,0,0,.08);z-index:2}
+        .ip-svc.sel{border-color:${GOLD};border-width:1.5px;background:#b8892a08;transform:scale(1.025);box-shadow:0 6px 18px rgba(184,137,42,.18);z-index:1}
         input,textarea{width:100%;padding:11px 14px;font-size:14px;border:0.5px solid #e6ddc9;border-radius:8px;margin-bottom:10px;box-sizing:border-box;background:#fff;color:${DARK};font-family:inherit;outline:none}
         input:focus,textarea:focus{border-color:${GOLD}}
         input.req-empty{border-color:#e3b7b7}
@@ -241,7 +242,7 @@ export default function BuchenClient() {
                       <CatCircle svc={s} selected={service?.id===s.id} />
                       <span style={{display:'flex',flexDirection:'column',gap:2}}>
                         <span style={{fontSize:13,fontWeight:700,color:DARK}}>{s.name}</span>
-                        {s.description && <span style={{fontSize:11,color:'#888',lineHeight:1.35}}>{s.description}</span>}
+                        {s.description && <span style={{fontSize:11,color:'#888',lineHeight:1.35}} dangerouslySetInnerHTML={{__html:s.description}} />}
                         <span style={{fontSize:11,color:GOLD}}>ca. {s.duration_min} Min.</span>
                       </span>
                     </button>

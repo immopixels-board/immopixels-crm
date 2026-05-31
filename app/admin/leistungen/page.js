@@ -3,6 +3,28 @@ import { useState, useEffect, useRef } from 'react'
 
 const GOLD = '#b8892a', DARK = '#2a2a28'
 
+// --- Rich-text szerkesztő (félkövér / dőlt / aláhúzott) ---
+function RichText({ value, onChange }) {
+  const ref = useRef(null)
+  useEffect(() => { if (ref.current && ref.current.innerHTML !== (value||'')) ref.current.innerHTML = value || '' }, [])
+  const cmd = (c) => { document.execCommand(c, false, null); if (ref.current){ ref.current.focus(); onChange(ref.current.innerHTML) } }
+  const btn = { width:30, height:28, border:'0.5px solid #e6ddc9', background:'#fff', borderRadius:5, cursor:'pointer', fontSize:13, color:DARK, display:'inline-flex', alignItems:'center', justifyContent:'center' }
+  return (
+    <div>
+      <div style={{display:'flex',gap:4,marginBottom:5}}>
+        <button type="button" onMouseDown={e=>{e.preventDefault();cmd('bold')}} style={{...btn,fontWeight:800}}>B</button>
+        <button type="button" onMouseDown={e=>{e.preventDefault();cmd('italic')}} style={{...btn,fontStyle:'italic'}}>I</button>
+        <button type="button" onMouseDown={e=>{e.preventDefault();cmd('underline')}} style={{...btn,textDecoration:'underline'}}>U</button>
+        <button type="button" onMouseDown={e=>{e.preventDefault();cmd('removeFormat')}} title="Formatierung entfernen" style={{...btn,width:'auto',padding:'0 8px',fontSize:11,color:'#999'}}>✕ Format</button>
+      </div>
+      <div ref={ref} contentEditable suppressContentEditableWarning
+        onInput={()=>onChange(ref.current.innerHTML)}
+        data-ph="z.B. Professionelle Innen- und Außenaufnahmen…"
+        style={{minHeight:50,padding:'9px 11px',fontSize:13,border:'0.5px solid #e6ddc9',borderRadius:7,background:'#fff',color:DARK,outline:'none',lineHeight:1.4}} />
+    </div>
+  )
+}
+
 export default function AdminLeistungen() {
   const [services, setServices] = useState([])
   const [providers, setProviders] = useState([])
@@ -47,12 +69,7 @@ export default function AdminLeistungen() {
   }
 
   async function toggleProvider(svc, provId, on) {
-    // optimista frissítés
-    setAssignments(a => {
-      const list = new Set(a[svc.id]||[])
-      on ? list.add(provId) : list.delete(provId)
-      return { ...a, [svc.id]:[...list] }
-    })
+    setAssignments(a => { const list=new Set(a[svc.id]||[]); on?list.add(provId):list.delete(provId); return { ...a, [svc.id]:[...list] } })
     try { await api({ action: on?'assign':'unassign', service_id:svc.id, provider_id:provId }) }
     catch(e){ alert(e.message); load() }
   }
@@ -79,9 +96,23 @@ export default function AdminLeistungen() {
     setSaving(null)
   }
 
+  async function move(svc, dir) {
+    setSaving(svc.id)
+    try { await api({ action:'move', id:svc.id, dir }); await load() }
+    catch(e){ alert(e.message) }
+    setSaving(null)
+  }
+
+  // FONTOS: átlátszó PNG → fehér háttér (nem fekete), kör 1:1 kivágással
   function resizeToDataURL(file, cb) {
     const reader = new FileReader()
-    reader.onload = e => { const img=new Image(); img.onload=()=>{ const size=Math.min(img.width,img.height); const c=document.createElement('canvas'); c.width=300;c.height=300; const x=c.getContext('2d'); x.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,300,300); cb(c.toDataURL('image/jpeg',0.8)) }; img.src=e.target.result }
+    reader.onload = e => { const img=new Image(); img.onload=()=>{
+      const size=Math.min(img.width,img.height); const c=document.createElement('canvas'); c.width=300;c.height=300
+      const x=c.getContext('2d')
+      x.fillStyle='#ffffff'; x.fillRect(0,0,300,300)  // fehér háttér átlátszó PNG-hez
+      x.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,300,300)
+      cb(c.toDataURL('image/jpeg',0.9))
+    }; img.src=e.target.result }
     reader.readAsDataURL(file)
   }
   function onPick(svc, file) {
@@ -97,37 +128,46 @@ export default function AdminLeistungen() {
   const inp = { width:'100%', padding:'9px 11px', fontSize:13, border:'0.5px solid #e6ddc9', borderRadius:7, boxSizing:'border-box', fontFamily:'inherit', outline:'none', background:'#fff', color:DARK }
   const lbl = { fontSize:10, fontWeight:700, color:'#999', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:4, display:'block' }
 
+  // fotós-avatar pötty
+  const Avatar = ({ p, on, onClick, size=42 }) => (
+    <button type="button" onClick={onClick} title={p.name}
+      style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', padding:0, opacity:on?1:0.4, transition:'opacity .12s,transform .12s', transform:on?'scale(1)':'scale(.96)' }}>
+      <span style={{ position:'relative', width:size, height:size, borderRadius:'50%', overflow:'hidden', background:'#fff',
+        border: on?`2.5px solid ${p.color||GOLD}`:'2px solid #ddd', display:'flex', alignItems:'center', justifyContent:'center', boxSizing:'border-box' }}>
+        {p.avatar_url ? <img src={p.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',filter:on?'none':'grayscale(1)'}} />
+          : <span style={{fontSize:size*0.4,fontWeight:700,color:p.color||GOLD}}>{p.staff_init}</span>}
+        {on && <span style={{position:'absolute',right:-1,bottom:-1,width:15,height:15,borderRadius:'50%',background:'#15803d',border:'2px solid #fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,color:'#fff'}}>✓</span>}
+      </span>
+      <span style={{fontSize:10,fontWeight:on?700:400,color:on?DARK:'#999'}}>{p.name.split(' ')[0]}</span>
+    </button>
+  )
+
   return (
     <div style={{minHeight:'100vh',background:'#f4f2ef',fontFamily:'Arial,sans-serif',padding:'28px 20px'}}>
+      <style>{`[contenteditable][data-ph]:empty:before{content:attr(data-ph);color:#bbb}`}</style>
       <datalist id="ip-cats">{categories.map(c=><option key={c} value={c} />)}</datalist>
       <div style={{maxWidth:820,margin:'0 auto'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:10}}>
           <h1 style={{fontSize:22,fontWeight:700,color:DARK,margin:0}}>Leistungen verwalten</h1>
           <button onClick={()=>setShowNew(v=>!v)} style={{padding:'8px 16px',fontSize:13,fontWeight:700,background:GOLD,color:'#fff',border:'none',borderRadius:8,cursor:'pointer'}}>+ Neue Leistung</button>
         </div>
-        <p style={{fontSize:13,color:'#8a8278',marginBottom:20}}>Name, Kategorie, Beschreibung, Dauer, Bild und zugeordnete Mitarbeiter bearbeiten.</p>
+        <p style={{fontSize:13,color:'#8a8278',marginBottom:20}}>Name, Kategorie, Beschreibung (mit Formatierung), Reihenfolge, Bild und zugeordnete Mitarbeiter bearbeiten.</p>
 
-        {/* Mitarbeiter aktiv-kapcsolók */}
-        <div style={{background:'#fff',border:'1px solid #e6ddc9',borderRadius:12,padding:'12px 16px',marginBottom:18}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#999',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:8}}>Mitarbeiter (für Buchungen aktiv)</div>
-          <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
-            {providers.map(p=>(
-              <label key={p.id} style={{display:'flex',alignItems:'center',gap:7,fontSize:13,color:DARK,cursor:'pointer'}}>
-                <input type="checkbox" checked={!!p.active} onChange={()=>toggleProviderActive(p)} />
-                <span style={{fontWeight:700}}>{p.name}</span>
-                <span style={{fontSize:11,color:p.active?'#15803d':'#b91c1c'}}>{p.active?'aktiv':'inaktiv'}</span>
-              </label>
-            ))}
+        {/* Mitarbeiter aktiv */}
+        <div style={{background:'#fff',border:'1px solid #e6ddc9',borderRadius:12,padding:'14px 16px',marginBottom:18}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#999',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:10}}>Mitarbeiter (für Buchungen aktiv)</div>
+          <div style={{display:'flex',gap:22,flexWrap:'wrap'}}>
+            {providers.map(p=><Avatar key={p.id} p={p} on={!!p.active} onClick={()=>toggleProviderActive(p)} size={46} />)}
           </div>
         </div>
 
-        {/* Neue Leistung űrlap */}
+        {/* Neue Leistung */}
         {showNew && (
           <div style={{background:'#fff',border:'1.5px solid '+GOLD,borderRadius:12,padding:16,marginBottom:18}}>
             <div style={{fontSize:13,fontWeight:700,color:DARK,marginBottom:10}}>Neue Leistung anlegen</div>
             <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr 1fr',gap:10,alignItems:'flex-end'}}>
               <div><label style={lbl}>Name</label><input value={nf.name} onChange={e=>setNf({...nf,name:e.target.value})} style={inp} /></div>
-              <div><label style={lbl}>Kategorie</label><input list="ip-cats" value={nf.category} onChange={e=>setNf({...nf,category:e.target.value})} placeholder="bestehend wählen oder neu" style={inp} /></div>
+              <div><label style={lbl}>Kategorie</label><input list="ip-cats" value={nf.category} onChange={e=>setNf({...nf,category:e.target.value})} placeholder="wählen oder neu" style={inp} /></div>
               <div><label style={lbl}>Dauer</label><input type="number" value={nf.duration_min} onChange={e=>setNf({...nf,duration_min:e.target.value})} style={inp} /></div>
               <div><label style={lbl}>Puffer</label><input type="number" value={nf.buffer_min} onChange={e=>setNf({...nf,buffer_min:e.target.value})} style={inp} /></div>
             </div>
@@ -140,35 +180,37 @@ export default function AdminLeistungen() {
 
         {loading ? <div style={{color:'#8a8278'}}>Wird geladen…</div> : (
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            {services.map(svc => (
+            {services.map((svc,i) => (
               <div key={svc.id} style={{background:'#fff',border:'1px solid #e6ddc9',borderRadius:12,padding:16,opacity:svc.active?1:0.6}}>
                 <div style={{display:'flex',gap:16}}>
+                  {/* sorrend nyilak */}
+                  <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:4,flexShrink:0}}>
+                    <button onClick={()=>move(svc,'up')} disabled={i===0||saving===svc.id} title="Nach oben" style={{width:26,height:24,border:'0.5px solid #e6ddc9',background:'#fff',borderRadius:5,cursor:i===0?'default':'pointer',color:i===0?'#ddd':'#888',fontSize:11}}>▲</button>
+                    <button onClick={()=>move(svc,'down')} disabled={i===services.length-1||saving===svc.id} title="Nach unten" style={{width:26,height:24,border:'0.5px solid #e6ddc9',background:'#fff',borderRadius:5,cursor:i===services.length-1?'default':'pointer',color:i===services.length-1?'#ddd':'#888',fontSize:11}}>▼</button>
+                  </div>
+                  {/* kép */}
                   <div style={{flexShrink:0,textAlign:'center'}}>
-                    <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',background:'#f0ece4',border:'2px solid #e6ddc9',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>
+                    <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',background:'#fff',border:'2px solid #e6ddc9',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>
                       {svc.image_url ? <img src={svc.image_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <span style={{fontSize:30}}>{svc.category==='Immobilienvideo'?'🎬':svc.category==='Gespräch'?'💬':'📷'}</span>}
                     </div>
                     <input type="file" accept="image/*" style={{display:'none'}} ref={el=>fileRefs.current[svc.id]=el} onChange={e=>onPick(svc,e.target.files?.[0])} />
                     <button onClick={()=>fileRefs.current[svc.id]?.click()} disabled={saving===svc.id} style={{padding:'5px 10px',fontSize:11,fontWeight:700,background:'#f0ece4',color:GOLD,border:'none',borderRadius:6,cursor:'pointer'}}>{svc.image_url?'Bild ändern':'Bild +'}</button>
                   </div>
+                  {/* mezők */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'grid',gridTemplateColumns:'2fr 1.4fr',gap:10,marginBottom:10}}>
                       <div><label style={lbl}>Name</label><input value={svc.name||''} onChange={e=>setField(svc.id,'name',e.target.value)} style={inp} /></div>
                       <div><label style={lbl}>Kategorie</label><input list="ip-cats" value={svc.category||''} onChange={e=>setField(svc.id,'category',e.target.value)} style={inp} /></div>
                     </div>
                     <div style={{marginBottom:10}}><label style={lbl}>Kurzbeschreibung (auf der Buchungsseite sichtbar)</label>
-                      <textarea value={svc.description||''} onChange={e=>setField(svc.id,'description',e.target.value)} placeholder="z.B. Professionelle Innen- und Außenaufnahmen…" style={{...inp,minHeight:50,resize:'vertical'}} /></div>
+                      <RichText value={svc.description} onChange={html=>setField(svc.id,'description',html)} /></div>
 
                     <div style={{marginBottom:10}}>
                       <label style={lbl}>Mitarbeiter zugeordnet</label>
-                      <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
+                      <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
                         {providers.map(p=>{
-                          const on = (assignments[svc.id]||[]).includes(p.id)
-                          return (
-                            <label key={p.id} style={{display:'flex',alignItems:'center',gap:6,fontSize:13,color:DARK,cursor:'pointer'}}>
-                              <input type="checkbox" checked={on} onChange={e=>toggleProvider(svc,p.id,e.target.checked)} />
-                              {p.name}{!p.active && <span style={{fontSize:10,color:'#b91c1c'}}>(inaktiv)</span>}
-                            </label>
-                          )
+                          const on=(assignments[svc.id]||[]).includes(p.id)
+                          return <Avatar key={p.id} p={p} on={on} onClick={()=>toggleProvider(svc,p.id,!on)} />
                         })}
                       </div>
                     </div>

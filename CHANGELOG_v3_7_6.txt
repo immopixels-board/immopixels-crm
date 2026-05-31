@@ -1,0 +1,20 @@
+# ImmoPixels CRM v3.7.6 — Leistungen finomítás + frontend javítások
+## 2026-05-31
+
+### Leistung verwalten
+- Mitarbeiter-hozzárendelés most PROFILKÉPEKKEL (név helyett): kattintható avatar,
+  bekapcsolva színes + zöld pipa, kikapcsolva halvány/szürke. Így pl. Eliast
+  szolgáltatásonként rendelheted hozzá (a fotózásokra akár ki is hagyhatod).
+- Kurzbeschreibung mostantól FORMÁZHATÓ (félkövér / dőlt / aláhúzott szerkesztő).
+  A formázás megjelenik a foglalási oldalon is.
+- Szolgáltatások SORRENDJE állítható (▲▼ nyilak) — a sorrend a foglalási oldalon
+  is érvényesül.
+- Átlátszó PNG feltöltésekor a háttér mostantól FEHÉR (eddig fekete lett a
+  JPEG-konverzió miatt). A kör-keretek háttere is fehér.
+
+### Foglalási oldal (frontend)
+- Hover-effekt: a szolgáltatás-kártyák kicsit kinagyítanak + lágy árnyék;
+  a kiválasztott is kiemelkedik.
+- JAVÍTVA: a kiválasztott figyelmeztetett (⚠) időpont szövege eddig fehér volt
+  fehér háttéren (nem látszott) — most arany háttér + fehér szöveg, jól olvasható.
+- A leírás formázva (HTML) jelenik meg a szolgáltatás alatt.

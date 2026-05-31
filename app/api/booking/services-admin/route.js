@@ -8,7 +8,7 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 }
 
-// GET → összes szolgáltatás + összes fotós + hozzárendelések
+// GET → összes szolgáltatás + összes fotós (avatarral) + hozzárendelések
 export async function GET() {
   const supabase = sb()
   const { data: services } = await supabase.from('booking_services')
@@ -17,11 +17,20 @@ export async function GET() {
   const { data: providers } = await supabase.from('booking_providers')
     .select('id, staff_init, name, active').order('staff_init')
   const { data: links } = await supabase.from('booking_provider_services').select('service_id, provider_id')
+  const { data: staffRows } = await supabase.from('staff').select('init, avatar_url, color')
+
+  const staffMap = {}
+  ;(staffRows || []).forEach(s => { staffMap[s.init] = s })
+  const providersOut = (providers || []).map(p => ({
+    ...p,
+    avatar_url: staffMap[p.staff_init]?.avatar_url || null,
+    color: staffMap[p.staff_init]?.color || '#b8892a',
+  }))
 
   const assignments = {}
   ;(links || []).forEach(l => { (assignments[l.service_id] ??= []).push(l.provider_id) })
 
-  return NextResponse.json({ services: services || [], providers: providers || [], assignments })
+  return NextResponse.json({ services: services || [], providers: providersOut, assignments })
 }
 
 // POST { action, ... }
@@ -84,6 +93,19 @@ export async function POST(req) {
     await supabase.from('booking_provider_services').delete().eq('service_id', id)
     const { error } = await supabase.from('booking_services').delete().eq('id', id)
     if (error) return NextResponse.json({ error:error.message }, { status:500 })
+    return NextResponse.json({ ok:true })
+  }
+
+  if (action === 'move') {
+    const { id, dir } = body
+    if (!id || !['up','down'].includes(dir)) return NextResponse.json({ error:'id + dir(up|down) required' }, { status:400 })
+    const { data: all } = await supabase.from('booking_services').select('id').order('position')
+    const ids = (all || []).map(s => s.id)
+    const idx = ids.indexOf(id)
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (idx < 0 || swapIdx < 0 || swapIdx >= ids.length) return NextResponse.json({ ok:true }) // szélén: no-op
+    ;[ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]]
+    for (let i = 0; i < ids.length; i++) await supabase.from('booking_services').update({ position: i + 1 }).eq('id', ids[i])
     return NextResponse.json({ ok:true })
   }
 
