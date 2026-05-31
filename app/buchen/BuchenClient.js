@@ -40,6 +40,21 @@ export default function BuchenClient() {
     } catch {}
   }, [])
 
+  // iframe auto-magasság: jelzi a szülő WordPress oldalnak a tartalom magasságát
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) return
+    const report = () => {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+      window.parent.postMessage({ type: 'ip-booking-height', height: h }, '*')
+    }
+    report()
+    const ro = new ResizeObserver(report)
+    ro.observe(document.body)
+    const t = setInterval(report, 1000) // biztonsági háló (térkép/slotok betöltése)
+    window.addEventListener('load', report)
+    return () => { ro.disconnect(); clearInterval(t); window.removeEventListener('load', report) }
+  }, [])
+
   const is360Available = service && service.category !== 'Gespräch'
   const isDroneAvailable = service && service.category === 'Immobilienfotografie' && service.name.toLowerCase().indexOf('drohne')===-1
   const addonMin = (is360Available && addon360 ? 30 : 0) + (isDroneAvailable && addonDrone ? 15 : 0)

@@ -1,0 +1,26 @@
+<!-- ImmoPixels Terminbuchung — beágyazás WordPress oldalra -->
+<!-- Tedd ezt egy "Custom HTML" blokkba (Gutenberg) vagy egy HTML elembe (Elementor). -->
+
+<div style="max-width:900px;margin:0 auto;">
+  <iframe
+    id="ip-booking-frame"
+    src="https://immopixels-crm.vercel.app/buchen"
+    style="width:100%;border:0;display:block;min-height:700px;overflow:hidden;"
+    scrolling="no"
+    title="Termin buchen"
+    allow="geolocation"
+    referrerpolicy="no-referrer-when-downgrade"></iframe>
+</div>
+
+<script>
+(function () {
+  var frame = document.getElementById('ip-booking-frame');
+  window.addEventListener('message', function (e) {
+    // csak a CRM domainről fogadunk üzenetet
+    if (e.origin !== 'https://immopixels-crm.vercel.app') return;
+    if (e.data && e.data.type === 'ip-booking-height' && e.data.height) {
+      frame.style.height = (e.data.height + 20) + 'px';
+    }
+  });
+})();
+</script>

@@ -1,0 +1,6 @@
+# ImmoPixels CRM v3.7.2 — iframe auto-magasság
+## 2026-05-31
+- A /buchen oldal postMessage-dzsel jelzi a tartalom magasságát a szülő
+  (WordPress) oldalnak → az iframe automatikusan a tartalomhoz igazodik,
+  nincs belső görgetősáv. Mobilon is jól működik.
+- A WordPress beágyazó kód: ip-booking-embed.html
