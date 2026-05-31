@@ -25,7 +25,7 @@ const PHOTOG_NAME = { CD: 'Cristian Dina', DB: 'Daniel Bene' }
 
 export async function POST(req) {
   const { createClient } = await import('@supabase/supabase-js')
-  const { getDaySlots, pickLeastBusyProvider, getGoogleToken } = await import('@/lib/booking/slots')
+  const { getDaySlots, pickLeastBusyProvider, getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -93,8 +93,10 @@ export async function POST(req) {
         `— Online-Buchung (Status: ausstehend) —`,
       ].filter(x => x !== undefined).join('\n')
 
+      // Az esemény az ÉRINTETT FOTÓS saját naptárába kerül (hogy őt blokkolja)
+      const targetCal = GCAL_IDS[staffInit] || MAIN_CAL
       const r = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(MAIN_CAL)}/events`,
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCal)}/events`,
         {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },

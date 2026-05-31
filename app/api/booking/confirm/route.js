@@ -6,7 +6,7 @@ const MAIN_CAL = 'immopixels@gmail.com'
 
 export async function POST(req) {
   const { createClient } = await import('@supabase/supabase-js')
-  const { getGoogleToken } = await import('@/lib/booking/slots')
+  const { getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body; try { body = await req.json() } catch { return NextResponse.json({error:'bad json'},{status:400}) }
@@ -18,6 +18,10 @@ export async function POST(req) {
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
   if (card.booking_status === 'confirmed') return NextResponse.json({ ok:true, already:true })
 
+  // melyik naptárban van az esemény = a hozzárendelt fotós naptára
+  const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
+  const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
+
   // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba
   const { data: shootCol } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
   const upd = { booking_status:'confirmed' }
@@ -28,11 +32,11 @@ export async function POST(req) {
   try {
     const gToken = await getGoogleToken()
     if (gToken && card.gcal_id) {
-      const getR = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(MAIN_CAL)}/events/${card.gcal_id}`, { headers:{Authorization:'Bearer '+gToken} })
+      const getR = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL)}/events/${card.gcal_id}`, { headers:{Authorization:'Bearer '+gToken} })
       if (getR.ok) {
         const ev = await getR.json()
         const newSummary = (ev.summary||'').replace('[AUSSTEHEND]','[BESTÄTIGT]')
-        await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(MAIN_CAL)}/events/${card.gcal_id}`, {
+        await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL)}/events/${card.gcal_id}`, {
           method:'PATCH', headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},
           body: JSON.stringify({ summary:newSummary })
         })

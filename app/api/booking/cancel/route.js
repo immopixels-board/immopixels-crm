@@ -7,7 +7,7 @@ const BOOKING_EMAIL = 'booking@immopixels.de'
 
 export async function POST(req) {
   const { createClient } = await import('@supabase/supabase-js')
-  const { getGoogleToken } = await import('@/lib/booking/slots')
+  const { getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body; try { body = await req.json() } catch { return NextResponse.json({error:'bad json'},{status:400}) }
@@ -20,11 +20,15 @@ export async function POST(req) {
 
   await supabase.from('cards').update({ booking_status:'cancelled' }).eq('id', card.id)
 
+  // melyik naptárban van az esemény = a hozzárendelt fotós naptára
+  const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
+  const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
+
   // GCal esemény törlése
   try {
     const gToken = await getGoogleToken()
     if (gToken && card.gcal_id) {
-      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(MAIN_CAL)}/events/${card.gcal_id}`, {
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL)}/events/${card.gcal_id}`, {
         method:'DELETE', headers:{Authorization:'Bearer '+gToken}
       })
     }

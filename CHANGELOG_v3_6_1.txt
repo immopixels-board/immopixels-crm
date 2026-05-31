@@ -1,0 +1,15 @@
+# ImmoPixels CRM v3.6.1 — Foglalás a megfelelő fotós naptárába
+## 2026-05-31
+
+### Javítás (fontos, korrektség)
+- A foglalási esemény mostantól az ÉRINTETT FOTÓS saját naptárába kerül:
+  CD → immopixels@gmail.com, DB → Daniel csoport-naptára.
+  Eddig minden az immopixels@ naptárba ment → ami Danielnél azt jelentette,
+  hogy Cristiant blokkolta, nem Danielt (rossz fotós lefoglalása).
+- Mind a 4 művelet a helyes naptárat használja:
+  create (a hozzárendelt fotós naptárába hozza létre),
+  confirm / cancel / update (a kártya hozzárendelt fotósából vezeti le).
+
+### Megjegyzés
+A korábbi teszt-esemény (Daniel foglalása, ami az immopixels@ naptárba került)
+manuálisan áthelyezhető vagy törölhető — az új foglalások már jó helyre kerülnek.

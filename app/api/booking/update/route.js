@@ -11,7 +11,7 @@ function toHHMM(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(
 
 export async function POST(req) {
   const { createClient } = await import('@supabase/supabase-js')
-  const { getDaySlots, getGoogleToken } = await import('@/lib/booking/slots')
+  const { getDaySlots, getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body; try { body = await req.json() } catch { return NextResponse.json({error:'bad json'},{status:400}) }
@@ -24,6 +24,10 @@ export async function POST(req) {
 
   const { data: svc } = await supabase.from('booking_services').select('*').eq('id', card.booking_service_id).single()
   if (!svc) return NextResponse.json({ error:'service missing' }, { status:404 })
+
+  // melyik naptárban van az esemény = a hozzárendelt fotós naptára
+  const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
+  const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
 
   const newDate = date || card.card_date
   const newTime = time || String(card.card_time).slice(0,5)
@@ -71,7 +75,7 @@ export async function POST(req) {
         ``, `Zusätzliche Info:`, note ?? card.description ?? '—',
         ``, `— Online-Buchung (geändert) —`,
       ].join('\n')
-      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(MAIN_CAL)}/events/${card.gcal_id}`, {
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL)}/events/${card.gcal_id}`, {
         method:'PATCH', headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},
         body: JSON.stringify({
           summary:`${statusTag} ${svc.name} — ${nameNew}${immoOffice?' / '+immoOffice:''}`,
