@@ -362,28 +362,30 @@ export default function BuchenClient() {
       {step===3 && !done && (
         <div className="ip-fade">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Adresse & Kontaktdaten</h2>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+          <div style={{display:'flex',flexDirection:'column',gap:24}}>
 
-            {/* Bal: cím + térkép */}
+            {/* Shooting-Adresse + térkép (teljes szélesség) */}
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Shooting-Adresse</div>
               <input ref={addrRef} type="text" placeholder="Straße, PLZ, Ort eingeben…" defaultValue={addr.address} className={!addr.address?'req-empty':''} />
               {addr.plz && <p style={{fontSize:12,color:'#15803d',margin:'-4px 0 10px'}}>✓ {addr.address}</p>}
-              <div ref={mapRef} style={{width:'100%',height:200,borderRadius:10,background:'#eee',border:'0.5px solid #e6ddc9',display: addr.lat?'block':'none'}} />
+              <div ref={mapRef} style={{width:'100%',height:220,borderRadius:10,background:'#eee',border:'0.5px solid #e6ddc9',display: addr.lat?'block':'none'}} />
               {!addr.lat && <p style={{fontSize:11,color:'#aaa',margin:'0'}}>Bitte eine Adresse aus den Vorschlägen wählen — die Karte erscheint automatisch.</p>}
             </div>
 
-            {/* Jobb: kontakt mezők */}
+            {/* Kontaktdaten (teljes szélesség, alatta) */}
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Ihre Kontaktdaten</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                 <input placeholder="Vorname *" value={contact.vorname} onChange={e=>setContact({...contact,vorname:e.target.value})} className={!contact.vorname.trim()?'req-empty':''} style={{marginBottom:0}} />
                 <input placeholder="Nachname *" value={contact.nachname} onChange={e=>setContact({...contact,nachname:e.target.value})} className={!contact.nachname.trim()?'req-empty':''} style={{marginBottom:0}} />
               </div>
-              <input placeholder="E-Mail *" type="email" value={contact.email} onChange={e=>setContact({...contact,email:e.target.value})} className={!/\S+@\S+\.\S+/.test(contact.email)?'req-empty':''} style={{marginTop:10}} />
-              <input placeholder="Handy *" value={contact.phone} onChange={e=>setContact({...contact,phone:e.target.value})} className={!contact.phone.trim()?'req-empty':''} />
-              <input placeholder="Immobilienbüro (optional)" value={contact.office} onChange={e=>setContact({...contact,office:e.target.value})} />
-              <textarea placeholder="Anmerkung * (z.B. Schlüsselübergabe, Wünsche…)" value={contact.note} onChange={e=>setContact({...contact,note:e.target.value})} className={!contact.note.trim()?'req-empty':''} style={{minHeight:70,resize:'vertical'}} />
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
+                <input placeholder="E-Mail *" type="email" value={contact.email} onChange={e=>setContact({...contact,email:e.target.value})} className={!/\S+@\S+\.\S+/.test(contact.email)?'req-empty':''} style={{marginBottom:0}} />
+                <input placeholder="Handy *" value={contact.phone} onChange={e=>setContact({...contact,phone:e.target.value})} className={!contact.phone.trim()?'req-empty':''} style={{marginBottom:0}} />
+              </div>
+              <input placeholder="Immobilienbüro (optional)" value={contact.office} onChange={e=>setContact({...contact,office:e.target.value})} style={{marginTop:10}} />
+              <textarea placeholder="Anmerkung * (z.B. Schlüsselübergabe, Wünsche…)" value={contact.note} onChange={e=>setContact({...contact,note:e.target.value})} className={!contact.note.trim()?'req-empty':''} style={{minHeight:80,resize:'vertical'}} />
             </div>
           </div>
 

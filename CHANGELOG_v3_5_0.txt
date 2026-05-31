@@ -1,0 +1,35 @@
+# ImmoPixels CRM v3.5.0 — Élő naptár-alapú foglalás + munkafolyamat
+## 2026-05-31
+
+### A foglalás alapja: ÉLŐ Google Calendar (nem cards másolat)
+- slots.js: a foglaltságot KÖZVETLENÜL a Google naptárból olvassa valós időben
+  (mindkét fotós naptára), Berlin időzónában. Nincs sync-csúszás.
+- Egész napos és hosszú blokkok (pl. "Cris - block") helyesen blokkolnak.
+- Token: refresh_token-ből mindig friss access_token, 50mp cache egy híváson belül.
+
+### Foglalási munkafolyamat
+- Foglaláskor VALÓDI Google Calendar esemény jön létre a fő naptárba (immopixels@gmail),
+  [AUSSTEHEND] előtaggal, teljes ügyféladattal + Maps-linkkel.
+- Státusz: pending (függőben) — nem azonnal megerősített.
+- 2 email megy ki (a meglévő SMTP-vel, booking@immopixels.de feladó):
+  1. Csapatnak: "Hallo [Fotós], du hast einen neuen Termin..." + "Termin bestätigen" gomb
+  2. Ügyfélnek: "...befindet sich derzeit in Prüfung" + önkezelő link
+
+### Megerősítés + ügyfél-önkezelés
+- /termin-bestaetigen?token=... — a csapat egy kattintással megerősít
+  → GCal cím [BESTÄTIGT]-re vált → ügyfél megerősítő emailt kap
+- /buchung/[token] — az ügyfél látja és lemondhatja a foglalását
+  → GCal esemény törlődik → csapat értesítést kap
+- Új oszlopok: cards.booking_status, cards.booking_token
+
+### CRM foglalás-kezelő (Online-Buchungen nézet)
+- Az AmeliaView újraírva: a saját cards-alapú foglalásokat listázza
+  (a régi WordPress Amelia API helyett), státusz-szűrővel
+- Bestätigen / Stornieren gombok — valós GCal + email műveletek
+- Új API: /api/booking/list, /confirm, /cancel, /manage
+
+### Booking UI
+- Adresse és Kontaktdaten külön sorban (egymás alatt), átláthatóbb
+
+### DB migrációk (lefuttatva)
+- cards.booking_status (default 'pending'), cards.booking_token (+index)
