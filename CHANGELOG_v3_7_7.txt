@@ -1,0 +1,16 @@
+# ImmoPixels CRM v3.7.7 — Frontend design finomítások
+## 2026-05-31
+
+### Foglalási oldal (buchen)
+- Leistungs-kártya: cím 13px → 15px, 6px gap a cím és a leírás között,
+  duration most félkövér (egységes betűsúly a leírással).
+- Step 3 (Termin) összegző-kártya: eltávolítva a "verfügbar zu dieser Zeit"
+  kis avatar-sor (duplikálta a felső fotós-elérhetőségi listát).
+- Datum-Picker: a böngésző alapértelmezett naptárja le lett cserélve egy
+  custom ImmoPixels stílusú kalendárra:
+    • cream háttér, arany kiemelés, Playfair fejléc, Lato cellák
+    • hetek hétfővel kezdődnek (DE konvenció)
+    • hétvégék halványítva
+    • kiválasztott nap arany háttéren, mai nap arany körvonallal jelölve
+    • lekerekített cellák hover-rel
+    • multi-month navigáció (‹ ›)

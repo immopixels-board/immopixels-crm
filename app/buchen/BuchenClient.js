@@ -180,6 +180,86 @@ export default function BuchenClient() {
     </div>
   )
 
+  // Custom ImmoPixels date picker
+  const DatePicker = ({ value, min, onChange }) => {
+    const [open, setOpen] = useState(false)
+    const [view, setView] = useState(() => value ? new Date(value+'T12:00') : new Date())
+    const today = new Date(); today.setHours(0,0,0,0)
+    const minD = min ? new Date(min+'T12:00') : null; if (minD) minD.setHours(0,0,0,0)
+    const sel = value ? new Date(value+'T12:00') : null
+    const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+    const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So']
+    const year = view.getFullYear(), month = view.getMonth()
+    const first = new Date(year, month, 1)
+    const firstWeekday = (first.getDay() + 6) % 7  // Mo=0
+    const daysInMonth = new Date(year, month+1, 0).getDate()
+    const cells = []
+    for (let i=0; i<firstWeekday; i++) cells.push(null)
+    for (let d=1; d<=daysInMonth; d++) cells.push(d)
+    while (cells.length % 7 !== 0) cells.push(null)
+    const fmtDisplay = sel ? sel.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) : 'Datum wählen'
+    return (
+      <div style={{position:'relative',marginBottom:12}}>
+        <button type="button" onClick={()=>setOpen(o=>!o)} style={{
+          width:'100%',padding:'11px 14px',fontSize:14,border:'0.5px solid #e6ddc9',borderRadius:8,
+          background:'#fff',color:sel?DARK:'#999',cursor:'pointer',textAlign:'left',
+          display:'flex',alignItems:'center',justifyContent:'space-between',fontFamily:'inherit',
+        }}>
+          <span>{fmtDisplay}</span>
+          <span style={{color:GOLD,fontSize:16}}>📅</span>
+        </button>
+        {open && (
+          <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',
+            border:'0.5px solid #e6ddc9',borderRadius:12,padding:14,width:286,
+            boxShadow:'0 8px 28px rgba(0,0,0,.12)'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <button type="button" onClick={()=>setView(new Date(year,month-1,1))} style={{background:'none',border:'none',color:GOLD,fontSize:18,cursor:'pointer',padding:'2px 8px',borderRadius:6}}>‹</button>
+              <span style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:600}}>{monthNames[month]} {year}</span>
+              <button type="button" onClick={()=>setView(new Date(year,month+1,1))} style={{background:'none',border:'none',color:GOLD,fontSize:18,cursor:'pointer',padding:'2px 8px',borderRadius:6}}>›</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:4}}>
+              {dayNames.map(d=><div key={d} style={{textAlign:'center',fontSize:10,fontWeight:700,color:'#999',letterSpacing:'.05em',padding:'4px 0'}}>{d.toUpperCase()}</div>)}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3}}>
+              {cells.map((d,i)=>{
+                if (d===null) return <div key={i} />
+                const dt = new Date(year,month,d); dt.setHours(0,0,0,0)
+                const isSel = sel && dt.getTime()===sel.getTime()
+                const isToday = dt.getTime()===today.getTime()
+                const isDisabled = minD && dt<minD
+                const isWeekend = i%7>=5
+                return (
+                  <button key={i} type="button" disabled={isDisabled}
+                    onClick={()=>{
+                      const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+                      onChange(iso); setOpen(false)
+                    }}
+                    style={{
+                      padding:'8px 0',fontSize:12,border:'none',borderRadius:6,cursor:isDisabled?'not-allowed':'pointer',
+                      background: isSel?GOLD:'transparent',
+                      color: isSel?'#fff':(isDisabled?'#ddd':(isWeekend?'#bbb':DARK)),
+                      fontWeight: isSel?700:400,
+                      outline: isToday&&!isSel?`1px solid ${GOLD}`:'none',
+                      transition:'background .12s',
+                    }}
+                    onMouseEnter={e=>{ if(!isSel&&!isDisabled) e.target.style.background='#f0ece4' }}
+                    onMouseLeave={e=>{ if(!isSel) e.target.style.background='transparent' }}>
+                    {d}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{marginTop:10,paddingTop:8,borderTop:'0.5px solid #e6ddc9',display:'flex',justifyContent:'space-between',fontSize:10,color:'#888'}}>
+              <span><span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:GOLD,verticalAlign:'middle',marginRight:4}} />Gewählt</span>
+              <span><span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',border:'1px solid '+GOLD,verticalAlign:'middle',marginRight:4}} />Heute</span>
+              <button type="button" onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:GOLD,fontSize:10,fontWeight:700,cursor:'pointer'}}>Schließen</button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div id="ip-booking-root" style={{maxWidth:860,margin:'0 auto',padding:'24px 20px',fontFamily:"'Lato',Arial,sans-serif",color:DARK,background:CREAM,minHeight: inIframe ? 'auto' : '100vh'}}>
       <style>{`
@@ -240,10 +320,10 @@ export default function BuchenClient() {
                   {list.map(s=>(
                     <button key={s.id} className={`ip-svc${service?.id===s.id?' sel':''}`} onClick={()=>{setService(s);setAddon360(false);setAddonDrone(false)}}>
                       <CatCircle svc={s} selected={service?.id===s.id} />
-                      <span style={{display:'flex',flexDirection:'column',gap:2}}>
-                        <span style={{fontSize:13,fontWeight:700,color:DARK}}>{s.name}</span>
-                        {s.description && <span style={{fontSize:11,color:'#888',lineHeight:1.35}} dangerouslySetInnerHTML={{__html:s.description}} />}
-                        <span style={{fontSize:11,color:GOLD}}>ca. {s.duration_min} Min.</span>
+                      <span style={{display:'flex',flexDirection:'column'}}>
+                        <span style={{fontSize:15,fontWeight:700,color:DARK,marginBottom:6}}>{s.name}</span>
+                        {s.description && <span style={{fontSize:11,color:'#888',lineHeight:1.4,marginBottom:4}} dangerouslySetInnerHTML={{__html:s.description}} />}
+                        <span style={{fontSize:11,color:GOLD,fontWeight:700}}>ca. {s.duration_min} Min.</span>
                       </span>
                     </button>
                   ))}
@@ -313,7 +393,7 @@ export default function BuchenClient() {
           <div style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Datum</div>
-              <input type="date" min={minDate} value={date} onChange={e=>setDate(e.target.value)} style={{marginBottom:12}} />
+              <DatePicker value={date} min={minDate} onChange={setDate} />
 
               {date && (
                 <>
@@ -339,19 +419,7 @@ export default function BuchenClient() {
                 <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
                 <div style={{color:'#888',marginTop:2}}>📍 {addr.address}</div>
                 {time && (
-                  <>
-                    <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
-                    {freeInitsAtTime && (
-                      <div style={{display:'flex',gap:6,marginTop:8,alignItems:'center'}}>
-                        {providers.map(pr=>(
-                          <div key={pr.init} title={freeInitsAtTime.includes(pr.init)?`${pr.name} verfügbar`:`${pr.name} nicht verfügbar`}>
-                            <Avatar p={pr} size={30} dim={!freeInitsAtTime.includes(pr.init)} />
-                          </div>
-                        ))}
-                        <span style={{fontSize:10,color:'#888',marginLeft:2}}>verfügbar zu dieser Zeit</span>
-                      </div>
-                    )}
-                  </>
+                  <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
                 )}
               </div>
             </div>
