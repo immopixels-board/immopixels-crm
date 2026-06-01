@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.0.0 — Visszaállás: minden board mindenkinek
+## 2026-06-01
+
+### Mit változott
+- Visszaállás: minden user lát minden boardot (Hauptboard + Marketing tab-okkal).
+- A board-szegmentáció kísérlet (v3.9.0–3.9.9) egyelőre kikapcsolva.
+- A "Board-Zugriff" checkboxok az admin profilon **továbbra is mentődnek** a
+  staff.allowed_boards mezőbe, csak NEM hajtjuk végre a szűrést.
+  Így ha később vissza akarjuk kapcsolni, az adatok már ott lesznek.
+- Daniel speciális háttér megmarad (a myRow alapján).
+
+### Hatás
+- Te admin → Hauptboard | Marketing tab váltogatható
+- Dirk, Dani, Elias, Nuri stb. → ugyanígy mindkettő látható
+- Az új oszlopok továbbra is az aktív boardhoz kerülnek létrehozáskor
+  (tehát a Marketing-board "tiszta marad" — Hauptboard kártyák nem kerülnek
+  oda automatikusan)
