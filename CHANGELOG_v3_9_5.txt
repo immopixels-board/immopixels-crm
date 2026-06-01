@@ -1,0 +1,24 @@
+# ImmoPixels CRM v3.9.5 — Szigorú board-szűrés (Dirk-fix)
+## 2026-06-01
+
+### Mit volt benne és mit rontott
+A loadCols szűrése túl megengedő volt:
+```
+&& (!filterBoardId || !col.board_id || col.board_id === filterBoardId)
+```
+Ha bármi miatt a col.board_id undefined-ként érkezett (pl. realtime delta event,
+amelyikben nincs minden mező), a `!col.board_id` IGAZ lett → az oszlop minden
+boardon megjelent, beleértve Dirk Marketing nézetét is.
+
+### Javítás
+Szigorú szűrés: csak akkor látszik egy oszlop, ha tényleg az aktív board-hoz
+tartozik. Nincs fallback "ha nincs board_id, mutasd mindenhol".
+- Ha még nincs activeBoardId beállítva → semmi nem látszik (egy pillanatra,
+  amíg loadBoards lefut)
+- Ha aktív board be van állítva → csak az adott board oszlopai látszanak
+
+### Mellékhatás
+A fenti következménye: a Hauptboardon és Marketingen csak azok az oszlopok
+látszanak, amik a DB-ben tényleg a megfelelő board_id-vel vannak megjelölve.
+A korábbi v3.9.0 migráció minden meglévő oszlopot a Hauptboardhoz rendelt,
+így ez sehol nem okoz adat-eltűnést.
