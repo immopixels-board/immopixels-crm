@@ -1,0 +1,12 @@
+# ImmoPixels CRM v3.9.4 — Board-szűrő ref-fix (végleges)
+## 2026-06-01
+
+### Javítás
+- A 9 helyen futó `loadCols()` paraméter nélküli hívás (realtime, broadcast,
+  modal-zárás stb.) closure-en keresztül a *régi* activeBoardId-t látta —
+  ezért amikor egy korlátozott jogosultságú user (csak Marketing) belépett,
+  egy realtime event újra betöltötte a teljes Hauptboardot az oszlopaival.
+- Megoldás: activeBoardIdRef bevezetése, ami mindig az aktuális
+  activeBoardId-t tartja. A loadCols a ref-ből olvas, NEM a state-ből.
+- Mostantól a board-szűrés MINDEN loadCols hívásra érvényes,
+  függetlenül attól mikor / honnan / milyen closure-rel hívják.
