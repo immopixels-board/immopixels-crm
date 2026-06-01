@@ -1,0 +1,13 @@
+# ImmoPixels CRM v3.9.6 — Mitarbeiter kártyák megnyithatóak mindenkinek
+## 2026-06-01
+
+### Új viselkedés
+- Korábban a Mitarbeiter kártyákra csak admin/subadmin kattinthatott rá.
+- Mostantól MINDEN user (mitarbeiter is) megnyithatja kollégái kártyáját
+  szerkesztésre.
+- Védett mezők (csak admin látja és szerkesztheti):
+  - "Zugriffsrecht" (Demo/Mitarbeiter/Subadmin/Admin)
+  - "Board-Zugriff" (Hauptboard/Marketing checkbox-ok)
+- A többi mezőt (név, init, email, tel, GCal ID, cím, születésnap, szín,
+  avatar) bárki tudja szerkeszteni — pl. saját telefonszám frissítése,
+  kolléga GCal ID-jának pótlása.
