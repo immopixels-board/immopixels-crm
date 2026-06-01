@@ -35,5 +35,7 @@ export async function GET(req) {
     serviceName: svcMap[c.booking_service_id] || c.title,
     staff: c.card_team?.[0]?.staff || null,
   }))
-  return NextResponse.json({ ok:true, bookings })
+  return NextResponse.json({ ok:true, bookings }, {
+    headers: { 'Cache-Control': 'no-store, max-age=0' }
+  })
 }

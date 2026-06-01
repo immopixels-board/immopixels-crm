@@ -1,0 +1,43 @@
+# ImmoPixels CRM v3.9.0 — Board-szegmentáció + Cache-fix
+## 2026-06-01
+
+### Multi-Board + Jogosultságok
+Mostantól több külön board lehet (pl. Hauptboard + Marketing), és a profilban
+beállítható ki melyiket láthatja.
+
+- A board fejléc tetején a "ImmoPixels Board" felirat helyett **tab-ok jelennek
+  meg azokhoz a boardokhoz amikhez a usernek hozzáférése van** (mint a Buchungen).
+- Ha csak 1 boardhoz van hozzáférés → csak a board neve látszik, tabok nélkül.
+- Új oszlop / Archiviert oszlop / GCal Import oszlop mostantól az **éppen aktív
+  board-hoz** kerül létrehozásra (board_id mező).
+- A meglévő oszlopok automatikusan a Hauptboard-hoz kerültek (DB-migráció).
+- **Mitarbeiter szerkesztő (admin)**: új "Board-Zugriff" szekció checkboxokkal.
+  Az admin be tudja állítani melyik usert melyik board lássa. Pl. Dirk és Caro
+  csak a Marketing board-ot, Dani csak a Hauptboard-ot.
+- Visszafelé kompatibilis: minden meglévő staff automatikusan kap Hauptboard
+  hozzáférést a migrációból. Új staff alapból mindent lát amíg az admin nem
+  állít be külön.
+
+### Cache-fix
+- A /api/booking/list endpoint mostantól `Cache-Control: no-store` headerrel
+  válaszol. Ez megakadályozza hogy a Vercel CDN vagy a böngésző elavult
+  foglalás-listát mutasson (a tegnapi "bent ragadtak a régiek" problémát fixáli).
+
+### DB-MIGRÁCIÓ (FONTOS — már lefutott a v3.9.0 előkészítésekor):
+```sql
+create table if not exists boards (id uuid primary key default gen_random_uuid(), name text not null, slug text unique not null, color text default '#b8892a', position int default 0, created_at timestamptz default now());
+alter table boards enable row level security;
+create policy "boards_anon_read" on boards for select to anon using (true);
+create policy "boards_service_all" on boards for all to service_role using (true) with check (true);
+alter table columns add column if not exists board_id uuid references boards(id);
+alter table staff add column if not exists allowed_boards uuid[] default '{}';
+insert into boards (name, slug, color, position) values ('Hauptboard', 'main', '#b8892a', 1), ('Marketing', 'marketing', '#6b7fb5', 2) on conflict (slug) do nothing;
+update columns set board_id = (select id from boards where slug='main') where board_id is null;
+update staff set allowed_boards = ARRAY[(select id from boards where slug='main')]::uuid[] where allowed_boards = '{}' or allowed_boards is null;
+```
+
+### Használat
+1. Admin megnyitja egy Mitarbeiter szerkesztését (Mitarbeiter tab → kattint a userre)
+2. Az új "Board-Zugriff" szekcióban kipipálja a boardokat amiket lát
+3. Mentés után az adott user már csak az engedélyezett boardokat látja
+4. A board-fejlécben a tab-ok között válthat
