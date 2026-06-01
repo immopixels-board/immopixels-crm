@@ -1,0 +1,9 @@
+# ImmoPixels CRM v3.9.1 — Board-váltás fix
+## 2026-06-01
+
+### Javítás
+- A Marketing board-ra váltáskor továbbra is a Hauptboard oszlopai látszottak.
+  Stale closure bug a `loadCols`-ben: a useEffect a régi (null) `activeBoardId`-t
+  látta, ezért nem szűrt board_id-ra.
+- A loadCols mostantól paraméteresen kapja meg az aktuális board ID-t,
+  és a useEffect explicit átadja → friss érték minden board-váltáskor.
