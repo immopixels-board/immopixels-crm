@@ -1,0 +1,14 @@
+# ImmoPixels CRM v3.9.8 — myRow state, friss DB-adat a board-szűréshez
+## 2026-06-01
+
+### Mit volt a v3.9.7 hibája
+A board-tab UI a getMe() függvényt használta a saját jogosultság olvasásához,
+de a getMe() a `staff` React state-ből olvas, ami a render első pillanatában
+még üres tömb. Emiatt mindenkinél (admint is beleértve) a "Kein Board
+zugewiesen" üzenet jelent meg, és a loadCols sem talált megfelelő board-ot.
+
+### Mostantól
+Új `myRow` state: a saját staff-sort közvetlenül a DB-ből kéri a loadBoards,
+és ezt használja a render-időben — nem a `staff` állapot-listából.
+Amíg myRow még nem tölt be (első néhány ms), nem mutatjuk a "Kein Board"
+üzenetet (üres header).
