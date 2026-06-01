@@ -1,0 +1,23 @@
+# ImmoPixels CRM v3.7.8 — Mobil-optimalizálás + ImmoPixels.de illesztés
+## 2026-05-31
+
+### Mobil optimalizálás (telefon, <560px)
+- Service-kártyák: 2 oszlop → 1 oszlop mobilon (jobb olvashatóság)
+- Step 3 layout: kétoszlopos (dátum bal, idő jobb) → mobilon egymás alatt
+- Idő-slot rács: 4 oszlop → 3 oszlop mobilon (nagyobb gombok)
+- Vorname/Nachname, Email/Handy: 2 oszlop → 1 oszlop mobilon
+- Stepper (1 Leistung — 2 Daten — 3 Termin): mobilon csak az aktív lépés
+  szövege látszik, a többi csak körrel (helytakarítás)
+- Cat-circle: 54×54 → 46×46 mobilon
+- DatePicker popup: fix 286px → mobilon képernyő-szélességhez igazodik
+- Input-mezők: 14px → 16px mobilon (iOS auto-zoom megakadályozás)
+- Padding: 24/20px → 14/12px mobilon
+- Hover-effektek mobilon kikapcsolva (érintőkijelzőn zavaró)
+- Desktop / tablet nézet változatlan marad
+
+### Design-illesztés az immopixels.de-hez
+- Logó és "Termin buchen" fejléc eltávolítva (az iframe már a WordPress
+  oldalon belül van, felette ott a "Hinweis zur Online-Terminbuchung")
+- Font-stack bővítve: 'Open Sans' (Divi/immopixels.de alap), 'Lato',
+  Arial fallback — így az iframe betűtípusa egyezik a szülő site-éval
+- A Playfair Display marad a szekció-címekhez

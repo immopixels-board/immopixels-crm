@@ -172,7 +172,7 @@ export default function BuchenClient() {
     </div>
   )
   const CatCircle = ({ svc, selected }) => (
-    <div style={{ width:54, height:54, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+    <div className="ip-mob-cat-circle" style={{ width:54, height:54, borderRadius:'50%', flexShrink:0, overflow:'hidden',
       border: selected?`2px solid ${GOLD}`:'2px solid #e6ddc9', background:'#fff',
       display:'flex', alignItems:'center', justifyContent:'center' }}>
       {svc.image_url ? <img src={svc.image_url} alt={svc.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
@@ -209,7 +209,7 @@ export default function BuchenClient() {
           <span style={{color:GOLD,fontSize:16}}>📅</span>
         </button>
         {open && (
-          <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',
+          <div className="ip-datepicker-pop" style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',
             border:'0.5px solid #e6ddc9',borderRadius:12,padding:14,width:286,
             boxShadow:'0 8px 28px rgba(0,0,0,.12)'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
@@ -261,9 +261,9 @@ export default function BuchenClient() {
   }
 
   return (
-    <div id="ip-booking-root" style={{maxWidth:860,margin:'0 auto',padding:'24px 20px',fontFamily:"'Lato',Arial,sans-serif",color:DARK,background:CREAM,minHeight: inIframe ? 'auto' : '100vh'}}>
+    <div id="ip-booking-root" style={{maxWidth:860,margin:'0 auto',padding:'24px 20px',fontFamily:"'Open Sans','Lato',Arial,sans-serif",color:DARK,background:CREAM,minHeight: inIframe ? 'auto' : '100vh'}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Playfair+Display:wght@600&display=swap');
         .ip-fade{animation:ipf .25s ease}
         @keyframes ipf{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
         .ip-slot{padding:9px 0;font-size:13px;border:0.5px solid #e6ddc9;border-radius:7px;background:#fff;cursor:pointer;color:${DARK};text-align:center;transition:all .12s;position:relative}
@@ -282,12 +282,30 @@ export default function BuchenClient() {
         .ip-addon{display:flex;align-items:center;gap:10px;padding:11px 14px;border:0.5px solid #e6ddc9;border-radius:10px;background:#fff;cursor:pointer;margin-bottom:8px;transition:all .12s}
         .ip-addon.on{border-color:${GOLD};background:#b8892a0a}
         .ip-addon input{width:auto;margin:0}
+        /* MOBIL OPTIMALIZÁLÁS (<560px) */
+        @media (max-width:560px){
+          #ip-booking-root{padding:14px 12px!important}
+          .ip-mob-h2{font-size:17px!important}
+          .ip-mob-h1{font-size:20px!important}
+          .ip-mob-grid-2{grid-template-columns:1fr!important;gap:6px!important}
+          .ip-mob-grid-svc{grid-template-columns:1fr!important;gap:8px!important}
+          .ip-mob-grid-3step{grid-template-columns:1fr!important;gap:14px!important}
+          .ip-mob-grid-slots{grid-template-columns:repeat(3,1fr)!important;max-height:none!important}
+          .ip-svc{padding:10px 12px!important}
+          .ip-svc:hover{transform:none!important;box-shadow:none!important}
+          .ip-svc.sel{transform:none!important;box-shadow:none!important}
+          .ip-mob-step{font-size:10px!important;padding:6px 0!important}
+          .ip-mob-step-label{display:none!important}
+          .ip-mob-stepper-active{font-size:11px!important;display:inline!important}
+          .ip-mob-stepper-num{width:22px!important;height:22px!important;font-size:11px!important}
+          .ip-mob-cat-circle{width:46px!important;height:46px!important}
+          .ip-mob-cat-circle img,.ip-mob-cat-circle span{font-size:20px}
+          .ip-datepicker-pop{width:calc(100vw - 36px)!important;max-width:300px!important;left:0!important}
+          input,textarea{font-size:16px!important;padding:10px 12px!important}
+          .ip-summary{padding:12px!important;font-size:13px!important}
+          .ip-nav-btn{padding:10px 18px!important;font-size:13px!important}
+        }
       `}</style>
-
-      <div style={{textAlign:'center',marginBottom:20}}>
-        <img src="/ip-logo.png" alt="ImmoPixels" style={{height:40,objectFit:'contain'}} onError={e=>e.target.style.display='none'} />
-        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:24,fontWeight:600,color:DARK,marginTop:6}}>Termin buchen</div>
-      </div>
 
       {!done && (
         <div style={{display:'flex',alignItems:'center',marginBottom:24,background:'#f0ece4',borderRadius:10,padding:'10px 14px',gap:4}}>
@@ -298,7 +316,7 @@ export default function BuchenClient() {
                   background: step>=n?GOLD:'transparent', color: step>=n?'#fff':'#aaa', border: step>=n?'none':`1.5px solid #ccc`}}>
                   {step>n?'✓':n}
                 </div>
-                <span style={{fontSize:11,fontWeight:step===n?700:400,color:step>=n?GOLD:'#aaa',textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</span>
+                <span className={step===n?'ip-mob-stepper-active':'ip-mob-step-label'} style={{fontSize:11,fontWeight:step===n?700:400,color:step>=n?GOLD:'#aaa',textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</span>
               </div>
               {i<arr.length-1 && <div style={{width:20,height:1,background:'#ddd',flexShrink:0}} />}
             </div>
@@ -316,7 +334,7 @@ export default function BuchenClient() {
             return (
               <div key={cat} style={{marginBottom:14}}>
                 <div style={{fontSize:10,fontWeight:700,color:GOLD,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:7}}>{CAT_LABEL[cat]||cat}</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div className="ip-mob-grid-svc" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                   {list.map(s=>(
                     <button key={s.id} className={`ip-svc${service?.id===s.id?' sel':''}`} onClick={()=>{setService(s);setAddon360(false);setAddonDrone(false)}}>
                       <CatCircle svc={s} selected={service?.id===s.id} />
@@ -370,11 +388,11 @@ export default function BuchenClient() {
             </div>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Ihre Kontaktdaten</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div className="ip-mob-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                 <input placeholder="Vorname *" value={contact.vorname} onChange={e=>setContact({...contact,vorname:e.target.value})} className={!contact.vorname.trim()?'req-empty':''} style={{marginBottom:0}} />
                 <input placeholder="Nachname *" value={contact.nachname} onChange={e=>setContact({...contact,nachname:e.target.value})} className={!contact.nachname.trim()?'req-empty':''} style={{marginBottom:0}} />
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
+              <div className="ip-mob-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
                 <input placeholder="E-Mail *" type="email" value={contact.email} onChange={e=>setContact({...contact,email:e.target.value})} className={!/\S+@\S+\.\S+/.test(contact.email)?'req-empty':''} style={{marginBottom:0}} />
                 <input placeholder="Handy *" value={contact.phone} onChange={e=>setContact({...contact,phone:e.target.value})} className={!contact.phone.trim()?'req-empty':''} style={{marginBottom:0}} />
               </div>
@@ -390,7 +408,7 @@ export default function BuchenClient() {
       {step===3 && !done && (
         <div className="ip-fade">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:600,marginBottom:16}}>Datum & Uhrzeit wählen</h2>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
+          <div className="ip-mob-grid-3step" style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Datum</div>
               <DatePicker value={date} min={minDate} onChange={setDate} />
@@ -431,7 +449,7 @@ export default function BuchenClient() {
               : slots.length===0 ? <div style={{fontSize:12,color:'#b91c1c',padding:16,textAlign:'center',background:'#fef2f2',borderRadius:8}}>Keine freien Termine</div>
               : (
                 <>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,maxHeight:330,overflowY:'auto',paddingRight:2}}>
+                  <div className="ip-mob-grid-slots" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,maxHeight:330,overflowY:'auto',paddingRight:2}}>
                     {Array.from({length:33},(_,i)=>{
                       const h = Math.floor(i/4)+9, m = (i%4)*15
                       if(h>17||(h===17&&m>0)) return null

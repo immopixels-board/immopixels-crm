@@ -1,0 +1,35 @@
+# ImmoPixels CRM v3.8.0 — Stempeluhr PWA (Check-in mobil-alkalmazás)
+## 2026-05-31
+
+### Új: /checkin oldal — mobil munkaidő-app
+- Csak login → check-in/out → Pause → napló. Nem lát mást a CRM-ből.
+- A meglévő work_sessions tábla használata (kompatibilis a Profil → Schichten résszel).
+- Élő számláló (másodperccel): számolja a tényleges munkaidőt, mínusz a pause.
+- Pause gomb: a számláló megáll, "Pause läuft · Xm" jelzéssel. Weiter-rel visszaindul.
+- Pause-időt percre kerekítve adja hozzá a break_minutes-hez (CRM-kompatibilis).
+- Heute gesamt + Letzte 7 Tage automatikus összesítő.
+- Schicht-Protokoll lenyíló: visszamenőleg 7 nap műszakok.
+- Login = Supabase Auth (ugyanaz az email/jelszó mint a CRM-ben).
+- Egyszer belépve marad bejelentkezve (Supabase session persist).
+- Abmelden gomb az alján.
+
+### PWA (Add to Home Screen)
+- /checkin-manifest.json: app neve "ImmoPixels", standalone mód, arany theme.
+- Apple meta tag-ek: a Safari "Zum Home-Bildschirm" után app-szerűen nyílik
+  (státusz-sáv, fullscreen).
+- start_url: /checkin → közvetlenül a Stempeluhr-ral indul a home-screen ikon.
+
+### DB-MIGRÁCIÓ (FONTOS, deploy előtt futtatni a Supabase SQL editorban):
+```sql
+alter table work_sessions add column if not exists current_pause_start_at timestamptz;
+```
+Ez a mező tárolja az aktuális pause kezdetét (élő pause-jelzéshez). Ha null,
+nincs aktív pause. A break_minutes továbbra is az összes pause-idő percben.
+
+### Használat
+1. Telefonon nyisd meg: https://immopixels-crm.vercel.app/checkin
+2. Login (email/jelszó)
+3. Safari: Megosztás → "Zum Home-Bildschirm hinzufügen"
+   Chrome: ⋮ → "Zum Startbildschirm hinzufügen"
+4. Az ikon onnantól app-szerűen nyitható.
+
