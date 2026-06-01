@@ -1,0 +1,16 @@
+# ImmoPixels CRM v3.9.9 — Daniel háttér visszaállítva
+## 2026-06-01
+
+### Mit volt a hiba
+- A 'user_settings' tábla 0 sornál `.single()` 406 hibát dob.
+  Daniel valószínűleg user_settings sor nélkül volt, így az applyUserSettings
+  egyáltalán nem futott le → a háttér nem alkalmazódott.
+- Plusz biztonsági ok: az init mező a myRow-ban nem volt benne.
+
+### Mostantól
+- `.single()` → `.maybeSingle()` + fallback üres objektummal: applyUserSettings
+  mindig lefut.
+- myRow query mostantól tartalmazza az init mezőt.
+- Új useEffect: ha myRow betölt és init==='DB', automatikusan beállítja a
+  dani-bg.png hátteret.
+- A meglévő applyUserSettings is myRow-t használja a DB ellenőrzéshez.
