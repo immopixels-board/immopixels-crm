@@ -1,0 +1,11 @@
+# ImmoPixels CRM v3.9.2 — Board induló-szűrés fix
+## 2026-06-01
+
+### Javítás
+- Korlátozott hozzáférésű user (pl. Dirk: csak Marketing) bejelentkezés után
+  továbbra is a Hauptboardot látta a Marketing helyett.
+- A loadBoards() a `staff` state-ből olvasta a user allowed_boards-ját, de a
+  Promise.all-ban a loadStaff még nem futott le → a state üres tömb volt →
+  fallback a Hauptboardra.
+- Mostantól a loadBoards közvetlenül a DB-ből kéri le a user staff sorát
+  (`from('staff').eq('email',...)`) — biztosan friss érték a board-választáskor.
