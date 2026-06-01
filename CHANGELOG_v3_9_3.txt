@@ -1,0 +1,11 @@
+# ImmoPixels CRM v3.9.3 — Board induló-szűrés végső fix
+## 2026-06-01
+
+### Javítás (kulcsfontosságú)
+- A loadCols ezentúl NEM fut a kezdeti Promise.all-ban — csak a useEffect
+  triggereli, miután a loadBoards beállította az activeBoardId-t.
+- Korábban a loadCols lefutott activeBoardId=null-lal (Promise.all
+  párhuzamosság), és setCols(összes oszlop)-pal állította be — utólag
+  a board-szűrés már nem írta felül megfelelően.
+- Mostantól Dirk (vagy bármely korlátozott jogosultságú user) bejelentkezés
+  után CSAK az engedélyezett board(ok) oszlopait látja az első pillanattól.
