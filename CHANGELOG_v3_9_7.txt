@@ -1,0 +1,18 @@
+# ImmoPixels CRM v3.9.7 — Board-jogosultság szigorítás
+## 2026-06-01
+
+### Mit volt a hiba
+A board-jogosultság logika fordítva volt: ha egy user allowed_boards mezője
+ÜRES volt, akkor MINDEN boardot látott. Konkrétan Dirk: ha kivetted nála
+a Hauptboard pipát is, akkor azt feltételezte hogy "nincs korlátozás" és
+megint a Hauptboardot mutatta.
+
+### Mostantól
+- **Admin** (role_level='admin') user, akinek nincs konkrét allowed_boards
+  beállítása → MINDET látja (mert az adminnak nincs értelme korlátozni magát).
+- **Bármi más user** (mitarbeiter, subadmin, demo):
+  - ha az allowed_boards üres → SEMMIT nem lát ("Kein Board zugewiesen")
+  - ha 1 board van benne → azt látja
+  - ha több → tab-ok között válthat
+- loadBoards: nem állít be activeBoardId-t, ha nincs jogosult board.
+- Board-tab UI: "Kein Board zugewiesen" jelenik meg, ha nincs jog.
