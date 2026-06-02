@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.1.2 — Marketing role egyszerű board-jogosultság
+## 2026-06-01
+
+### Új role: "Marketing"
+Az `allowed_boards` checkbox-os bonyolult logika helyett egyetlen role:
+
+- **Zugriffsrecht: Marketing** → CSAK a Marketing board oszlopait és kártyáit látja
+- **Mindenki más** (Demo, Mitarbeiter, Subadmin, Admin) → MINDEN board (tabok közt válthat)
+
+### Mi az előnye
+- Egy mező = egy szerep
+- Nincs race-condition (a kód alapból "mindet látom" módba esik, csak ha
+  konkrétan marketing role van beállítva, akkor szűkítjük)
+- Te admin garantáltan mindent látsz (bug-mentes)
+
+### Használat
+1. Admin Mitarbeiter szerkesztőben (pl. Dirk): Zugriffsrecht → Marketing
+2. Mentés → kijelentkezés → bejelentkezés → csak a Marketing board látható
+3. Visszaállításhoz: Zugriffsrecht → Mitarbeiter (vagy bármi más)
