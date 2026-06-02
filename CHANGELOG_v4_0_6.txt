@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.0.6 — GCal sync gomb most ténylegesen működik
+## 2026-06-01
+
+### Mit volt a hiba
+A fejlécben (felső sávon) lévő zöld pulse-os "GCal" gomb csak ÚGY NÉZETT KI
+mintha syncelt volna ("..." → "✓"), de valójában semmilyen API-t nem hívott.
+Csak UI-animáció volt.
+
+### Javítás
+Most ténylegesen meghívja a /api/gcal/sync endpointot, és kiírja az
+eredményt: pl. "✓ 2+ 5~ 0-" (2 új, 5 frissített, 0 törölt esemény).
+Hiba esetén "Fehler" üzenetet ír.
+
+A v4.0.2 javítással (sync minden mezőt átvesz, nem csak dátum/időt) együtt
+ez most már működő rendszer:
+- Naptárban átírod a fotózás nevét → GCal gomb → a kártya is átáll
