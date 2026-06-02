@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.1.0 — Menüsorrend + Buchungen cache-busting hard fix
+## 2026-06-01
+
+### Menü-átrendezés
+Új tab-sorrend: Board → Kalender → Buchungen → Kunden → Telefonbuch → Mitarbeiter → Fahrtenbuch
+Fahrtenbuch a sor végére került, Buchungen előrébb hozva.
+
+### Buchungen cache-busting (v4.0.9-ből áthozva ide)
+- load(): cache: 'no-store' + _t timestamp cache-busting paraméter
+- act(): nem várja meg a load()-ot, optimistic update marad érvényben azonnal
+- Ha a jelenlegi szűrés (pl. "In Prüfung") nem egyezik az új státusszal,
+  a kártya AZONNAL ELTŰNIK a listából (átkerült a megfelelő fülre)
