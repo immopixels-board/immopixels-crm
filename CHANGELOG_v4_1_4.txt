@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.1.4 — Stempeluhr admin team overview
+## 2026-06-01
+
+### Új funkció a /checkin oldalon (PWA)
+Admin (és subadmin) usereknek mostantól a saját check-in UI alatt egy
+lenyíló "Team-Überblick" rész jelenik meg, ami mutatja minden
+mitarbeiter aktuális státuszát:
+
+  👤 Daniel Bene         ● Aktiv seit 09:14    3h 27m
+  👤 Elias Kutscha       ● Pause seit 12:30    2h 50m
+  👤 Nuri Sahin          ○ Offline             0h 00m
+  👤 Cristian Dina (Ich) ● Aktiv seit 08:30    4h 15m
+
+- Színes pötty: zöld = aktív, arany = pause, szürke = offline
+- Mai munka-idő és heti összesítő minden usernél
+- Csak admin/subadmin látja
+- Csak ÁTTEKINTŐ — nem tudsz innen másik user nevében check-inelni

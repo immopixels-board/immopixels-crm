@@ -26,6 +26,8 @@ export default function CheckinPage(){
   const [loginPass, setLoginPass] = useState('')
   const [loginErr, setLoginErr] = useState('')
   const [showLog, setShowLog] = useState(false)
+  const [allStaff, setAllStaff] = useState([])         // admin: minden mitarbeiter
+  const [adminView, setAdminView] = useState(false)    // admin: csapat-áttekintés mód
 
   // 1s tick élő számláló
   useEffect(()=>{ const t = setInterval(()=>setNow(Date.now()), 1000); return ()=>clearInterval(t) }, [])
@@ -50,6 +52,20 @@ export default function CheckinPage(){
       const isToday = (s)=>{ const d=new Date(s.check_in); d.setHours(0,0,0,0); return d.getTime()===today.getTime() }
       setTodayList((all||[]).filter(isToday))
       setWeekList((all||[]).filter(s=>!isToday(s)))
+
+      // ADMIN: töltsük be a többieket is + azok aktív session-jeit
+      if (staff.role_level === 'admin' || staff.role_level === 'subadmin') {
+        const { data: others } = await supabase.from('staff').select('id,name,init,color,avatar_url').order('name')
+        const { data: activeSessions } = await supabase.from('work_sessions').select('*').is('check_out', null)
+        const { data: weekSessions } = await supabase.from('work_sessions').select('*').gte('check_in', weekAgo.toISOString())
+        const enriched = (others||[]).map(o => ({
+          ...o,
+          activeSession: (activeSessions||[]).find(s => s.staff_id === o.id) || null,
+          todaySessions: (weekSessions||[]).filter(s => s.staff_id === o.id && isToday(s)),
+          weekSessions: (weekSessions||[]).filter(s => s.staff_id === o.id),
+        }))
+        setAllStaff(enriched)
+      }
     } catch(e){ console.error(e) }
     setLoading(false)
   }
@@ -265,6 +281,59 @@ export default function CheckinPage(){
           </div>
         )}
       </div>
+
+      {/* ADMIN: Team Überblick */}
+      {(me?.role_level === 'admin' || me?.role_level === 'subadmin') && allStaff.length > 0 && (
+        <div style={{padding:'0 20px 14px'}}>
+          <button onClick={()=>setAdminView(v=>!v)} style={{width:'100%',padding:'10px 14px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,fontSize:12,color:'#666',fontWeight:700,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span>👥 Team-Überblick</span>
+            <span style={{color:GOLD}}>{adminView?'▲':'▼'}</span>
+          </button>
+          {adminView && (
+            <div style={{marginTop:8,background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,padding:'4px 0',maxHeight:380,overflowY:'auto'}}>
+              {allStaff.map(s => {
+                const isActive = s.activeSession && !s.activeSession.current_pause_start_at
+                const isPaused = s.activeSession && s.activeSession.current_pause_start_at
+                let todayMs2 = 0
+                s.todaySessions.forEach(sess => {
+                  const start = new Date(sess.check_in).getTime()
+                  const end = sess.check_out ? new Date(sess.check_out).getTime() : now
+                  todayMs2 += Math.max(0, end - start - (sess.break_minutes||0)*60000)
+                })
+                if (isActive) {
+                  // ha aktív session-jét nem zárta még le, add hozzá a folyamatban lévő időt is
+                  // de mivel a todaySessions tartalmazza az aktív session-jét is, már benne van
+                }
+                let weekMs2 = 0
+                s.weekSessions.forEach(sess => {
+                  const start = new Date(sess.check_in).getTime()
+                  const end = sess.check_out ? new Date(sess.check_out).getTime() : now
+                  weekMs2 += Math.max(0, end - start - (sess.break_minutes||0)*60000)
+                })
+                const tf = fmtDuration(todayMs2), wf = fmtDuration(weekMs2)
+                const statusColor = isActive ? GREEN : (isPaused ? GOLD : '#aaa')
+                const statusLabel = isActive ? 'Aktiv' : (isPaused ? 'Pause' : 'Offline')
+                return (
+                  <div key={s.id} style={{padding:'10px 14px',borderBottom:'0.5px solid #f0ece4',display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:36,height:36,borderRadius:'50%',background:s.avatar_url?'transparent':`linear-gradient(135deg,${s.color||'#ccc'},${s.color||'#888'})`,color:'#fff',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0,position:'relative'}}>
+                      {s.avatar_url ? <img src={s.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : s.init}
+                      <div style={{position:'absolute',bottom:-1,right:-1,width:10,height:10,borderRadius:'50%',background:statusColor,border:'2px solid #fff'}} />
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:700,color:DARK,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.name}</div>
+                      <div style={{fontSize:10,color:statusColor,fontWeight:700}}>{statusLabel}{s.activeSession && ' · seit '+fmtTime(s.activeSession.check_in)}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:12,fontWeight:700,color:DARK,fontFamily:'monospace'}}>{tf.str}</div>
+                      <div style={{fontSize:9,color:'#aaa'}}>Heute · {wf.str} Woche</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* LOGOUT */}
       <div style={{marginTop:'auto',padding:'14px 20px 24px',textAlign:'center'}}>
