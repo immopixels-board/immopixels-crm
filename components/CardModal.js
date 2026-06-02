@@ -651,15 +651,38 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   }
 
   async function uploadFile(file) {
-    const path = `cards/${card.id}/${Date.now()}_${file.name}`
-    const { error } = await supabase.storage.from('card-attachments').upload(path, file)
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('card-attachments').getPublicUrl(path)
-      await supabase.from('card_attachments').insert({ card_id: card.id, name: file.name, url: urlData.publicUrl, size: file.size, type: file.type, path })
-      loadAttachments()
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+    // Path-biztos fájlnév: ékezetek + speciális karakterek eltávolítása
+    const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : ''
+    const baseName = (file.name.slice(0, file.name.length - ext.length) || 'file')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // ékezetek eltávolítása
+      .replace(/[^a-zA-Z0-9._-]/g, '_')                  // bármi más → underscore
+      .replace(/_+/g, '_')                               // többszörös _ → egy
+      .replace(/^_+|_+$/g, '')                           // _-ek a végeken
+      .slice(0, 80)                                       // hossz-limit
+    const safeName = (baseName || 'file') + ext.toLowerCase()
+    const path = `cards/${card.id}/${Date.now()}_${safeName}`
+    const { error } = await supabase.storage.from('card-attachments').upload(path, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false
+    })
+    if (error) {
+      console.error('[upload] error:', error)
+      alert('Datei-Upload fehlgeschlagen: ' + (error.message || 'Unbekannter Fehler'))
+      return
     }
+    const { data: urlData } = supabase.storage.from('card-attachments').getPublicUrl(path)
+    // Az eredeti file.name marad a DB-ben (megjelenítéshez), csak a path biztonságos
+    const { error: insErr } = await supabase.from('card_attachments').insert({
+      card_id: card.id, name: file.name, url: urlData.publicUrl, size: file.size, type: file.type, path
+    })
+    if (insErr) {
+      console.error('[upload] DB insert error:', insErr)
+      alert('Datenbank-Fehler: ' + insErr.message)
+      return
+    }
+    loadAttachments()
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
   }
 
   async function deleteAttachment(att) {

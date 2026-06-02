@@ -99,7 +99,7 @@ async function doSync() {
     // kulonben a masik fotos kartyait kitorolnenk.
     const { data: existingRows } = await supabase
       .from('cards')
-      .select('id, gcal_id, card_date, card_time, card_team!inner(staff_id)')
+      .select('id, gcal_id, card_date, card_time, booking_end_time, title, addr, card_team!inner(staff_id)')
       .eq('is_gcal', true)
       .not('gcal_id', 'is', null)
       .eq('card_team.staff_id', staffMember.id)
@@ -122,10 +122,20 @@ async function doSync() {
       const ex = existingMap[gcal_id]
       if (ex) {
         const exTime = (ex.card_time || '').slice(0, 5)
-        if (ex.card_date !== date || exTime !== time) {
+        const exEndTime = (ex.booking_end_time || '').slice(0, 5)
+        const newTitle = ev.summary || date
+        const newAddr = ev.location || ''
+        // Frissítés, ha BÁRMELYIK mező változott (dátum, idő, név, cím, vég-idő)
+        if (
+          ex.card_date !== date ||
+          exTime !== time ||
+          exEndTime !== (endTime || '').slice(0, 5) ||
+          (ex.title || '') !== newTitle ||
+          (ex.addr || '') !== newAddr
+        ) {
           await supabase.from('cards').update({
             card_date: date, card_time: time, booking_end_time: endTime,
-            title: ev.summary || date, addr: ev.location || '',
+            title: newTitle, addr: newAddr,
             updated_at: new Date().toISOString(),
           }).eq('id', ex.id)
           updated++

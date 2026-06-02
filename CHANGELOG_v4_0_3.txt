@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.0.3 — Fájl-feltöltés fix (ékezetes, speciális karakterek)
+## 2026-06-01
+
+### Mit volt a hiba
+A Supabase Storage 400-as hibát adott olyan fájloknál, amik nevében
+speciális karakter volt: szóköz, em-dash, ékezet (ä, ö, ü), zárójel,
+és hasonló. Pl. "ImmoPixels — Broschüre Entwurf 2 (1).pdf" — ezt
+elutasította a tárolás.
+
+### Javítás
+A fájl path-jában mostantól sanitize-olt név megy fel:
+- ékezetek eltávolítva (ä → a, ö → o, ü → u stb.)
+- speciális karakterek (szóköz, em-dash, zárójel) → underscore
+- hosszlimit 80 karakter
+
+DE: az **eredeti név** marad a card_attachments.name mezőben, tehát
+a CRM-ben az "Anhänge" listában a fájl továbbra is az eredeti
+néven jelenik meg (pl. "ImmoPixels — Broschüre Entwurf 2 (1).pdf").
+
+Plusz: hibaüzenet-popup ha valami nem megy, hogy ne legyen csendes hiba.

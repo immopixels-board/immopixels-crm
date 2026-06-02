@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.0.2 — GCal sync: title és cím változás is átveszi
+## 2026-06-01
+
+### Mit volt a hiba
+A /api/gcal/sync csak akkor frissítette a meglévő kártyát, ha a DÁTUM vagy
+az IDŐPONT változott. Ha csak a naptár-esemény nevét (title) vagy címét
+(location/addr) írtad át a Google Naptárban, a CRM-ben a kártya nem
+változott — pedig a kód az update részben átírta volna őket.
+
+### Javítás
+Most a kondíció minden mezőre figyel: date, time, end_time, title, addr.
+Ha bármelyik változik → kártya frissítése.
+Plusz: a select query lekéri a title/addr/end_time-ot is, hogy az
+összehasonlítás helyes legyen (nem mindig "változott" kondíciót lát).
+
+### Felhasználói élmény
+- Naptárban átnevezed/áthelyezed a fotózást → a kártya is átáll (ha él a webhook)
+- Ha nem él a webhook, a "Sync"/manuális frissítés futtatásakor átveszi
