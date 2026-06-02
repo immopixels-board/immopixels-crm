@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.1.1 — Board-jogosultság v2 (újra bevezetve)
+## 2026-06-01
+
+### Új szabályok
+1. **Admin / superadmin** → mindet látja (pipától függetlenül)
+2. **Mindenki más** → CSAK a kipipált board(ok)at látja
+3. Ha még egy board sincs neki pipálva → "Kein Board zugewiesen"
+
+### Mit volt elrontva korábban (v3.9.x)
+A `loadBoards` a `staff` React state-ből keresett, ami akkor még üres volt
+(Promise.all race-condition). A `myRow`-ba töltött adat sem futott le mindenhol.
+
+### Mostantól (v4.1.1)
+- A `loadBoards` LOKÁLISAN olvassa a `meRow`-t a DB-ből (await-tel)
+  és azonnal beállítja az `activeBoardId`-t a megfelelő board-ra
+- A board-tab UI a `myRow` state-et használja, de amíg az még null,
+  semmit nem mutat (nincs "Kein Board" villanás betöltés alatt)
+- Admin/subadmin keményen felülírja az allowed_boards listát
+
+### Használat
+- Admin profil-szerkesztőben (Mitarbeiter → user → szerkesztés):
+  Board-Zugriff checkboxok pipálásával állítható ki melyik usernek
+  melyik boardja látható.
+- Üres lista = nem lát semmit (csak adminoknak az alap; mitarbeiternek
+  ez bug-jelzés)
