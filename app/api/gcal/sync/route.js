@@ -72,8 +72,9 @@ async function doSync() {
   if (!shootingsCol) return { ok: false, reason: 'no column' }
 
   const now = new Date()
-  const timeMin = now.toISOString()
-  const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
+  // visszamenőleg is keressünk 30 napot, hogy a tegnapi/múlt heti
+  // események módosításait is átvegye
+  const timeMin = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
 
   let created = 0, updated = 0, deleted = 0
 
