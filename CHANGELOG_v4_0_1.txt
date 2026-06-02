@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.0.1 — Drag & Drop fájl a Beschreibung mezőbe
+## 2026-06-01
+
+### Mit változott
+A kártya-modal "Beschreibung" szekciója mostantól **drop-target**: ha PDF-et,
+képet (jpg/png/heic stb.), vagy bármilyen fájlt ráhúzol, az automatikusan
+feltöltődik mint csatolmány — pont mint az "Anhänge" szekcióban.
+
+A feltöltött fájlok ugyanúgy megjelennek az **Anhänge** szekcióban
+ikonokkal, mérettel, letöltés és törlés gombbal.
+
+### Felhasználói élmény
+- Drag fölött: a Beschreibung mező arany dashed border-rel kiemelődik,
+  és megjelenik a "📎 Datei hierher ziehen" felirat jobbra fent.
+- Placeholder szöveg: "Beschreibung hinzufügen oder Datei hierher ziehen..."
+- Több fájlt is be lehet húzni egyszerre.
+
+### Mit nem változott
+Az "Anhänge" szekció is teljesen működik — onnan is feltölthetsz, drag&drop
+és klikk-feltöltéssel egyaránt. Két helyen ugyanaz a funkció.

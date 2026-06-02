@@ -808,13 +808,20 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 </button>
               )}
             </div>
-            <div style={{ background: '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: '0.5px solid #e4e0d9' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Beschreibung</div>
+            <div
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
+              onDragLeave={e => { e.preventDefault(); setDragOver(false) }}
+              onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const files = Array.from(e.dataTransfer.files); if(files.length) files.forEach(uploadFile) }}
+              style={{ background: dragOver ? 'rgba(184,137,42,.08)' : '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: dragOver ? '1.5px dashed #b8892a' : '0.5px solid #e4e0d9', transition: 'all .15s', position: 'relative' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px' }}>Beschreibung</div>
+                {dragOver && <div style={{ fontSize: 10, fontWeight: 700, color: '#b8892a' }}>📎 Datei hierher ziehen</div>}
+              </div>
               {localCard.is_gcal && localCard.description?.includes('<') ? (
                 <div style={{ fontSize: 13, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word' }}
                   dangerouslySetInnerHTML={{ __html: localCard.description }} />
               ) : (
-                <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
+                <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen oder Datei hierher ziehen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
               )}
             </div>
           </div>
