@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.0.4 — Profil oldal Fahrten/km számláló javítása
+## 2026-06-01
+
+### Mit volt a hiba
+A profil-oldali statisztika ("Fahrten (Monat)" és "km (Monat)") mindig 0-t mutatott.
+Ok: a profil-oldal a régi `fahrtenbuch` táblából olvas, ami csak a manuálisan
+felvitt fahrtenbuch-bejegyzéseket tartalmazza (a + Eintragen gomb).
+Az auto-generált bejegyzések viszont a `fahrtenbuch_rows` táblába kerülnek
+(a Fahrtenbuch komponens menti oda).
+
+### Javítás
+A profil oldal mostantól MINDKÉT táblát betölti (`fahrtenbuch` + `fahrtenbuch_rows`)
+és egyesíti — dátum szerint rendezve. Így mind az automatikus, mind a manuális
+bejegyzések beszámítanak a havi statisztikákba.
+
+### Mellékesen
+- Az `user_settings` lekérdezés `.single()` → `.maybeSingle()` (nem dob 406-ot,
+  ha valakinek nincs még user_settings sora).

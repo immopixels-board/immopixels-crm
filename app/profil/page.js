@@ -195,13 +195,17 @@ export default function ProfilPage() {
   async function loadData(staffMember) {
     const sid = staffMember?.id
     if (!sid) return
-    const [gz, fb, us] = await Promise.all([
+    const [gz, fb, fbRows, us] = await Promise.all([
       supabase.from('gehaltszettel').select('*').eq('staff_id', sid).order('month', { ascending: false }),
       supabase.from('fahrtenbuch').select('*').eq('staff_id', sid).order('date', { ascending: false }),
-      supabase.from('user_settings').select('*').eq('staff_id', sid).single()
+      supabase.from('fahrtenbuch_rows').select('*').eq('staff_id', sid).order('date', { ascending: false }),
+      supabase.from('user_settings').select('*').eq('staff_id', sid).maybeSingle()
     ])
     setGehaltszettel(gz.data || [])
-    setFahrten(fb.data || [])
+    // Egyesítjük a régi (manuális) és az új (automatikus) Fahrtenbuch sorokat
+    const merged = [...(fb.data || []), ...(fbRows.data || [])]
+      .sort((a,b) => (b.date || '').localeCompare(a.date || ''))
+    setFahrten(merged)
     // Load price data
     const [spRes, clRes] = await Promise.all([
       supabase.from('settings').select('value').eq('key','service_prices').maybeSingle(),
