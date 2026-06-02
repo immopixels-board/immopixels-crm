@@ -22,9 +22,10 @@ export async function POST(req) {
   const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
   const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
 
-  // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba
+  // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba + lábnyom
   const { data: shootCol } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
-  const upd = { booking_status:'confirmed' }
+  const upd = { booking_status:'confirmed', confirmed_at: new Date().toISOString() }
+  if (body.confirmedByStaffId) upd.confirmed_by = body.confirmedByStaffId
   if (shootCol?.id) upd.column_id = shootCol.id
   await supabase.from('cards').update(upd).eq('id', card.id)
 

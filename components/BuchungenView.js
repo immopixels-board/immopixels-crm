@@ -11,7 +11,7 @@ const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So']
 function mondayOf(d){ const x=new Date(d); const w=(x.getDay()+6)%7; x.setDate(x.getDate()-w); x.setHours(12,0,0,0); return x }
 function iso(d){ return d.toISOString().slice(0,10) }
 
-export default function BuchungenView({ supabase, staff }) {
+export default function BuchungenView({ supabase, staff, me }) {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -59,11 +59,27 @@ export default function BuchungenView({ supabase, staff }) {
     setLoading(false)
   }
 
-  async function act(token, kind) {
+  async function act(token, kind, bookingId) {
     if (kind==='cancel' && !confirm('Diesen Termin wirklich stornieren? Der Kunde wird per E-Mail informiert.')) return
     if (kind==='delete' && !confirm('Diesen Termin ENDGÜLTIG löschen? Die Karte und der Kalendereintrag werden entfernt. Dies kann nicht rückgängig gemacht werden.')) return
     setUpdating(token)
-    try { await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }); await load() }
+    try {
+      const body = { token }
+      if (kind === 'confirm' && me?.id) body.confirmedByStaffId = me.id
+      if (kind === 'cancel' && me?.id) body.cancelledByStaffId = me.id
+      await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      // Optimistic local update — azonnal eltüntessük a gombot/váltsuk a státuszt
+      if (bookingId) {
+        const nowIso = new Date().toISOString()
+        const meSlim = me ? { name: me.name, init: me.init } : null
+        setBookings(prev => prev.map(b => b.id !== bookingId ? b : (
+          kind === 'confirm' ? { ...b, booking_status: 'confirmed', confirmed_at: nowIso, confirmed_by_staff: meSlim }
+          : kind === 'cancel' ? { ...b, booking_status: 'cancelled', cancelled_at: nowIso, cancelled_by_staff: meSlim }
+          : b
+        )))
+      }
+      await load()
+    }
     catch(e){ alert('Fehler') }
     setUpdating(null)
   }
@@ -174,12 +190,7 @@ export default function BuchungenView({ supabase, staff }) {
             </button>
           ))}
         </div>
-        <div style={{ display:'flex', gap:6, marginLeft:'auto', flexWrap:'wrap' }}>
-          {['all','pending','confirmed','cancelled'].map(s=>(
-            <button key={s} onClick={()=>setFilter(s)} style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid '+(filter===s?'#b8892a':'var(--border)'), background:filter===s?'#b8892a14':'var(--bg3)', color:filter===s?'#b8892a':'var(--t2)', fontSize:11, fontWeight:filter===s?700:400, cursor:'pointer' }}>
-              {s==='all'?'Alle':STATUS[s]?.label||s}
-            </button>
-          ))}
+        <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
           <a href="/admin/leistungen" target="_blank" rel="noopener" style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
             <i className="ti ti-settings" style={{fontSize:12}} /> Leistungen
           </a>
@@ -187,6 +198,41 @@ export default function BuchungenView({ supabase, staff }) {
             <i className="ti ti-external-link" style={{fontSize:11}} /> Buchungsseite
           </a>
         </div>
+      </div>
+
+      {/* Prominent status tabs */}
+      <div style={{ padding:'8px 16px', background:'var(--bg2)', borderBottom:'0.5px solid var(--border)', display:'flex', gap:0, overflowX:'auto' }}>
+        {[
+          { key:'all',       label:'Alle',         color:'var(--gold)' },
+          { key:'pending',   label:'In Prüfung',   color:'#b8892a' },
+          { key:'confirmed', label:'Bestätigt',    color:'#15803d' },
+          { key:'cancelled', label:'Storniert',    color:'#b91c1c' },
+        ].map(t => {
+          const active = filter === t.key
+          // count: a teljes lista jelenleg load()-pal jön az adott szűréssel, így itt csak az aktuális listából tudunk pontosan
+          // ha az 'all' filter van kiválasztva, akkor mindenkinél jó számot mutatunk
+          const count = filter === 'all'
+            ? (t.key === 'all' ? bookings.length : bookings.filter(b => b.booking_status === t.key).length)
+            : (t.key === filter ? bookings.length : null)
+          return (
+            <button key={t.key} onClick={() => setFilter(t.key)}
+              style={{
+                padding:'9px 16px', border:'none',
+                borderBottom: active ? '2.5px solid '+t.color : '2.5px solid transparent',
+                background:'none', color: active?t.color:'var(--t3)',
+                fontSize:13, fontWeight:active?700:500, cursor:'pointer',
+                display:'flex', alignItems:'center', gap:7,
+                transition:'border-color .12s, color .12s'
+              }}>
+              {t.label}
+              {count !== null && (
+                <span style={{ fontSize:10, fontWeight:700, padding:'1px 7px', borderRadius:10,
+                  background: active ? t.color+'22' : 'var(--bg3)',
+                  color: active ? t.color : 'var(--t3)' }}>{count}</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
@@ -210,25 +256,44 @@ export default function BuchungenView({ supabase, staff }) {
                   <div><i className="ti ti-mail" style={{fontSize:11}} /> {b.customer_email}</div>
                   <div><i className="ti ti-map-pin" style={{fontSize:11}} /> {b.booking_address}</div>
                   {b.description && <div style={{whiteSpace:'pre-line',background:'var(--bg3)',borderRadius:6,padding:'6px 8px',marginTop:4,color:'var(--t3)'}}>{b.description}</div>}
+                  {/* Lábnyom: ki + mikor confirm/cancel */}
+                  {b.booking_status==='confirmed' && b.confirmed_at && (
+                    <div style={{ marginTop:6, fontSize:10, color:'#15803d', display:'flex', alignItems:'center', gap:4 }}>
+                      <i className="ti ti-check" style={{fontSize:11}} />
+                      Bestätigt: {new Date(b.confirmed_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                      {b.confirmed_by_staff && <> · von <strong>{b.confirmed_by_staff.name}</strong></>}
+                    </div>
+                  )}
+                  {b.booking_status==='cancelled' && b.cancelled_at && (
+                    <div style={{ marginTop:6, fontSize:10, color:'#b91c1c', display:'flex', alignItems:'center', gap:4 }}>
+                      <i className="ti ti-x" style={{fontSize:11}} />
+                      Storniert: {new Date(b.cancelled_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                      {b.cancelled_by_staff && <> · von <strong>{b.cancelled_by_staff.name}</strong></>}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display:'flex', gap:6, marginTop:10 }}>
-                  {b.booking_status==='pending' && (
-                    <button onClick={()=>act(b.booking_token,'confirm')} disabled={isUp} style={{ padding:'5px 12px', borderRadius:6, border:'none', background:'#15803d', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
+                  {b.booking_status==='pending' ? (
+                    <button onClick={()=>act(b.booking_token,'confirm',b.id)} disabled={isUp} style={{ padding:'5px 12px', borderRadius:6, border:'none', background:'#15803d', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
                       <i className="ti ti-check" style={{fontSize:11}} /> Bestätigen
+                    </button>
+                  ) : b.booking_status==='confirmed' && (
+                    <button disabled style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:11, fontWeight:700, cursor:'default', opacity:.85 }}>
+                      <i className="ti ti-check" style={{fontSize:11}} /> Bestätigt
                     </button>
                   )}
                   {b.booking_status!=='cancelled' && <>
                     <button onClick={()=>openEdit(b.booking_token)} disabled={isUp} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                       <i className="ti ti-pencil" style={{fontSize:11}} /> Bearbeiten
                     </button>
-                    <button onClick={()=>act(b.booking_token,'cancel')} disabled={isUp} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid #fecaca', background:'#fef2f2', color:'#b91c1c', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
+                    <button onClick={()=>act(b.booking_token,'cancel',b.id)} disabled={isUp} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid #fecaca', background:'#fef2f2', color:'#b91c1c', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
                       <i className="ti ti-x" style={{fontSize:11}} /> Stornieren
                     </button>
                   </>}
                   <button onClick={()=>toggleRoute(b)} style={{ padding:'5px 12px', borderRadius:6, border:'0.5px solid '+(routeOpen===b.id?'#1d5ec7':'var(--border)'), background:routeOpen===b.id?'#1d5ec714':'var(--bg3)', color:routeOpen===b.id?'#1d5ec7':'var(--t2)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     <i className={'ti '+(routeOpen===b.id?'ti-chevron-up':'ti-route')} style={{fontSize:11}} /> Route
                   </button>
-                  <button onClick={()=>act(b.booking_token,'delete')} disabled={isUp} title="Endgültig löschen" style={{ padding:'5px 10px', borderRadius:6, border:'0.5px solid #fecaca', background:'#fff', color:'#b91c1c', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
+                  <button onClick={()=>act(b.booking_token,'delete',b.id)} disabled={isUp} title="Endgültig löschen" style={{ padding:'5px 10px', borderRadius:6, border:'0.5px solid #fecaca', background:'#fff', color:'#b91c1c', fontSize:11, fontWeight:700, cursor:'pointer', opacity:isUp?.6:1 }}>
                     <i className="ti ti-trash" style={{fontSize:11}} />
                   </button>
                 </div>

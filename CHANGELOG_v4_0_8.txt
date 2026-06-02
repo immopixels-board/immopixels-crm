@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.0.8 — Buchungen: prominent fülek + lábnyom + javított Bestätigen
+## 2026-06-01
+
+### Új funkciók
+1. **Prominent fülek a Buchungen tab tetején**: Alle / In Prüfung / Bestätigt / Storniert
+   számokkal (mindegyik mellett mennyi van). Alá-húzás stílusú aktív tab.
+2. **Bestätigen gomb javítása**:
+   - Pending státusznál: zöld "Bestätigen" gomb
+   - Confirmed státusznál: szürke-zöld "Bestätigt" felirat (deaktivált, NEM nyomható)
+   - Optimistic update: a kattintás után AZONNAL átáll a szöveg, nem várja meg
+     a load() befejezését (eddig vissza-vissza maradt a régi állapot)
+3. **Lábnyom (Audit trail)**:
+   - Confirmed kártyán: "Bestätigt: 01.06.2026 19:45 · von Cristian Dina"
+   - Cancelled kártyán: "Storniert: 01.06.2026 19:50 · von Daniel Bene"
+   - A confirm/cancel API mostantól a `confirmed_at`/`confirmed_by` és
+     `cancelled_at`/`cancelled_by` mezőket is elmenti.
+
+### DB-MIGRÁCIÓ (FUTTATNI A SUPABASE-BEN!)
+```sql
+alter table cards add column if not exists confirmed_at timestamptz;
+alter table cards add column if not exists confirmed_by uuid references staff(id);
+alter table cards add column if not exists cancelled_at timestamptz;
+alter table cards add column if not exists cancelled_by uuid references staff(id);
+```

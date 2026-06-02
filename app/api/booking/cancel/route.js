@@ -18,7 +18,9 @@ export async function POST(req) {
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
   if (card.booking_status === 'cancelled') return NextResponse.json({ ok:true, already:true })
 
-  await supabase.from('cards').update({ booking_status:'cancelled' }).eq('id', card.id)
+  const cancelUpd = { booking_status:'cancelled', cancelled_at: new Date().toISOString() }
+  if (body.cancelledByStaffId) cancelUpd.cancelled_by = body.cancelledByStaffId
+  await supabase.from('cards').update(cancelUpd).eq('id', card.id)
 
   // melyik naptárban van az esemény = a hozzárendelt fotós naptára
   const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
