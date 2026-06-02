@@ -52,7 +52,8 @@ export default function BuchungenView({ supabase, staff, me }) {
     try {
       const p = new URLSearchParams()
       if (filter!=='all') p.set('status', filter)
-      const r = await fetch('/api/booking/list?'+p)
+      p.set('_t', Date.now()) // cache busting
+      const r = await fetch('/api/booking/list?'+p, { cache: 'no-store' })
       const d = await r.json()
       setBookings(d.ok ? d.bookings : [])
     } catch(e){ setBookings([]) }
@@ -68,17 +69,26 @@ export default function BuchungenView({ supabase, staff, me }) {
       if (kind === 'confirm' && me?.id) body.confirmedByStaffId = me.id
       if (kind === 'cancel' && me?.id) body.cancelledByStaffId = me.id
       await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
-      // Optimistic local update — azonnal eltüntessük a gombot/váltsuk a státuszt
+      // Optimistic local update — azonnal váltsuk a státuszt és tüntessük el ha a szűrés ezt diktálja
       if (bookingId) {
         const nowIso = new Date().toISOString()
         const meSlim = me ? { name: me.name, init: me.init } : null
-        setBookings(prev => prev.map(b => b.id !== bookingId ? b : (
-          kind === 'confirm' ? { ...b, booking_status: 'confirmed', confirmed_at: nowIso, confirmed_by_staff: meSlim }
-          : kind === 'cancel' ? { ...b, booking_status: 'cancelled', cancelled_at: nowIso, cancelled_by_staff: meSlim }
-          : b
-        )))
+        setBookings(prev => {
+          const updated = prev.map(b => b.id !== bookingId ? b : (
+            kind === 'confirm' ? { ...b, booking_status: 'confirmed', confirmed_at: nowIso, confirmed_by_staff: meSlim }
+            : kind === 'cancel' ? { ...b, booking_status: 'cancelled', cancelled_at: nowIso, cancelled_by_staff: meSlim }
+            : kind === 'delete' ? null
+            : b
+          )).filter(Boolean)
+          // Ha a jelenlegi szűrés nem egyezik az új státusszal, távolítsuk el is a kártyát a listából
+          if (filter !== 'all') {
+            return updated.filter(b => b.booking_status === filter)
+          }
+          return updated
+        })
       }
-      await load()
+      // load() most NEM blokkolja — háttérben fut, de a UI már átállt
+      load()
     }
     catch(e){ alert('Fehler') }
     setUpdating(null)

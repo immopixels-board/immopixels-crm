@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.0.9 — Bestätigen UI tényleges javítás
+## 2026-06-01
+
+### Mit volt elrontva
+1. A load() endpoint visszakapta a CDN cache-elt választ, NEM a friss adatot
+2. Az act() megvárta a load()-ot, ami felülírta az optimistic update-et
+   a (még cache-elt) régi adattal
+3. Eredmény: a Bestätigen után a kártya visszaugrott "pending"-re
+   (mert az API cache-eből még pending-nek jött vissza), és újra bestätigelhető lett
+
+### Javítás
+1. load(): `cache: 'no-store'` header + `?_t=timestamp` query param
+   → biztosan friss API-válasz, soha nem CDN cache
+2. act(): nem várja meg a load()-ot, az optimistic update marad érvényben
+   azonnal. A load() háttérben fut és frissít, de a UI már átállt.
+3. Optimistic update kibővítve: ha a jelenlegi szűrés (pl. "In Prüfung")
+   nem egyezik az új státusszal, a kártya AZONNAL ELTŰNIK a listából
+   (átkerül a megfelelő fülre)
