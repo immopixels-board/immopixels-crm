@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.0.5 — Admin: Gehaltszettel csoportosítva mitarbeiterek szerint
+## 2026-06-01
+
+### Mit változott
+A profil oldalon admin user (te) számára most a Gehaltszettel részen
+**MINDEN MITARBEITER bérlapja megjelenik**, kollégánként csoportosítva:
+
+  👤 Daniel Bene (2 Dateien)
+     📄 Mai 2026 — daniel-2026-05.pdf [PDF letöltés]
+     📄 April 2026 — daniel-2026-04.pdf [PDF letöltés]
+
+  👤 Elias Kutscha (Noch keine Gehaltszettel)
+
+  👤 Nuri Sahin (1 Datei)
+     📄 Mai 2026 — nuri-2026-05.pdf [PDF letöltés]
+
+### Mit nem változott
+- Mitarbeiter user csak a saját bérlapjait látja (nem fér hozzá másokéhoz)
+- A "Letzter Gehaltszettel" widget a profil főoldalán adminnak most egy
+  összesítő linket mutat ("Alle Mitarbeiter-Gehaltszettel anzeigen") a
+  saját helyett, hogy ne tűnjön sajátnak
+- A "Mein Bereich" felső dropdown továbbra is működik, bárki más profilja
+  megtekinthető (személyes adatok, fahrtenbuch, arbeitszeit)

@@ -192,6 +192,15 @@ export default function ProfilPage() {
     return Math.floor(mins/60)+'h '+String(mins%60).padStart(2,'0')+'m'
   }
 
+  const [allGehaltszettel, setAllGehaltszettel] = useState([])
+  async function loadAllGehaltszettel() {
+    const { data } = await supabase.from('gehaltszettel').select('*').order('month', { ascending: false })
+    setAllGehaltszettel(data || [])
+  }
+  useEffect(() => {
+    if (me?.role_level === 'admin' && activeNav === 'gehaltszettel') loadAllGehaltszettel()
+  }, [me, activeNav, gehaltszettel])
+
   async function loadData(staffMember) {
     const sid = staffMember?.id
     if (!sid) return
@@ -378,9 +387,15 @@ export default function ProfilPage() {
             </div>
             <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:11, padding:'14px 16px' }}>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
-                <i className="ti ti-file-invoice" style={{ fontSize:15, color:'var(--gold)' }} /> Letzter Gehaltszettel
+                <i className="ti ti-file-invoice" style={{ fontSize:15, color:'var(--gold)' }} /> {me?.role_level === 'admin' ? 'Gehaltszettel-Übersicht' : 'Letzter Gehaltszettel'}
               </div>
-              {gehaltszettel.length === 0 ? <div style={{ color:'var(--t3)', fontSize:12 }}>Noch keine Gehaltszettel</div> : (
+              {me?.role_level === 'admin' ? (
+                <div style={{ fontSize:12, color:'var(--t2)' }}>
+                  <a href="#" onClick={e=>{e.preventDefault(); setActiveNav('gehaltszettel')}} style={{ color:'var(--gold)', fontWeight:700, textDecoration:'none' }}>
+                    Alle Mitarbeiter-Gehaltszettel anzeigen →
+                  </a>
+                </div>
+              ) : gehaltszettel.length === 0 ? <div style={{ color:'var(--t3)', fontSize:12 }}>Noch keine Gehaltszettel</div> : (
                 <a href={gehaltszettel[0].file_url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 11px', background:'var(--bg3)', borderRadius:8, textDecoration:'none' }}>
                   <div style={{ width:32, height:32, borderRadius:7, background:'rgba(185,28,28,.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     <i className="ti ti-file-text" style={{ fontSize:15, color:'#b91c1c' }} />
@@ -519,35 +534,79 @@ export default function ProfilPage() {
           {activeNav === 'gehaltszettel' && (
             <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:11, padding:'14px 16px' }}>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:7, marginBottom:14 }}>
-                <i className="ti ti-file-invoice" style={{ fontSize:15, color:'var(--gold)' }} /> Gehaltszettel
+                <i className="ti ti-file-invoice" style={{ fontSize:15, color:'var(--gold)' }} /> Gehaltszettel{me?.role_level === 'admin' ? ' — Alle Mitarbeiter' : ''}
                 {me?.role_level === 'admin' && (
                   <button onClick={() => setUploadModal(true)} style={{ marginLeft:'auto', background:'var(--gold)', color:'#fff', border:'none', borderRadius:7, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
                     <i className="ti ti-upload" style={{ fontSize:11 }} /> Hochladen
                   </button>
                 )}
               </div>
-              {gehaltszettel.length === 0 ? (
-                <div style={{ color:'var(--t3)', fontSize:12, textAlign:'center', padding:24 }}>
-                  <i className="ti ti-file-off" style={{ fontSize:28, display:'block', marginBottom:8, opacity:.3 }} />
-                  Noch keine Gehaltszettel
-                </div>
-              ) : gehaltszettel.map(gz => {
-                const [y,m] = gz.month.split('-')
-                return (
-                  <div key={gz.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 11px', background:'var(--bg3)', borderRadius:9, marginBottom:6 }}>
-                    <div style={{ width:32, height:32, borderRadius:7, background:'rgba(185,28,28,.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <i className="ti ti-file-text" style={{ fontSize:15, color:'#b91c1c' }} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{MONTHS_DE[parseInt(m)-1]} {y}</div>
-                      <div style={{ fontSize:10, color:'var(--t3)' }}>{gz.file_name}</div>
-                    </div>
-                    <a href={gz.file_url} target="_blank" rel="noopener noreferrer" style={{ background:'var(--gdbg)', color:'var(--gold)', border:'0.5px solid var(--gdbr)', borderRadius:6, padding:'4px 9px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
-                      <i className="ti ti-download" style={{ fontSize:11 }} /> PDF
-                    </a>
-                  </div>
+              {me?.role_level === 'admin' ? (
+                // ADMIN: minden mitarbeiter csoportosítva
+                allStaff.length === 0 ? (
+                  <div style={{ color:'var(--t3)', fontSize:12, textAlign:'center', padding:24 }}>Keine Mitarbeiter</div>
+                ) : (
+                  allStaff.map(staffMember => {
+                    const myGz = allGehaltszettel.filter(g => g.staff_id === staffMember.id)
+                    return (
+                      <div key={staffMember.id} style={{ marginBottom:16 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:7, padding:'6px 4px', borderBottom:'0.5px solid var(--border)' }}>
+                          <div style={{ width:28, height:28, borderRadius:'50%', background:(staffMember.color||'#888')+'22', color:staffMember.color||'#888', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, overflow:'hidden' }}>
+                            {staffMember.avatar_url ? <img src={staffMember.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="" /> : (staffMember.init || '?')}
+                          </div>
+                          <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{staffMember.name}</div>
+                          <div style={{ fontSize:11, color:'var(--t3)', marginLeft:'auto' }}>{myGz.length} {myGz.length === 1 ? 'Datei' : 'Dateien'}</div>
+                        </div>
+                        {myGz.length === 0 ? (
+                          <div style={{ color:'var(--t3)', fontSize:11, padding:'4px 38px', fontStyle:'italic' }}>Noch keine Gehaltszettel</div>
+                        ) : (
+                          myGz.map(gz => {
+                            const [y,m] = gz.month.split('-')
+                            return (
+                              <div key={gz.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 11px 8px 38px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
+                                <div style={{ width:28, height:28, borderRadius:7, background:'rgba(185,28,28,.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                  <i className="ti ti-file-text" style={{ fontSize:13, color:'#b91c1c' }} />
+                                </div>
+                                <div style={{ flex:1 }}>
+                                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{MONTHS_DE[parseInt(m)-1]} {y}</div>
+                                  <div style={{ fontSize:10, color:'var(--t3)' }}>{gz.file_name}</div>
+                                </div>
+                                <a href={gz.file_url} target="_blank" rel="noopener noreferrer" style={{ background:'var(--gdbg)', color:'var(--gold)', border:'0.5px solid var(--gdbr)', borderRadius:6, padding:'4px 9px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
+                                  <i className="ti ti-download" style={{ fontSize:11 }} /> PDF
+                                </a>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    )
+                  })
                 )
-              })}
+              ) : (
+                // MITARBEITER: csak a sajátját
+                gehaltszettel.length === 0 ? (
+                  <div style={{ color:'var(--t3)', fontSize:12, textAlign:'center', padding:24 }}>
+                    <i className="ti ti-file-off" style={{ fontSize:28, display:'block', marginBottom:8, opacity:.3 }} />
+                    Noch keine Gehaltszettel
+                  </div>
+                ) : gehaltszettel.map(gz => {
+                  const [y,m] = gz.month.split('-')
+                  return (
+                    <div key={gz.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 11px', background:'var(--bg3)', borderRadius:9, marginBottom:6 }}>
+                      <div style={{ width:32, height:32, borderRadius:7, background:'rgba(185,28,28,.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <i className="ti ti-file-text" style={{ fontSize:15, color:'#b91c1c' }} />
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{MONTHS_DE[parseInt(m)-1]} {y}</div>
+                        <div style={{ fontSize:10, color:'var(--t3)' }}>{gz.file_name}</div>
+                      </div>
+                      <a href={gz.file_url} target="_blank" rel="noopener noreferrer" style={{ background:'var(--gdbg)', color:'var(--gold)', border:'0.5px solid var(--gdbr)', borderRadius:6, padding:'4px 9px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
+                        <i className="ti ti-download" style={{ fontSize:11 }} /> PDF
+                      </a>
+                    </div>
+                  )
+                })
+              )}
             </div>
           )}
           {activeNav === 'fahrtenbuch' && (
