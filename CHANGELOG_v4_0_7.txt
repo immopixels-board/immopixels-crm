@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.0.7 — Checklist auto-pipálás oszlop-váltáskor
+## 2026-06-01
+
+### Új funkció: drag&drop checklist-pipálás
+Mostantól amikor egy kártyát áthúzol egy másik oszlopra, a megfelelő
+checklist elem automatikusan kipipálódik:
+
+- **Beim Bearbeiter / Für Bearbeitung oszlop** → "Fotografiert" + "Für Bearbeitung gesendet" pipa
+- **In Bearbeitung oszlop** → + "In Bearbeitung" pipa
+- **Fertig / Rausgeschickt / Terminieren oszlop** → + "Rausgeschickt" pipa
+
+### Mellékhatás
+Mivel a "Für Bearbeitung gesendet" most automatikusan kipipálódik amikor
+áthúzod a "Beim Bearbeiter" oszlopra, a **"Noch nicht gesendet" badge
+azonnal eltűnik** a kártyáról.
+
+### Régi nyelvet is tudja
+A korábbi v3.x verziókban "Beim Bearbeiten" volt a 2. checklist elem,
+mostantól "Für Bearbeitung gesendet". A kód mindkét néven figyel,
+tehát a régi kártyák checklist-jén is működik az auto-pipálás.
