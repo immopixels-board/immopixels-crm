@@ -1,23 +1,17 @@
-# ImmoPixels CRM v4.1.5 — GCal sync timeMin -30 nap (hotfix)
-## 2026-06-02
+# ImmoPixels CRM v4.1.5
+## 2026-06-03
 
-### Javítás: GCal sync nem törli többé a múltbeli kártyákat
-A /api/gcal/sync eddig csak JÖVŐBELI eseményeket kért le a Google API-tól
-(timeMin = now), ezért:
-- a tegnapi / régi naptári eseményekhez tartozó kártyák átnevezése/frissítése
-  nem szinkronizálódott vissza,
-- a cleanup-logika (activeIds összevetés) a múltbeli kártyákat "cancelled"-nek
-  vette, mert nem voltak a fetch eredményében, és TÖRÖLTE őket
-  (deleted:9 incidens 2026-06-02).
+### 1) GCal sync timeMin -30 nap (hotfix)
+A /api/gcal/sync eddig csak JÖVŐBELI eseményeket kért le (timeMin = now),
+ezért a tegnapi/régi kártyák átnevezése nem szinkronizálódott, sőt a
+cleanup (activeIds) "cancelled"-ként TÖRÖLTE a múltbeli kártyákat (deleted:9).
+Fix: timeMin = now - 30 nap → a régi események bekerülnek a fetchbe, nem törlődnek.
+Érintett: app/api/gcal/sync/route.js
 
-Fix: timeMin = now - 30 nap.
-  const timeMin = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-
-Így az elmúlt 30 nap eseményei is bekerülnek a fetchbe, az activeIds halmazba,
-és nem törlődnek; az átnevezések átveszik.
-
-Megjegyzés:
-- A VER label szándékosan v4.1.4 marad (csak backend hotfix, nincs UI-változás).
-- A korábban már törölt 9 kártyát ez NEM hozza vissza — azt Supabase backup
-  restore-ból kell, ha kellenek.
-- Érintett fájl: app/api/gcal/sync/route.js (74-77. sor)
+### 2) Kártya megnyúlik, ha vannak badge-ek (nincs takarás)
+A badge-ek (Tage überfällig / Noch nicht gesendet / Reel ausstehend) eddig
+absolute pozícióval ráncsúsztak a dátum-sorra 2 badge esetén.
+Fix: a kártya badge-sorok száma szerint kap dinamikus felső paddingot
+(badgeRows >= 2 → +18px), a badge-ek megjelenése változatlan, csak a tartalom
+csúszik lejjebb. 0-1 badge-nél a kártya marad kompakt.
+Érintett: app/BoardApp.js (CardItem) + VER label v4.1.5
