@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.1.5 — GCal sync timeMin -30 nap (hotfix)
+## 2026-06-02
+
+### Javítás: GCal sync nem törli többé a múltbeli kártyákat
+A /api/gcal/sync eddig csak JÖVŐBELI eseményeket kért le a Google API-tól
+(timeMin = now), ezért:
+- a tegnapi / régi naptári eseményekhez tartozó kártyák átnevezése/frissítése
+  nem szinkronizálódott vissza,
+- a cleanup-logika (activeIds összevetés) a múltbeli kártyákat "cancelled"-nek
+  vette, mert nem voltak a fetch eredményében, és TÖRÖLTE őket
+  (deleted:9 incidens 2026-06-02).
+
+Fix: timeMin = now - 30 nap.
+  const timeMin = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
+
+Így az elmúlt 30 nap eseményei is bekerülnek a fetchbe, az activeIds halmazba,
+és nem törlődnek; az átnevezések átveszik.
+
+Megjegyzés:
+- A VER label szándékosan v4.1.4 marad (csak backend hotfix, nincs UI-változás).
+- A korábban már törölt 9 kártyát ez NEM hozza vissza — azt Supabase backup
+  restore-ból kell, ha kellenek.
+- Érintett fájl: app/api/gcal/sync/route.js (74-77. sor)

@@ -72,9 +72,10 @@ async function doSync() {
   if (!shootingsCol) return { ok: false, reason: 'no column' }
 
   const now = new Date()
-  // visszamenőleg is keressünk 30 napot, hogy a tegnapi/múlt heti
-  // események módosításait is átvegye
+  // v4.1.5 fix: -30 nap, hogy a múltbeli/átnevezett GCal események is benne legyenek a fetchben,
+  // különben a lenti cleanup (activeIds) cancelled-ként törli a régi kártyákat (deleted:9 incidens)
   const timeMin = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
+  const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
 
   let created = 0, updated = 0, deleted = 0
 
