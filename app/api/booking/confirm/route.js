@@ -10,11 +10,12 @@ export async function POST(req) {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   let body; try { body = await req.json() } catch { return NextResponse.json({error:'bad json'},{status:400}) }
-  const { token } = body
-  if (!token) return NextResponse.json({ error:'token required' }, { status:400 })
+  const { token, cardId } = body
+  if (!token && !cardId) return NextResponse.json({ error:'token or cardId required' }, { status:400 })
 
-  const { data: card } = await supabase.from('cards')
-    .select('*').eq('booking_token', token).maybeSingle()
+  const { data: card } = await (token
+    ? supabase.from('cards').select('*').eq('booking_token', token).maybeSingle()
+    : supabase.from('cards').select('*').eq('id', cardId).maybeSingle())
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
   if (card.booking_status === 'confirmed') return NextResponse.json({ ok:true, already:true })
 

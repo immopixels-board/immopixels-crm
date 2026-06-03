@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.1.7 — Buchungen gombok beragadása (FŐ OK megvan)
+## 2026-06-03
+
+### Gyökérok: a gombok le voltak tiltva (null booking_token)
+A BuchungenView-ban: const isUp = updating === b.booking_token, és az
+updating kezdőértéke null. Ha egy foglalás-kártya booking_token-je NULL
+a DB-ben, akkor null === null → isUp = true → a kártya ÖSSZES gombja
+(Bestätigen/Bearbeiten/Stornieren/Löschen) le volt tiltva (0.6 opacity).
+Emiatt a "Bestätigen" kattintás el sem indított kérést → se zöld, se hiba.
+
+Fix:
+- A "busy" állapotot mostantól a kártya ID-ja követi (mindig nem-null):
+  setUpdating(bookingId) + isUp = updating === b.id.
+- A view a confirm/cancel/delete hívásokba beküldi a cardId-t is.
+- A confirm/cancel/delete route elfogadja a cardId fallbacket: ha nincs token,
+  ID alapján találja meg a kártyát. Így a null-token kártyák is megerősíthetők.
+- A board drag→confirm hook is cardId-t küld (null token esetén is működik).
+
+Érintett: components/BuchungenView.js, app/api/booking/{confirm,cancel,delete}/route.js,
+app/BoardApp.js
+
+Megjegyzés: hogy MIÉRT null a token azon a 2 kártyán, azt a mellékelt
+diagnosztikai SQL-lel látjuk (booking-kártyák token/status/source állapota).
+VER label: v4.1.7

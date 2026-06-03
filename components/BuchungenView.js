@@ -73,9 +73,9 @@ export default function BuchungenView({ supabase, staff, me }) {
   async function act(token, kind, bookingId) {
     if (kind==='cancel' && !confirm('Diesen Termin wirklich stornieren? Der Kunde wird per E-Mail informiert.')) return
     if (kind==='delete' && !confirm('Diesen Termin ENDGÜLTIG löschen? Die Karte und der Kalendereintrag werden entfernt. Dies kann nicht rückgängig gemacht werden.')) return
-    setUpdating(token)
+    setUpdating(bookingId)
     try {
-      const body = { token }
+      const body = { token, cardId: bookingId }
       if (kind === 'confirm' && me?.id) body.confirmedByStaffId = me.id
       if (kind === 'cancel' && me?.id) body.cancelledByStaffId = me.id
       const resp = await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
@@ -271,7 +271,7 @@ export default function BuchungenView({ supabase, staff, me }) {
           bookings.length===0 ? <div style={{ textAlign:'center', padding:40, color:'var(--t3)', fontSize:13 }}>Keine Buchungen gefunden</div>
           : bookings.map(b=>{
             const st = STATUS[b.booking_status]||STATUS.pending
-            const isUp = updating===b.booking_token
+            const isUp = updating===b.id
             return (
               <div key={b.id} style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:10, padding:'12px 14px', marginBottom:8, borderLeft:`3px solid ${staffColor(b.staff?.init)}` }}>
                 <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:8 }}>
