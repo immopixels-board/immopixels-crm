@@ -71,6 +71,7 @@ export default function BuchungenView({ supabase, staff, me }) {
   }
 
   async function act(token, kind, bookingId) {
+    console.log('[booking act]', kind, 'token=', token, 'cardId=', bookingId)
     if (kind==='cancel' && !confirm('Diesen Termin wirklich stornieren? Der Kunde wird per E-Mail informiert.')) return
     if (kind==='delete' && !confirm('Diesen Termin ENDGÜLTIG löschen? Die Karte und der Kalendereintrag werden entfernt. Dies kann nicht rückgängig gemacht werden.')) return
     setUpdating(bookingId)
