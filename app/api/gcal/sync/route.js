@@ -109,6 +109,17 @@ async function doSync() {
     const existingMap = {}
     for (const c of existingRows || []) existingMap[c.gcal_id] = c
 
+    // v4.1.6 dedup: a /api/booking/create által felvitt foglalás-kártyák is_gcal=FALSE-szal
+    // jönnek létre, de van gcal_id-juk. A fenti existingMap csak is_gcal=true-t néz, ezért a
+    // sync nem ismerné fel őket és DUPLIKÁLNA. Ezért külön lekérjük az ÖSSZES gcal_id-t
+    // (is_gcal-tól függetlenül) ehhez a fotóshoz, és insert előtt ellenőrizzük.
+    const { data: anyRows } = await supabase
+      .from('cards')
+      .select('gcal_id, card_team!inner(staff_id)')
+      .not('gcal_id', 'is', null)
+      .eq('card_team.staff_id', staffMember.id)
+    const knownGcalIds = new Set((anyRows || []).map(r => r.gcal_id))
+
     const activeIds = new Set()
 
     for (const ev of items) {
@@ -143,6 +154,9 @@ async function doSync() {
           updated++
         }
       } else {
+        // v4.1.6: ha ezt a gcal_id-t már egy (pl. is_gcal=false foglalás-) kártya hordozza,
+        // NE hozzunk létre duplikátot.
+        if (knownGcalIds.has(gcal_id)) continue
         const ins = await supabase.from('cards').insert({
           column_id: shootingsCol.id,
           title: ev.summary || date,

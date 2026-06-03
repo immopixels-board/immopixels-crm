@@ -18,9 +18,18 @@ export async function POST(req) {
   if (!card) return NextResponse.json({ error:'not found' }, { status:404 })
   if (card.booking_status === 'cancelled') return NextResponse.json({ ok:true, already:true })
 
-  const cancelUpd = { booking_status:'cancelled', cancelled_at: new Date().toISOString() }
-  if (body.cancelledByStaffId) cancelUpd.cancelled_by = body.cancelledByStaffId
-  await supabase.from('cards').update(cancelUpd).eq('id', card.id)
+  // v4.1.6: kritikus status-írás külön, ellenőrzött (lásd confirm)
+  const { error: stErr } = await supabase.from('cards')
+    .update({ booking_status:'cancelled', cancelled_at: new Date().toISOString() })
+    .eq('id', card.id)
+  if (stErr) {
+    console.error('[cancel] status update FAILED', stErr.message)
+    return NextResponse.json({ ok:false, error:'status update failed: '+stErr.message }, { status:500 })
+  }
+  if (body.cancelledByStaffId) {
+    const { error: exErr } = await supabase.from('cards').update({ cancelled_by: body.cancelledByStaffId }).eq('id', card.id)
+    if (exErr) console.error('[cancel] optional update failed (status OK)', exErr.message)
+  }
 
   // melyik naptárban van az esemény = a hozzárendelt fotós naptára
   const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()

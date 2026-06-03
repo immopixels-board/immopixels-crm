@@ -116,7 +116,7 @@ export async function POST(req) {
 
   // ── CRM kártya (pending) ──
   // Új online foglalás a "Booking" oszlopba kerül; megerősítés után megy a Shootings-ba
-  const { data: col } = await supabase.from('columns').select('id').ilike('title', 'booking').limit(1).maybeSingle()
+  const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
   const { data: card, error: cardErr } = await supabase.from('cards').insert({
     title: `${svc.name} — ${customerName}`,
     card_type: (svc.category || '').toLowerCase().includes('video') ? 'reel' : 'foto',

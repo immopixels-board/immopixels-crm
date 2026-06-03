@@ -47,6 +47,16 @@ export default function BuchungenView({ supabase, staff, me }) {
 
   useEffect(()=>{ load() }, [filter])
 
+  // v4.1.6: auto-frissítés — 30 mp polling + tab-fókuszra újratöltés,
+  // hogy az új foglalások ne maradjanak láthatatlanok nyitott nézetnél
+  useEffect(() => {
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') load() }, 30000)
+    const onVis = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis) }
+  }, [filter])
+
   async function load() {
     setLoading(true)
     try {
@@ -68,7 +78,14 @@ export default function BuchungenView({ supabase, staff, me }) {
       const body = { token }
       if (kind === 'confirm' && me?.id) body.confirmedByStaffId = me.id
       if (kind === 'cancel' && me?.id) body.cancelledByStaffId = me.id
-      await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      const resp = await fetch(`/api/booking/${kind}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      let d = {}; try { d = await resp.json() } catch {}
+      // v4.1.6: ha a szerver hibát ad, NE villantsunk hamis státuszt
+      if (!resp.ok || d.ok === false) {
+        alert('Fehler: ' + (d.error || ('HTTP '+resp.status)))
+        setUpdating(null)
+        return
+      }
       // Optimistic local update — azonnal váltsuk a státuszt és tüntessük el ha a szűrés ezt diktálja
       if (bookingId) {
         const nowIso = new Date().toISOString()
@@ -201,6 +218,9 @@ export default function BuchungenView({ supabase, staff, me }) {
           ))}
         </div>
         <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
+          <button onClick={()=>load()} disabled={loading} title="Aktualisieren" style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:loading?'default':'pointer', display:'flex', alignItems:'center', gap:4, opacity:loading?.6:1 }}>
+            <i className="ti ti-refresh" style={{fontSize:12}} /> Aktualisieren
+          </button>
           <a href="/admin/leistungen" target="_blank" rel="noopener" style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
             <i className="ti ti-settings" style={{fontSize:12}} /> Leistungen
           </a>

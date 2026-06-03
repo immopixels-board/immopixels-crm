@@ -1,0 +1,45 @@
+# ImmoPixels CRM v4.1.6 — Buchungen fixek
+## 2026-06-03
+
+### 1) Confirm/Cancel: status némán nem íródott (FŐ BUG)
+A /api/booking/confirm a booking_status + confirmed_by + column_id mezőket EGY
+kötegelt update-ben írta, hibaellenőrzés nélkül. Ha bármelyik mező hibázott,
+a Supabase nem dobott kivételt, csak error-t adott vissza — amit a kód elnyelt,
+és így is {ok:true}-t küldött. Eredmény: a "Bestätigt" gombra a nézet optimistán
+átváltott, majd a load() visszaolvasta a pending-et → "In Prüfung" maradt.
+Fix: a kritikus booking_status írás külön, ellenőrzött lépés (hibára {ok:false}
++ 500); a confirmed_by/column_id best-effort, nem blokkolja a státuszt.
+Ugyanez a cancel route-ban is.
+Érintett: app/api/booking/confirm/route.js, cancel/route.js
+
+### 2) BuchungenView: act() nézi a választ
+Eddig nem ellenőrizte a fetch választ → hibánál is villantott confirmot.
+Most hibára alert + nincs hamis optimista váltás.
+
+### 3) BuchungenView: auto-frissítés
+Eddig csak mountkor / szűrőváltáskor töltött → nyitott nézetnél az új
+foglalások nem jelentek meg. Most: 30 mp polling (csak ha a tab látható)
++ tab-fókuszra újratöltés + kézi "Aktualisieren" gomb a fejlécben.
+
+### 4) GCal sync: foglalás-kártyák duplikálódtak
+A /api/booking/create is_gcal=FALSE kártyát hoz létre gcal_id-vel + GCal
+eseményt. A sync csak is_gcal=true kártyák közt keresett gcal_id egyezést,
+ezért a foglalás eseményét nem ismerte fel és új is_gcal=true szellem-kártyát
+szúrt be. Fix: insert előtt ellenőrzi az ÖSSZES (is_gcal-tól független) gcal_id-t
+a fotósnál; ha már létezik, kihagyja. A törlés-cleanup továbbra is csak
+is_gcal=true kártyákat érint (foglalás-kártya sosem törlődik a sync által).
+Érintett: app/api/gcal/sync/route.js
+
+### 5) Board drag → foglalás megerősítése (ÚJ)
+Függőben lévő online foglalás kihúzása a Booking oszlopból (bármelyik nem-Booking
+oszlopba) most meghívja a /api/booking/confirm-et: status→confirmed +
+ügyfél-email + GCal [AUSSTEHEND]→[BESTÄTIGT]. Szabály: csak ha
+booking_source='online' ÉS booking_status='pending', és a céloszlop neve NEM
+tartalmazza, hogy "booking".
+Érintett: app/BoardApp.js (moveCustomDrag commit)
+
+### 6) create: Booking oszlop keresése wildcarddal
+.ilike('title','booking') → .ilike('title','%booking%') (mint confirm/sync),
+hogy a kártya akkor is a Booking oszlopba kerüljön, ha a cím nem pontosan "booking".
+
+VER label: v4.1.6

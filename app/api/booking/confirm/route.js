@@ -23,11 +23,27 @@ export async function POST(req) {
   const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
 
   // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba + lábnyom
-  const { data: shootCol } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
-  const upd = { booking_status:'confirmed', confirmed_at: new Date().toISOString() }
-  if (body.confirmedByStaffId) upd.confirmed_by = body.confirmedByStaffId
-  if (shootCol?.id) upd.column_id = shootCol.id
-  await supabase.from('cards').update(upd).eq('id', card.id)
+  // v4.1.6: a KRITIKUS státusz-írás külön, ellenőrzött lépés. Korábban a
+  // booking_status+confirmed_by+column_id egy kötegben ment, és ha bármelyik
+  // mező hibázott, az EGÉSZ update némán elbukott → a status pending maradt.
+  const { error: stErr } = await supabase.from('cards')
+    .update({ booking_status:'confirmed', confirmed_at: new Date().toISOString() })
+    .eq('id', card.id)
+  if (stErr) {
+    console.error('[confirm] status update FAILED', stErr.message)
+    return NextResponse.json({ ok:false, error:'status update failed: '+stErr.message }, { status:500 })
+  }
+  // Opcionális mezők best-effort (ne blokkolják a státuszt, ha hibáznak)
+  try {
+    const { data: shootCol } = await supabase.from('columns').select('id').ilike('title', '%shooting%').limit(1).maybeSingle()
+    const extra = {}
+    if (body.confirmedByStaffId) extra.confirmed_by = body.confirmedByStaffId
+    if (shootCol?.id) extra.column_id = shootCol.id
+    if (Object.keys(extra).length) {
+      const { error: exErr } = await supabase.from('cards').update(extra).eq('id', card.id)
+      if (exErr) console.error('[confirm] optional update failed (status OK)', exErr.message)
+    }
+  } catch(e) { console.error('[confirm] optional update threw', e.message) }
 
   // GCal: [AUSSTEHEND] → [BESTÄTIGT] cím frissítés
   try {
