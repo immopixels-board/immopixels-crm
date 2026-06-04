@@ -1,0 +1,30 @@
+# ImmoPixels CRM v4.2.3 — Billomat Phase 3a: Rechnung (Entwurf) + Positions-Historie
+## 2026-06-04
+
+### Funkció (csak can_invoice usernek)
+A Kunde-kártyán (ha Billomathoz kötött) egy "🧾 Neue Rechnung" gomb → számla-ablak:
+- Frühere Positionen: a kliens utolsó ~15 Billomat-számlájának tételeiből gyűjtött
+  distinct pozíciók (megnevezés + legutóbbi ár), egy kattintással beemelhetők sorként.
+- Szerkeszthető tétel-tábla (Bezeichnung / Menge / Einzelpreis), + Position, törlés.
+- Notiz mező.
+- "Entwurf erstellen" → Billomatban DRAFT számla jön létre (NINCS sorszám/PDF, azt
+  Billomatban véglegesíted: Rechnungen → Entwürfe → abschließen).
+
+### Új fájlok
+- lib/billomat.js: billomatPostXml() + billomatXmlEscape() (a tétel-nesting XML-lel
+  megbízhatóbb, mint JSON).
+- app/api/billomat/invoice/create/route.js (POST): DRAFT számla XML-ből. Gate:
+  can_invoice. Feloldja a CRM-kliens billomat_client_id-ját (hiba, ha nincs kötve).
+- app/api/billomat/invoice/history/route.js (GET): kliens tétel-előzménye az utolsó
+  ~15 számlából (title + utolsó ár + dátum). Gate: can_invoice.
+- BoardApp: invoice modal + openInvoice/createInvoice + Kunde-kártya gomb.
+
+### Fontos
+- A számla DRAFT marad; a jogi rész (sorszám, ÁFА, GoBD, PDF) Billomatban, a
+  véglegesítéskor. Ez szándékos.
+- Nincs új SQL (a billomat_client_id már a 2a-ban bekerült).
+
+### Következő
+Phase 3b: ugyanez a gomb a foto-/shooting-kártyán (CardModal), a kártya
+szolgáltatása/címe előtöltve.
+VER label: v4.2.3
