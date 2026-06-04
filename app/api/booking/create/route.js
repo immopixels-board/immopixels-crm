@@ -72,50 +72,9 @@ export async function POST(req) {
 
   const mapsLink = `https://maps.google.com/?q=${encodeURIComponent(address)}`
 
-  // ── Google Calendar esemény a FŐ naptárba ──
-  let gcalId = null
-  try {
-    const gToken = await getGoogleToken()
-    if (gToken) {
-      const startISO = `${date}T${time}:00`
-      const endISO = `${date}T${endTime}:00`
-      const desc = [
-        `Immobilienbüro: ${immoOffice || '—'}`,
-        `Name: ${customerName}`,
-        `Email: ${customerEmail}`,
-        `Telefon: ${customerPhone || '—'}`,
-        `Leistung: ${svc.name}`,
-        addons.length ? `Zusätzliche Leistungen: ${addons.join(', ')}` : '',
-        ``,
-        `Zusätzliche Info:`,
-        note || '—',
-        ``,
-        `— Online-Buchung (Status: ausstehend) —`,
-      ].filter(x => x !== undefined).join('\n')
-
-      // Az esemény az ÉRINTETT FOTÓS saját naptárába kerül (hogy őt blokkolja)
-      const targetCal = GCAL_IDS[staffInit] || MAIN_CAL
-      const r = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCal)}/events`,
-        {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            summary: `[AUSSTEHEND] ${svc.name} — ${customerName}${immoOffice ? ' / ' + immoOffice : ''}`,
-            location: address,
-            description: desc,
-            start: { dateTime: startISO, timeZone: 'Europe/Berlin' },
-            end: { dateTime: endISO, timeZone: 'Europe/Berlin' },
-          }),
-        }
-      )
-      if (r.ok) { gcalId = (await r.json()).id }
-      else console.error('[create] gcal insert failed', r.status, (await r.text()).slice(0,200))
-    }
-  } catch (e) { console.error('[create] gcal error', e.message) }
-
-  // ── CRM kártya (pending) ──
-  // Új online foglalás a "Booking" oszlopba kerül; megerősítés után megy a Shootings-ba
+  // ── CRM kártya ELŐSZÖR (pending, gcal_id később) ──
+  // v4.1.8: a kártya a forrás-igazság a Buchungen nézethez. Ha ez elhasal, NE jöjjön
+  // létre árva GCal-esemény (amit a sync booking_source=null kártyaként importálna).
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
   const { data: card, error: cardErr } = await supabase.from('cards').insert({
     title: `${svc.name} — ${customerName}`,
@@ -138,7 +97,7 @@ export async function POST(req) {
     booking_source: 'online',
     booking_status: 'pending',
     booking_token: bookingToken,
-    gcal_id: gcalId,
+    gcal_id: null,
     addr: address,
     is_gcal: false,
     is_todo: false,
@@ -146,10 +105,60 @@ export async function POST(req) {
     position: 9999,
   }).select('id').single()
 
-  if (cardErr) { console.error('[create] card insert', cardErr.message); return NextResponse.json({ error: 'save error' }, { status: 500, headers: CORS }) }
+  if (cardErr) {
+    console.error('[create] card insert', cardErr.message)
+    // v4.1.8: a valódi DB-hibát visszaadjuk, hogy látszódjon az ok
+    return NextResponse.json({ error: 'save error', detail: cardErr.message }, { status: 500, headers: CORS })
+  }
 
   const { data: staffRow } = await supabase.from('staff').select('id').eq('init', staffInit).maybeSingle()
   if (staffRow?.id) await supabase.from('card_team').insert({ card_id: card.id, staff_id: staffRow.id })
+
+  // ── Google Calendar esemény a FŐ/fotós naptárba, UTÁN ──
+  let gcalId = null
+  try {
+    const gToken = await getGoogleToken()
+    if (gToken) {
+      const startISO = `${date}T${time}:00`
+      const endISO = `${date}T${endTime}:00`
+      const desc = [
+        `Immobilienbüro: ${immoOffice || '—'}`,
+        `Name: ${customerName}`,
+        `Email: ${customerEmail}`,
+        `Telefon: ${customerPhone || '—'}`,
+        `Leistung: ${svc.name}`,
+        addons.length ? `Zusätzliche Leistungen: ${addons.join(', ')}` : '',
+        ``,
+        `Zusätzliche Info:`,
+        note || '—',
+        ``,
+        `— Online-Buchung (Status: ausstehend) —`,
+      ].filter(x => x !== undefined).join('\n')
+
+      const targetCal = GCAL_IDS[staffInit] || MAIN_CAL
+      const r = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCal)}/events`,
+        {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            summary: `[AUSSTEHEND] ${svc.name} — ${customerName}${immoOffice ? ' / ' + immoOffice : ''}`,
+            location: address,
+            description: desc,
+            start: { dateTime: startISO, timeZone: 'Europe/Berlin' },
+            end: { dateTime: endISO, timeZone: 'Europe/Berlin' },
+          }),
+        }
+      )
+      if (r.ok) {
+        gcalId = (await r.json()).id
+        // a kártyára rámentjük a gcal_id-t (a sync dedup ezt használja)
+        if (gcalId) await supabase.from('cards').update({ gcal_id: gcalId }).eq('id', card.id)
+      } else {
+        console.error('[create] gcal insert failed', r.status, (await r.text()).slice(0,200))
+      }
+    }
+  } catch (e) { console.error('[create] gcal error', e.message) }
 
   // ── Emailek ──
   try {

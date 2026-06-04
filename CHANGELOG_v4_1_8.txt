@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.1.8 — Foglalás-kártya nem jött létre / szellem-kártyák
+## 2026-06-03
+
+### Gyökérok: a /api/booking/create rossz sorrendben dolgozott
+A create ELŐBB létrehozta a GCal-eseményt, és UTÁN szúrta be a kártyát. Ha a
+kártya-insert elhasalt (cardErr → 500 "save error"), a GCal-esemény MÁR létezett
+→ árván maradt → a következő GCal-sync booking_source=null kártyaként importálta.
+Eredmény: "a rendszer csinált kártyát, de nem online foglalásként" → nem jelent
+meg a Buchungen nézetben. (Konkrét eset: [AUSSTEHEND] Melina/Bartz GmbH, 06-03.)
+
+Fix:
+- Sorrend megfordítva: a kártya jön LÉTRE ELŐSZÖR (gcal_id=null). Ha ez hibázik,
+  NINCS GCal-esemény → nincs árva kártya, és a route a VALÓDI hibát visszaadja
+  ({ error:'save error', detail: <postgres üzenet> }), nem csak generikus 500-at.
+- A GCal-esemény utána jön létre, és a gcal_id visszaíródik a kártyára
+  (a sync-dedup ezt használja, így a saját eseményt nem importálja duplán).
+
+Megjegyzés: a régi árva kártyák (booking_source=null, syncből) maradnak; ha nem
+kellenek, kézzel/SQL-lel törölhetők. A "Team Shooting" valószínűleg külön valós
+GCal-esemény, NE töröld vakon.
+VER label: v4.1.8
