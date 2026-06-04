@@ -1,0 +1,30 @@
+# ImmoPixels CRM v4.2.1 — Billomat integráció: alap + kapcsolat-teszt (Phase 1)
+## 2026-06-04
+
+### Cél
+Számlázás Billomat REST API-n keresztül, közvetlenül a CRM-ből (nem Make).
+A sorszám/ÁFА/GoBD Billomatban marad; a CRM csak kiváltja és tárolja a számlaszámot.
+
+### Phase 1 (ez a verzió) — alap + jogosultság + kapcsolat-teszt
+- lib/billomat.js: szerver-oldali helper (billomatGet/Post/Put), env-kulcsokból
+  (BILLOMAT_ID, BILLOMAT_API_KEY, opcionálisan BILLOMAT_APP_ID/APP_SECRET).
+  Fejlécek: X-BillomatApiKey (+ X-AppId/X-AppSecret a magasabb limithez).
+- app/api/billomat/ping/route.js: kapcsolat-teszt. JOGOSULTSÁG: csak az a staff
+  hívhatja, akinél can_invoice = true (403 különben). Sikerre {ok:true, clientsTotal}.
+- BoardApp: a 'me' staff-select mostantól betölti a can_invoice mezőt is (UI-gate-hez,
+  Phase 2).
+
+### Jogosultsági modell
+- Új staff-flag: can_invoice (boolean, default false). Csak CD-nél true először.
+- A számlázás UI (Phase 2) csak can_invoice=true esetén látszik, és a route-ok is
+  ellenőrzik szerver-oldalon. Az admin később egy kapcsolóval engedélyezi a subadminnak.
+
+### Tennivaló a deploy mellé (NEM a zipben)
+1) Vercel env: BILLOMAT_ID, BILLOMAT_API_KEY, BILLOMAT_APP_ID, BILLOMAT_APP_SECRET.
+2) SQL a Supabase-ben (lásd chat): can_invoice oszlop + CD-nek true.
+
+### Következő (Phase 2 / 3)
+- Phase 2: ügyfél- és ár-katalógus import a Billomat API-ból + Rechnungen UI (gate-elt).
+- Phase 3: számla létrehozása (DRAFT → complete → számlaszám+PDF) a kártyáról,
+  + staff-szerkesztő can_invoice kapcsoló.
+VER label: v4.2.1
