@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.2.5 — Monatsabrechnung párosítás-fix
+## 2026-06-04
+
+### Hiba
+A havi nézet a kártya client_name-jét csak a CRM-Kunde TELJES nevére (name) párosította.
+De a kártyákon a client_name a Kürzel/short_name (pl. "Bartz"), a Billomatból importált
+Kunde neve viszont a teljes cégnév (pl. "Bartz GmbH"). => mindent "nicht verknüpft"-nek
+látott, és a Rechnung-gomb tiltva maradt, így nem lehetett számlázni.
+
+### Fix
+- A párosítás mostantól ugyanaz, mint az app többi részén: name VAGY short_name (exact),
+  + normalizált (kisbetű, ékezet/írásjel nélküli) fallback.
+- A csoportosítás a FELOLDOTT CRM-Kunde szerint megy (nem a nyers client_name szerint),
+  így a "Bartz" és "Bartz GmbH" kártyák egy csoportba kerülnek (nem szakadnak szét / nem
+  tűnnek el), és a billomat_client_id helyesen jön → a Rechnung-gomb aktív.
+
+Érintett: app/BoardApp.js (loadMonthly). Nincs új SQL.
+VER label: v4.2.5
