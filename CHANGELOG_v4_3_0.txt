@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.3.0 — Duplikate gomb a board (fotó-kártyák) nézetben is
+## 2026-06-04
+
+### Változás
+A v4.2.9-ben bevezetett duplikátum-kereső eddig csak a Kunden fejlécben volt.
+Mostantól a BOARD toolbarjában is van egy "Duplikate" gomb (admin), ugyanazzal a
+logikával (cím + dátum, a legfrissebb marad), ugyanazt az ablakot nyitja.
+Így a fotó-/shooting-kártyák duplikátumait közvetlenül a boardról is kezelheted.
+A Kunden-beli gomb is megmarad.
+
+Érintett: app/BoardApp.js (board toolbar gomb). Nincs új SQL.
+VER label: v4.3.0
