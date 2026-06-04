@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.3.3 — Widgetek csak a board nézetben
+## 2026-06-04
+
+### Változás
+A lebegő widgetek (To-Do, Wetter, Nächster Termin, Stats, iframe/html) és a
+minimalizált-widget sáv mostantól CSAK a board nézetben jelennek meg.
+A többi fülön (Kunden, Stats-oldal, stb.) nem látszanak.
+Megvalósítás: a két render-feltétel a `tab === 'board'`-hoz kötve.
+
+Érintett: app/BoardApp.js (widget render + minimalizált sáv feltétel). Nincs új SQL.
+VER label: v4.3.3
