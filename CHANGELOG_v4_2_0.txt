@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.2.0 — To-Do widget: drag-sorrend + kipipáltak alulra
+## 2026-06-03
+
+### To-Do widget fejlesztés
+1) A kipipált (done) elemek automatikusan a lista ALJÁRA kerülnek.
+   - Render: [...todoItems].sort((a,b)=>(a.done?1:0)-(b.done?1:0)) (stabil),
+     vagyis a kipipálás pillanatában az elem lecsúszik a kész-blokkba, a nem
+     kész elemek relatív sorrendje megmarad. Az adattömb (localStorage ip-todos)
+     sorrendje a kanonikus, a megjelenítés ebből rendez.
+2) Az elemek fel/le átrendezhetők drag-and-drop-pal.
+   - Minden soron grip-fogantyú (ti-grip-vertical), a sor draggable.
+   - onDragStart → a húzott elem kanonikus indexe; onDrop a célsoron →
+     moveTodo(from,to) a todoItems tömbben, majd mentés.
+   - A művelet-indexek (toggle/törlés/drag) a kanonikus indexre (todoItems.indexOf)
+     mennek, nem a megjelenített sorrendre — így a rendezett nézet mellett is
+     pontosak maradnak.
+   - Új feladat a nem-kész elemek aljára kerül (a kész-blokk fölé).
+
+Érintett: app/BoardApp.js (todoItems state + moveTodo + To-Do widget render)
+VER label: v4.2.0
+
+Megjegyzés: jelenleg EGY To-Do lista van (localStorage). Ha külön, több
+nevesített listát is szeretnél (mindegyik külön drag-rendezhető), az nagyobb
+feature — szólj, és külön megtervezzük.
