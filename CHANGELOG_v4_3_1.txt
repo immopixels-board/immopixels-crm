@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.3.1 — Erősebb ügyfél-párosítás (#kód + kötőjeles Kürzel)
+## 2026-06-04
+
+### Probléma
+Sok utólag behívott kártya "Ohne Kunde" maradt, mert a title kódot/Kürzelt tartalmaz
+#-szám utótaggal (Riegel#061, EV-KI#12, SI#10, Karma#07, NPI#05, EV-Lbh#10), amit a
+korábbi párosító nem fogott meg.
+
+### Fix — guessClientName újraírva
+A title -> ügyfél tipp mostantól:
+1) levágja a "#szám" utótagot (Riegel#061 -> Riegel),
+2) szavakra bont a kötőjelet MEGTARTVA (EV-Da, EV-KI, Kensington-LD),
+3) PONTOS szó-egyezést keres a kliens short_name-jére, majd a név első (márka)szavára,
+4) fallback: tartalmazás hosszabb névre.
+Így a vezető zaj is átugorható (pl. "Schlüssel - Riegel#061 …" -> Riegel).
+
+Ezt használja a 🔧 Karten-Kunden tömeges javító (előnézettel) -> a screenshotban
+látott "Ohne Kunde" kártyák nagy része most a megfelelő ügyfélhez rendelhető.
+
+Megjegyzés: a párosítás a CRM-kliens short_name / név alapján megy. Ha egy kód
+(pl. EV-KI) nincs a kliens Kürzeljében, azt az előnézetben üresen hagyja, és kézzel
+állítható. Ezek után a Profilon érdemes a kliensek Kürzeljét beállítani a kódokra.
+
+Érintett: app/BoardApp.js (guessClientName). Nincs új SQL.
+VER label: v4.3.1
