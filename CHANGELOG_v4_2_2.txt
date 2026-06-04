@@ -1,0 +1,28 @@
+# ImmoPixels CRM v4.2.2 — Billomat Phase 2a: szelektív ügyfél-import
+## 2026-06-04
+
+### Funkció
+A Kunden nézetben (csak can_invoice usernek) egy "🧾 Billomat" gomb → popup,
+ahol a Billomat 177 ügyfele kereshető listában jelenik meg, checkboxokkal.
+Kiválasztod, melyek kerüljenek a CRM-be (a feleslegesek kimaradnak).
+
+- app/api/billomat/clients/route.js (GET): listázza a Billomat-ügyfeleket +
+  jelzi, melyik van már a CRM-ben (billomat_client_id) vagy névre egyezik (↔).
+  Jogosultság: can_invoice.
+- app/api/billomat/clients/import/route.js (POST): a kiválasztott id-kat beemeli:
+  - ha névre egyezik meglévő CRM-Kunde → beírja a billomat_client_id-t + hiányzó
+    mezőket pótol (addr/email/tel/vat),
+  - különben új CRM-Kunde jön létre (name, addr, email, tel, vat, contact_name,
+    billomat_client_id). Jogosultság: can_invoice.
+- BoardApp: popup kereséssel, "Alle (gefiltert)" gombbal, már importáltak
+  ✓-vel jelölve és letiltva, név-match ↔-vel jelölve. Import után toast +
+  loadClients() frissít.
+
+### Tennivaló a deploy mellé (NEM a zipben)
+SQL a Supabase-ben:
+  alter table clients add column if not exists billomat_client_id text;
+
+### Következő
+Phase 2b: kundénként a Billomat számla-előzmény megjelenítése (read-only).
+Phase 3: számla létrehozása a kártyáról (DRAFT -> complete -> számlaszám+PDF).
+VER label: v4.2.2
