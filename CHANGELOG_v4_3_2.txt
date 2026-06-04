@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.3.2 — Kunde-kártya színe nem átlátszó
+## 2026-06-04
+
+### Hiba
+A Kunden-kártya a választott színt .10 áttetszőséggel tette a háttérre, így a mintás
+oldalháttér átütött -> átlátszónak tűnt (pl. arrivo).
+
+### Fix
+A színárnyalat mostantól TÖMÖR var(--bg2) fölé rétegezve jelenik meg
+(linear-gradient(tint,tint), var(--bg2)), kissé erősebb (.18) árnyalattal.
+Így nem üt át a háttér, de a szín finom marad. Sötét módban is helyes (a bg2-re ül).
+
+Érintett: app/BoardApp.js (Kunden-kártya háttér). Nincs új SQL.
+VER label: v4.3.2
+
+### Megjegyzés
+A korábban kért "widgetek csak a board nézetben" módosítás KÉSŐBBRE marad (kérésre).
