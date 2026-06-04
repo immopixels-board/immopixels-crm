@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.2.7 — Karten-Kunden reparieren (tömeges) + jobb auto-párosítás
+## 2026-06-04
+
+### Gyökér-ok
+A Billomatból importált ügyfeleknek (pl. "Bartz GmbH") nincs short_name-jük, és a
+teljes név nincs benne a kártya címében ("...Bartz..."), ezért a behíváskori
+párosítás üres client_name-et hagyott. Sok kártya így "ügyfél nélkül" maradt.
+
+### 1) Jobb auto-párosító (megelőzés)
+A cím/title -> ügyfél párosítás mostantól a név ELSŐ (márka)szavára is illeszt
+("Bartz GmbH" -> "Bartz"). Beépítve a GCal-esemény és a kézi kártya párosításába.
+
+### 2) Tömeges javítás előnézettel (visszamenőleg) — admin
+Kunden fejléc: "🔧 Karten-Kunden" gomb (admin). Végignézi az ÖSSZES nem-törölt,
+nem-To-Do kártyát; ahol a client_name hiányzik vagy nem illik CRM-Kundéhoz,
+a title alapján JAVASLATOT tesz (current -> proposed). Előnézet checkboxokkal,
+csak a kipipáltakat írja be. A már jól kötött kártyákat nem bántja.
+
+Érintett: app/BoardApp.js (guessClientName, openFixClients/applyFixClients, modal,
+gomb, 2 db gcal/manual matcher). Nincs új SQL.
+VER label: v4.2.7
