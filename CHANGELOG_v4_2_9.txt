@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.2.9 — Duplikat-kereső + törlő
+## 2026-06-04
+
+### Funkció (admin): "🔁 Duplikate" gomb a Kunden fejlécben
+- Megkeresi a duplikált kártyákat: kulcs = CÍM (booking_address vagy title, a
+  Reel/Drohne/Editing szavak és írásjelek nélkül normalizálva) + DÁTUM.
+  (title/ügyfél eltérhet, a cím+dátum számít.)
+- Csoportonként a LEGUTÓBB MÓDOSÍTOTT kártya marad (✓ behalten), a többi alapból
+  törlésre jelölve — de minden checkboxszal felülbírálható.
+- "n löschen" -> soft-delete (deleted_at + deleted_by), azaz ARCHIVÁLÁS, visszafordítható
+  (ugyanaz, mint a kártya-archiválás). Megerősítő kérdés után fut.
+- Csak To-Do-n kívüli, dátummal rendelkező, nem törölt kártyákat néz; min. 4 karakteres
+  cím-kulcs (junk-szűrés).
+
+Érintett: app/BoardApp.js (openDuplicates/applyDupDelete, modal, gomb). Nincs új SQL.
+VER label: v4.2.9
