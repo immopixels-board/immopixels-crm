@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.1.9 — Buchungen lista szűrő robusztusabb
+## 2026-06-03
+
+### Tünet
+Új online foglalás bekerült a board Booking oszlopába + ügyfél-email kiment,
+de a Buchungen nézetben NEM jelent meg.
+
+### Kód-ellenőrzés eredménye
+- booking_source='online' KIZÁRÓLAG a /api/booking/create-ben állítódik (97. sor).
+- A publikus űrlap (app/buchen/BuchenClient.js) a /api/booking/create-et hívja.
+- A list route eddig SZIGORÚAN booking_source='online'-ra szűrt.
+=> Ha a kártya létrejön (board + email), de nincs a listában, akkor a kártyán a
+   booking_source nem 'online' (pl. régebbi/eltérő create deploy, vagy elveszett
+   mező), MIKÖZBEN a booking_token MINDIG be van állítva (create generálja+menti).
+
+### Fix
+A list szűrő: booking_source='online' helyett
+  .or('booking_source.eq.online,booking_token.not.is.null')
+A booking_token a foglalás biztos jelölője (csak a create állít be tokent), így a
+foglalás akkor is megjelenik, ha a booking_source hiányzik. Nincs túl-illesztés:
+token csak valódi online foglaláson van.
+Érintett: app/api/booking/list/route.js
+VER label: v4.1.9
+
+### Megjegyzés (külön, biztonsági)
+A /api/booking/list végponton NINCS auth-ellenőrzés és ügyfél-PII-t ad vissza
+(név, email, telefon). Érdemes később auth mögé tenni.
