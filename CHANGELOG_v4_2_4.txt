@@ -1,0 +1,26 @@
+# ImmoPixels CRM v4.2.4 — Billomat: Monatsabrechnung + "Billomat öffnen" gomb
+## 2026-06-04
+
+### Monatsabrechnung (havi gyűjtőszámlázás) — csak can_invoice
+- Kunden fejléc: "🗓️ Monatsabrechnung" gomb → ablak hónapválasztóval.
+- Az adott hónap foto-/shooting-kártyáit (card_date a hónapban, nem törölt, nem To-Do)
+  ÜGYFELENKÉNT csoportosítja (client_name → CRM-Kunde névre párosítva).
+- Kundénként checkboxos kártya-lista; "🧾 Rechnung (n)" gomb → a kipipált kártyák
+  egy gyűjtőszámlává (Entwurf), minden kártya = 1 tétel:
+  megnevezés = "Szolgáltatás – Cím (dátum)", ár = a kártya price-a (ha >0).
+- A gomb a meglévő számla-ablakot nyitja előtöltve → ott a Billomat tétel-előzményből
+  ("Frühere Positionen") egy kattintással állítható az ár, majd Entwurf erstellen.
+- Nem verknüpft ügyfél: figyelmeztetés + a gomb tiltva (előbb a Billomat-importnál
+  össze kell kötni).
+
+### "Billomat öffnen" gomb
+A számla-ablakban (szerkesztés + siker nézet) gomb a
+https://cristiandina.billomat.net/app/invoices/ linkre.
+
+### Megjegyzés az árakhoz
+A kártya price-a az elsődleges (ha be van állítva). Ahol nincs, a tétel üres árral
+jön, és a Billomat-előzményből választható. 100%-os automatika a service_prices
+feltöltésével lenne, az külön lépés.
+
+### Nincs új SQL. Csak BoardApp változott.
+VER label: v4.2.4
