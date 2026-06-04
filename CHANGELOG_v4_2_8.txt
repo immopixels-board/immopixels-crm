@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.2.8 — Számla-tétel formátum (2 soros) + Leistung
+## 2026-06-04
+
+### Tétel-formátum a havi gyűjtőszámlában
+Minden tétel két részből áll (Billomatban: Bezeichnung + Beschreibung):
+- 1. sor (title): "DD.MM.YYYY. - Kürzel - Adresse"
+  (a dátum, az ügyfél rövid neve, és a fotózás címe; a címből leszedi a vezető
+   "Kürzel - " prefixet és a záró Reel/Drohne szót).
+- 2. sor (description / Leistung): "Immobilienfotografie + Postproduktion",
+  és ha a kártya tartalmaz Drohne-t / Reel-t, akkor "+ Drohne" / "+ Reel"
+  beékelődik: pl. "Immobilienfotografie + Drohne + Reel + Postproduktion".
+  Editing/Fotobearbeitung kártyánál: "Postproduktion".
+
+### Számla-ablak
+- Minden tételsor alatt egy szerkeszthető "Leistung" (leírás) mező — látod és
+  módosíthatod a 2. sort a véglegesítés előtt.
+- A create route a description-t már küldi Billomatnak (Bezeichnung + darunter
+  die Leistung).
+
+Érintett: app/BoardApp.js (buildInvoiceItem, monthlyCreateForClient, invoice modal sorai).
+Nincs új SQL.
+VER label: v4.2.8
