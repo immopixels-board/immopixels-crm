@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.2.6 — Monatsabrechnung: minden kártya látható
+## 2026-06-04
+
+### Tünet
+A havi nézet nem mutatta az összes májusi fotózást. Ok: a szűrő kihagyta azokat a
+kártyákat, amelyeknek üres a client_name (pl. GCal-ből jött, cím nem matchelt klienst).
+
+### Változás
+- A havi nézet mostantól az adott hónap MINDEN kártyáját mutatja (nem-To-Do, nem törölt),
+  függetlenül attól, van-e rajta ügyfél.
+- Csoportosítás:
+  - hozzárendelhető CRM-Kunde -> az ügyfél csoportja (mint eddig),
+  - van client_name, de nincs CRM-Kunde -> "⚠ Kunde nicht im CRM",
+  - nincs client_name -> "Ohne Kunde" csoport (a lista végén), "⚠ kein Kunde auf der Karte".
+- Alapból csak a Billomathoz KÖTÖTT ügyfelek kártyái vannak kipipálva (a többi látszik,
+  de nincs előre bejelölve / a Rechnung-gomb tiltva, amíg nincs kötés).
+
+Így rögtön látod, melyik fotózásból hiányzik az ügyfél a kártyán; pótlás után
+automatikusan a megfelelő ügyfélhez kerül.
+
+Érintett: app/BoardApp.js (loadMonthly + csoport-figyelmeztetés). Nincs új SQL.
+VER label: v4.2.6
