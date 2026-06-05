@@ -56,7 +56,7 @@ export async function POST(req) {
       from:`"ImmoPixels Buchung" <${process.env.EMAIL_IMAP_USER}>`, to:BOOKING_EMAIL,
       subject:`Storniert: ${card.title} (${dateFmt})`,
       html:`<div style="font-family:Arial,sans-serif"><p>Ein Termin wurde storniert:</p>
-        <p><strong>${card.title}</strong><br>${dateFmt} ${String(card.card_time).slice(0,5)}<br>${card.client_name} · ${card.customer_email}</p></div>`
+        <p><strong>${card.title}</strong><br>${dateFmt} ${String(card.card_time).slice(0,5)}<br>${card.client_name}${card.customer_name ? ' · ' + card.customer_name : ''} · ${card.customer_email}</p></div>`
     })
   } catch(e) { console.error('[cancel] email', e.message) }
 

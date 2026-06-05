@@ -1,0 +1,29 @@
+# ImmoPixels CRM v4.4.1 — Foglalás: Immobilienbüro = Kunde, kontakt külön
+## 2026-06-05
+
+### Probléma
+A foglalás-kártya címe "{Leistung} — {Kontaktname}" volt, és a client_name a KONTAKT
+neve (pl. Alina Doberstein) — ezért a CRM a kontaktot vette ügyfélnek, nem az
+Immobilienbürót (Bartz). A GCal summary is rossz sorrendben volt.
+
+### Javítás
+- A foglalás KUNDE-ja (client_name) mostantól az Immobilienbüro (pl. Bartz Immobilien),
+  ha meg van adva; különben a kontaktnév (privát ügyfél).
+- A kontakt személy neve külön mezőbe kerül: customer_name (ÚJ oszlop).
+- A kártya- és GCal-cím az Immobilienbüroval kezdődik:
+  "{Immobilienbüro} — {Leistung} — {Kontakt}".
+- Confirm/Cancel e-mail a KONTAKTOT köszönti/mutatja (nem az irodát).
+- Buchungen lista: Kunde (iroda) + Ansprechpartner (kontakt) is látszik.
+- Szerkesztő űrlap: új "Immobilienbüro (Kunde)" mező + "Ansprechpartner" név.
+  A create/update is ellenálló: ha a customer_name oszlop hiányzik, a foglalás akkor is
+  létrejön (core mezőkkel).
+
+### SQL (Supabase; FUTTASD le egyszer; NINCS a zipben):
+#   alter table cards add column if not exists customer_name text;
+
+### Visszamenőleg: a már meglévő Alina-féle foglalásnál a Kunde a kontakt maradt.
+A szerkesztőben kitöltöd az "Immobilienbüro (Kunde)" mezőt (Bartz Immobilien) és mented,
+vagy a 🔧 Karten-Kunden eszközzel rendezed.
+
+Érintett: app/api/booking/{create,update,confirm,cancel,list,manage}/route.js,
+components/BuchungenView.js. VER label (BoardApp): v4.4.1

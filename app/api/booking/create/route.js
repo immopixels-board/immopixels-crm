@@ -78,12 +78,12 @@ export async function POST(req) {
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
   // Core mezők (ezek nélkül nincs használható foglalás-kártya)
   const baseCard = {
-    title: `${svc.name} — ${customerName}`,
+    title: immoOffice ? `${immoOffice} — ${svc.name} — ${customerName}` : `${svc.name} — ${customerName}`,
     card_type: (svc.category || '').toLowerCase().includes('video') ? 'reel' : 'foto',
     card_date: date,
     card_time: time,
     column_id: col?.id ?? null,
-    client_name: customerName,
+    client_name: immoOffice || customerName,
     customer_email: customerEmail,
     customer_phone: customerPhone || null,
     description: noteFull || null,
@@ -103,11 +103,11 @@ export async function POST(req) {
     position: 9999,
   }
   let { data: card, error: cardErr } = await supabase.from('cards')
-    .insert({ ...baseCard, booking_plz: plz || null, booking_lat: lat || null, booking_lng: lng || null })
+    .insert({ ...baseCard, customer_name: customerName, booking_plz: plz || null, booking_lat: lat || null, booking_lng: lng || null })
     .select('id').single()
-  if (cardErr && /(column|schema cache|booking_plz|booking_lat|booking_lng)/i.test(cardErr.message || '')) {
-    // Opcionális geo-oszlopok hiányozhatnak a DB-ben — a foglalás akkor is jöjjön létre.
-    console.error('[create] geo cols missing, retry without:', cardErr.message)
+  if (cardErr && /(column|schema cache|booking_plz|booking_lat|booking_lng|customer_name)/i.test(cardErr.message || '')) {
+    // Opcionális oszlopok (geo / customer_name) hiányozhatnak — a foglalás akkor is jöjjön létre.
+    console.error('[create] optional cols missing, retry core only:', cardErr.message)
     ;({ data: card, error: cardErr } = await supabase.from('cards').insert(baseCard).select('id').single())
   }
 
@@ -148,7 +148,7 @@ export async function POST(req) {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summary: `[AUSSTEHEND] ${svc.name} — ${customerName}${immoOffice ? ' / ' + immoOffice : ''}`,
+            summary: `[AUSSTEHEND] ${immoOffice ? immoOffice + ' — ' : ''}${svc.name} — ${customerName}`,
             location: address,
             description: desc,
             start: { dateTime: startISO, timeZone: 'Europe/Berlin' },

@@ -42,7 +42,10 @@ export async function POST(req) {
 
   const endTime = toHHMM(toMin(newTime) + svc.duration_min + addonMin)
   const addrNew = address ?? card.booking_address
-  const nameNew = customerName || card.client_name
+  // Kunde = Immobilienbüro (client_name); Ansprechpartner = Kontakt (customer_name)
+  const officeNew = immoOffice || card.client_name
+  const contactNew = customerName || card.customer_name || card.client_name
+  const nameNew = contactNew
   const emailNew = customerEmail || card.customer_email
   const mapsLink = `https://maps.google.com/?q=${encodeURIComponent(addrNew||'')}`
 
@@ -53,13 +56,13 @@ export async function POST(req) {
   // Kártya frissítés
   await supabase.from('cards').update({
     card_date: newDate, card_time: newTime, booking_end_time: endTime,
-    client_name: nameNew, customer_email: emailNew,
+    client_name: officeNew, customer_name: contactNew, customer_email: emailNew,
     customer_phone: customerPhone ?? card.customer_phone,
     booking_address: addrNew, addr: addrNew,
     booking_plz: plz ?? card.booking_plz, booking_lat: lat ?? card.booking_lat, booking_lng: lng ?? card.booking_lng,
     addon_360: !!a360, addon_drone: !!aDrone,
     description: note ?? card.description,
-    title: `${svc.name} — ${nameNew}`,
+    title: (officeNew && officeNew !== contactNew) ? `${officeNew} — ${svc.name} — ${contactNew}` : `${svc.name} — ${contactNew}`,
     updated_at: new Date().toISOString(),
   }).eq('id', card.id)
 
@@ -78,7 +81,7 @@ export async function POST(req) {
       await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL)}/events/${card.gcal_id}`, {
         method:'PATCH', headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},
         body: JSON.stringify({
-          summary:`${statusTag} ${svc.name} — ${nameNew}${immoOffice?' / '+immoOffice:''}`,
+          summary:`${statusTag} ${(officeNew && officeNew !== contactNew) ? officeNew + ' — ' : ''}${svc.name} — ${contactNew}`,
           location: addrNew,
           description: desc,
           start:{ dateTime:`${newDate}T${newTime}:00`, timeZone:'Europe/Berlin' },

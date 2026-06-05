@@ -71,7 +71,7 @@ export async function POST(req) {
       from:`"ImmoPixels" <${process.env.EMAIL_IMAP_USER}>`, to:card.customer_email,
       subject:'Ihr Termin bei ImmoPixels ist bestätigt',
       html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a2a28;line-height:1.6">
-        <p>Hallo ${card.client_name},</p>
+        <p>Hallo ${card.customer_name || card.client_name},</p>
         <p>Ihr Termin am <strong>${dateFmt} ${String(card.card_time).slice(0,5)} Uhr</strong> an der Adresse
         <a href="https://maps.google.com/?q=${encodeURIComponent(card.booking_address||'')}">${card.booking_address||''}</a> wurde <strong>bestätigt</strong>.</p>
         <p>Wir freuen uns auf den Termin!</p>

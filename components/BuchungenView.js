@@ -120,7 +120,8 @@ export default function BuchungenView({ supabase, staff, me }) {
       if (!r.ok) throw new Error()
       setEf({
         date: d.card_date, time: String(d.card_time||'').slice(0,5),
-        name: d.client_name||'', email: d.customer_email||'', phone: d.customer_phone||'',
+        name: d.customer_name || d.client_name || '', immoOffice: d.client_name || '',
+        email: d.customer_email||'', phone: d.customer_phone||'',
         address: d.booking_address||'', note: d.description||'',
         addon360: !!d.addon_360, addonDrone: !!d.addon_drone,
         serviceId: d.booking_service_id, serviceName: d.serviceName,
@@ -180,7 +181,7 @@ export default function BuchungenView({ supabase, staff, me }) {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           token: editTok, date: ef.date, time: ef.time, address: ef.address,
-          customerName: ef.name, customerEmail: ef.email, customerPhone: ef.phone, note: ef.note,
+          customerName: ef.name, customerEmail: ef.email, customerPhone: ef.phone, note: ef.note, immoOffice: ef.immoOffice,
           addon360: is360&&ef.addon360, addonDrone: isDrone&&ef.addonDrone,
         })
       })
@@ -283,7 +284,7 @@ export default function BuchungenView({ supabase, staff, me }) {
                   <span style={{ ...ST, background:st.bg, color:st.color, border:'0.5px solid '+st.border }}>{st.label}</span>
                 </div>
                 <div style={{ fontSize:11, color:'var(--t2)', lineHeight:1.7 }}>
-                  <div><i className="ti ti-user" style={{fontSize:11}} /> {b.client_name} · {b.customer_phone||'—'}</div>
+                  <div><i className="ti ti-user" style={{fontSize:11}} /> {b.client_name}{b.customer_name ? ' · ' + b.customer_name : ''} · {b.customer_phone||'—'}</div>
                   <div><i className="ti ti-mail" style={{fontSize:11}} /> {b.customer_email}</div>
                   <div><i className="ti ti-map-pin" style={{fontSize:11}} /> {b.booking_address}</div>
                   {b.description && <div style={{whiteSpace:'pre-line',background:'var(--bg3)',borderRadius:6,padding:'6px 8px',marginTop:4,color:'var(--t3)'}}>{b.description}</div>}
@@ -416,8 +417,10 @@ export default function BuchungenView({ supabase, staff, me }) {
                     </button>
                   ))}
                 </div>}
+              <label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Immobilienbüro (Kunde)</label>
+              <input value={ef.immoOffice||''} onChange={e=>setEf({...ef,immoOffice:e.target.value})} placeholder="z. B. Bartz Immobilien" style={{...inp,margin:'4px 0 8px'}} />
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-                <div><label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Name</label><input value={ef.name} onChange={e=>setEf({...ef,name:e.target.value})} style={{...inp,marginTop:4}} /></div>
+                <div><label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Ansprechpartner</label><input value={ef.name} onChange={e=>setEf({...ef,name:e.target.value})} style={{...inp,marginTop:4}} /></div>
                 <div><label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Telefon</label><input value={ef.phone} onChange={e=>setEf({...ef,phone:e.target.value})} style={{...inp,marginTop:4}} /></div>
               </div>
               <label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>E-Mail</label>
