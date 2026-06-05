@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.3.4 — szerver-sync ügyfél-párosítás + badge-ek egy sorban + widget-gomb footerbe
+## 2026-06-05
+
+### 1) Szerver-oldali GCal-sync most beállítja az ügyfelet
+A /api/gcal/sync (cron + webhook + Sync gomb) eddig client_name NÉLKÜL hozta létre a
+kártyákat -> ez okozta a sok "Ohne Kunde"-t. Mostantól ugyanaz a párosító fut szerver-
+oldalon is (#szám levágás, short_name szó-egyezés, név első szava, tartalmazás):
+- insertkor beállítja a client_name-et,
+- updatekor (esemény szerkesztése) frissíti is, ha változott (üreset nem ír felül).
+Így a naptárból jövő ÉS a szerkesztett kártyák automatikusan a megfelelő ügyfélhez kerülnek.
+
+### 2) Kártya-badge-ek egy sorban
+A "Tage überfällig", "Noch nicht gesendet", "Reel ausstehend" badge-ek eddig egymásra
+csúsztak (absolute) és takarták a dátumot. Most egy flex-wrap sorban, egymás mellett,
+a kártya tetején (normál folyásban) -> nem takarják a dátumot. A badgeTopPad hack megszűnt.
+
+### 3) "+ Eigenes Widget" gomb a footerbe
+Eddig a bal-alsó lebegő sávban volt és takarta a "weiter laden"-t. Áthelyezve a
+footerbe, a "Dieses Jahr" után (csak board nézetben). A lebegő sáv csak akkor jelenik
+meg, ha van minimalizált widget.
+
+Érintett: app/api/gcal/sync/route.js, app/BoardApp.js. Nincs új SQL.
+VER label: v4.3.4

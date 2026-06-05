@@ -71,6 +71,19 @@ async function doSync() {
     (cols || []).find(c => c.title && c.title.toLowerCase().includes('shooting')) || (cols || [])[0]
   if (!shootingsCol) return { ok: false, reason: 'no column' }
 
+  // Ügyfél-párosító (mint a kliens-oldali guessClientName): #szám levágás, szó-egyezés
+  // a short_name-re, majd a név első (márka)szavára, végül tartalmazás.
+  const { data: clientList } = await supabase.from('clients').select('name, short_name')
+  const guessClient = (title) => {
+    const raw = (title || '').toLowerCase()
+    if (!raw.trim()) return ''
+    const words = raw.replace(/#\s*\d+/g, ' ').split(/[^a-z0-9äöüß-]+/).filter(Boolean).map(w => w.replace(/^-+|-+$/g, ''))
+    let m = (clientList || []).find(c => { const sn = (c.short_name || '').toLowerCase(); return sn && words.includes(sn) })
+    if (!m) m = (clientList || []).find(c => { const fw = (c.name || '').trim().split(/\s+/)[0].toLowerCase(); return fw && fw.length >= 3 && words.includes(fw) })
+    if (!m) m = (clientList || []).find(c => (c.short_name && c.short_name.length >= 3 && raw.includes(c.short_name.toLowerCase())) || (c.name && raw.includes(c.name.toLowerCase())))
+    return m ? (m.short_name || m.name) : ''
+  }
+
   const now = new Date()
   // v4.1.5 fix: -30 nap, hogy a múltbeli/átnevezett GCal események is benne legyenek a fetchben,
   // különben a lenti cleanup (activeIds) cancelled-ként törli a régi kártyákat (deleted:9 incidens)
@@ -101,7 +114,7 @@ async function doSync() {
     // kulonben a masik fotos kartyait kitorolnenk.
     const { data: existingRows } = await supabase
       .from('cards')
-      .select('id, gcal_id, card_date, card_time, booking_end_time, title, addr, card_team!inner(staff_id)')
+      .select('id, gcal_id, card_date, card_time, booking_end_time, title, addr, client_name, card_team!inner(staff_id)')
       .eq('is_gcal', true)
       .not('gcal_id', 'is', null)
       .eq('card_team.staff_id', staffMember.id)
@@ -138,19 +151,25 @@ async function doSync() {
         const exEndTime = (ex.booking_end_time || '').slice(0, 5)
         const newTitle = ev.summary || date
         const newAddr = ev.location || ''
-        // Frissítés, ha BÁRMELYIK mező változott (dátum, idő, név, cím, vég-idő)
+        const newClient = guessClient(ev.summary || '')
+        // client_name csak akkor frissül, ha találtunk és változott (üreset nem írunk felül)
+        const clientChanged = newClient && newClient !== (ex.client_name || '')
+        // Frissítés, ha BÁRMELYIK mező változott (dátum, idő, név, cím, vég-idő, ügyfél)
         if (
           ex.card_date !== date ||
           exTime !== time ||
           exEndTime !== (endTime || '').slice(0, 5) ||
           (ex.title || '') !== newTitle ||
-          (ex.addr || '') !== newAddr
+          (ex.addr || '') !== newAddr ||
+          clientChanged
         ) {
-          await supabase.from('cards').update({
+          const upd = {
             card_date: date, card_time: time, booking_end_time: endTime,
             title: newTitle, addr: newAddr,
             updated_at: new Date().toISOString(),
-          }).eq('id', ex.id)
+          }
+          if (clientChanged) upd.client_name = newClient
+          await supabase.from('cards').update(upd).eq('id', ex.id)
           updated++
         }
       } else {
@@ -164,6 +183,7 @@ async function doSync() {
           card_date: date,
           card_time: time,
           booking_end_time: endTime,
+          client_name: guessClient(ev.summary || '') || null,
           is_gcal: true, is_todo: false, price: 0, position: 9999, note: '', gcal_id,
         }).select('id').single()
         if (ins.data && ins.data.id) {
