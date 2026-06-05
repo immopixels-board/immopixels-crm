@@ -60,7 +60,7 @@ async function getFreshToken(supabase) {
   return j.access_token
 }
 
-async function doSync() {
+async function doSync(opts = {}) {
   const supabase = sb()
   const token = await getFreshToken(supabase)
   if (!token) return { ok: false, reason: 'token refresh failed' }
@@ -87,7 +87,11 @@ async function doSync() {
   const now = new Date()
   // v4.1.5 fix: -30 nap, hogy a múltbeli/átnevezett GCal események is benne legyenek a fetchben,
   // különben a lenti cleanup (activeIds) cancelled-ként törli a régi kártyákat (deleted:9 incidens)
-  const timeMin = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
+  // v4.3.5: opcionális ?since=YYYY-MM-DD egyszeri visszamenőleges behíváshoz (a normál cron marad -30 nap).
+  const sinceValid = opts.since && /^\d{4}-\d{2}-\d{2}$/.test(opts.since)
+  const timeMin = sinceValid
+    ? new Date(opts.since + 'T00:00:00Z').toISOString()
+    : new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
   const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
 
   let created = 0, updated = 0, deleted = 0
@@ -204,5 +208,8 @@ async function doSync() {
   return { ok: true, created, updated, deleted }
 }
 
-export async function POST() { return NextResponse.json(await doSync()) }
-export async function GET() { return NextResponse.json(await doSync()) }
+function readSince(req) {
+  try { return new URL(req.url).searchParams.get('since') || undefined } catch { return undefined }
+}
+export async function POST(req) { return NextResponse.json(await doSync({ since: readSince(req) })) }
+export async function GET(req) { return NextResponse.json(await doSync({ since: readSince(req) })) }

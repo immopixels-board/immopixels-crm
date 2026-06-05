@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.3.5 — GCal sync: egyszeri visszamenőleges behívás (?since=)
+## 2026-06-05
+
+### Cél
+A Schulz (és bármely) márciusi fotózás behívása. A normál sync csak -30 naptól húz,
+ezért a 30+ napos események kimaradnak.
+
+### Változás
+A /api/gcal/sync elfogad egy opcionális ?since=YYYY-MM-DD paramétert, ami CSAK arra a
+hívásra tágítja az időablakot (egyszeri visszamenőleges behívás). A paraméter nélküli
+hívás (cron, webhook) marad a -30 napos ablaknál -> nincs mit visszaállítani.
+A formátum validált (YYYY-MM-DD), különben a normál -30 nap érvényes.
+
+Megjegyzés: a behívás a teljes naptárat húzza az adott ablakban (nem csak Schulzot),
+így a >30 napos, eddig nem kártyázott események mind bekerülnek. A v4.3.4 óta az
+ügyfél (client_name) automatikusan beáll. Felesleges régi kártyák a 🔁 Duplikate /
+archiválás eszközökkel takaríthatók.
+
+Érintett: app/api/gcal/sync/route.js. Nincs új SQL.
+VER label: v4.3.5
