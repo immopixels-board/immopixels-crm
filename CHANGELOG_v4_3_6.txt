@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.3.6 — Monatsabrechnung: Kunde-mód + "berechnet" jelölés
+## 2026-06-05
+
+### 1) Monatsabrechnung — ügyfél szerinti választás (új mód)
+A modal fejlécében új kapcsoló: "Monat ↔ Kunde".
+- Monat (mint eddig): a kiválasztott hónap fotózásai, ügyfelenként csoportosítva.
+- Kunde (ÚJ): kiválasztasz egy (Billomathoz kötött) ügyfelet, és megjelenik az ÖSSZES
+  még nem számlázott fotózása HÓNAPTÓL FÜGGETLENÜL (dátum szerint). Kipipálod, és egy
+  gyűjtőszámla-tervezet (Entwurf) készül belőle. Pont a "több hónapig nem ment számla"
+  esetre.
+
+### 2) "berechnet" (számlázott) jelölés a kártyákon
+Amikor egy kártyákból számla-tervezet készül (Monatsabrechnung/Kunde-számla), a CRM a
+kártyákat megjelöli számlázottként (billed_at + billed_invoice_id).
+- A számlázott kártyák a Monatsabrechnungban "✓ berechnet" jelölést kapnak, és alapból
+  NINCSENEK kipipálva (nem számlázódnak újra).
+- A boardon a kártyán zöld "berechnet" badge jelenik meg (a badge-sorban).
+- Jelölés a TERVEZET létrehozásakor történik (a véglegesítés Billomatban marad). Ha egy
+  tervezetet eldobsz Billomatban, a kártya jelölve marad — később kérhetsz "visszajelölés"
+  funkciót.
+
+### SQL (Supabase, FUTTASD le egyszer — NINCS a zipben):
+#   alter table cards add column if not exists billed_at timestamptz;
+#   alter table cards add column if not exists billed_invoice_id text;
+
+Érintett: app/BoardApp.js, app/api/billomat/invoice/create/route.js.
+VER label: v4.3.6

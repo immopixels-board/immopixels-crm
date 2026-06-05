@@ -15,7 +15,7 @@ function num(v) { const n = parseFloat(String(v).replace(',', '.')); return isFi
 // DRAFT számlát hoz létre Billomatban (NEM véglegesíti). Visszaadja az invoice id-t.
 export async function POST(req) {
   let body; try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }) }
-  const { staff_id, clientId, items, note } = body
+  const { staff_id, clientId, items, note, cardIds } = body
   if (!staff_id) return NextResponse.json({ ok: false, error: 'staff_id required' }, { status: 400 })
   if (!clientId) return NextResponse.json({ ok: false, error: 'clientId required' }, { status: 400 })
   if (!Array.isArray(items) || !items.length) return NextResponse.json({ ok: false, error: 'mindestens eine Position nötig' }, { status: 400 })
@@ -53,11 +53,20 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, status: res.status, error: 'Billomat hiba', detail: (res.raw || '').slice(0, 400) }, { status: 502 })
   }
   const inv = res.data?.invoice || {}
+  // a számlára tett kártyák jelölése "számlázott"-ként
+  let billed = 0
+  if (Array.isArray(cardIds) && cardIds.length) {
+    const { error: bErr, count } = await supabase.from('cards')
+      .update({ billed_at: new Date().toISOString(), billed_invoice_id: inv.id ? String(inv.id) : null }, { count: 'exact' })
+      .in('id', cardIds.map(String))
+    if (!bErr) billed = count || cardIds.length
+  }
   return NextResponse.json({
     ok: true,
     draft: true,
     invoice_id: inv.id || null,
     customerportal_url: inv.customerportal_url || null,
     client: client.name,
+    billed,
   })
 }
