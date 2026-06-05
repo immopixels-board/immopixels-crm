@@ -289,15 +289,12 @@ export default function ProfilPage() {
       const path = `${staffId}/${month}_${Date.now()}_${file.name}`
       const { error: upErr } = await supabase.storage.from('gehaltszettel').upload(path, file, { upsert: true })
       if (upErr) {
-        // Bucket nem létezik? Próbálkozunk a profiles buckettel
-        const { error: upErr2 } = await supabase.storage.from('avatars').upload('gz/'+path, file, { upsert: true })
-        if (upErr2) throw new Error('Storage Fehler: ' + (upErr.message || upErr2.message))
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl('gz/'+path)
-        await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
-      } else {
-        const { data: urlData } = supabase.storage.from('gehaltszettel').getPublicUrl(path)
-        await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
+        throw new Error(/bucket/i.test(upErr.message || '')
+          ? 'Storage-Bucket "gehaltszettel" fehlt. Bitte in Supabase einen öffentlichen Bucket namens "gehaltszettel" anlegen.'
+          : ('Storage Fehler: ' + upErr.message))
       }
+      const { data: urlData } = supabase.storage.from('gehaltszettel').getPublicUrl(path)
+      await supabase.from('gehaltszettel').insert({ staff_id: staffId, month, file_url: urlData.publicUrl, file_name: file.name, file_size: file.size, uploaded_by: me.id })
       setUploadModal(false)
       setGzSuccess(staffId)
       setTimeout(() => setGzSuccess(null), 4000)
@@ -342,7 +339,7 @@ export default function ProfilPage() {
         <span style={{ color:'var(--border)' }}>|</span>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>Mein Bereich</span>
         {saved && <span style={{ background:'rgba(156,175,136,.15)', color:'#3a6030', border:'0.5px solid rgba(156,175,136,.4)', borderRadius:6, padding:'2px 9px', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}><i className="ti ti-check" style={{fontSize:10}} /> Gespeichert</span>}
-        {(me?.role_level === 'admin' || me?.role_level === 'subadmin') && allStaff.length > 0 && (
+        {me?.role_level === 'admin' && allStaff.length > 0 && (
           <select value={viewStaff?.id || ''} onChange={e => { const s = allStaff.find(x=>x.id===e.target.value); setSelectedStaff(s); loadData(s) }}
             style={{ marginLeft:'auto', ...IS, width:'auto', padding:'4px 9px', fontSize:12 }}>
             {allStaff.map(s => <option key={s.id} value={s.id}>{s.name}{s.id===me.id?' (Ich)':''}</option>)}

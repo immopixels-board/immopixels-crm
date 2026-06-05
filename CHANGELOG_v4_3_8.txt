@@ -1,0 +1,26 @@
+# ImmoPixels CRM v4.3.8 — Mein Bereich: fiókváltó csak adminnak + Gehaltszettel bucket fix
+## 2026-06-05
+
+### 1) Fiók-/staff-váltó CSAK adminnak
+A "Mein Bereich" oldalon a másik munkatárs nézetére váltó legördülő eddig admin ÉS
+subadmin számára látszott. Mostantól CSAK admin (role_level='admin') látja és használhatja.
+
+### 2) Gehaltszettel letöltés "Bucket not found" javítás
+A feltöltés eddig egy törékeny "avatars" fallbackot használt, ha a "gehaltszettel" bucket
+hiányzott -> inkonzisztens, törött file_url-ek. Mostantól kizárólag a "gehaltszettel"
+bucketet használja, és hiányzó bucket esetén világos hibaüzenetet ad.
+A működéshez a Supabase-ben létre kell hozni egy ÖFFENTLICH (public) "gehaltszettel"
+bucketet (SQL lent). Utána a meglévő (törött) zettel(eke)t újra fel kell tölteni.
+
+### SQL (Supabase SQL editor — FUTTASD le egyszer; NINCS a zipben):
+#   insert into storage.buckets (id, name, public)
+#     values ('gehaltszettel','gehaltszettel',true)
+#     on conflict (id) do update set public = true;
+#   drop policy if exists "gz_read" on storage.objects;
+#   drop policy if exists "gz_write" on storage.objects;
+#   drop policy if exists "gz_update" on storage.objects;
+#   create policy "gz_read"   on storage.objects for select using (bucket_id = 'gehaltszettel');
+#   create policy "gz_write"  on storage.objects for insert with check (bucket_id = 'gehaltszettel');
+#   create policy "gz_update" on storage.objects for update using (bucket_id = 'gehaltszettel');
+
+Érintett: app/profil/page.js. VER label (BoardApp): v4.3.8
