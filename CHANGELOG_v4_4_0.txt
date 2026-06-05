@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.4.0 — Buchungen lista: route-cache teljes kikapcsolása
+## 2026-06-05
+
+### Tünet
+A Buchungen nézet tegnapi, "beragadt" állapotot mutat: a már törölt/cancelled foglalás
+(Cristian, deleted_at kitöltve) ott marad a pendingben, az új, érvényes foglalás
+(Alina, pending, deleted_at=null) viszont nem jelenik meg. Tehát a DB-vel ELLENTÉTES
+állapot -> a választ valami cache szolgálja ki, nem friss adat.
+
+### Diagnózis
+A /api/booking/list eddig force-dynamic + no-store volt, de a Vercel/Next route-cache
+így is kiszolgálhatott régi választ. (Service worker / PWA nincs.)
+
+### Javítás
+A /api/booking/list route-ra: export const revalidate = 0 + fetchCache = 'force-no-store'
+-> a válasz soha nem cache-elődik, mindig friss DB-lekérdezés fut.
+(A "Aktualisieren" gomb és a 30mp polling már korábban megvolt a nézetben.)
+
+Érintett: app/api/booking/list/route.js. VER label (BoardApp): v4.4.0
+
+### FONTOS deploy után: HARD refresh (Cmd+Shift+R), hogy a böngésző se szolgáljon ki
+régi oldalt/RSC-t.
