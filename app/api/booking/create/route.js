@@ -64,6 +64,21 @@ export async function POST(req) {
   if (addon360) addons.push('360°-Tour (+30 Min.)')
   if (addonDrone) addons.push('Drohnenaufnahmen (+15 Min.)')
 
+  // Kártya-típus a szolgáltatásból + addonokból (Foto+Reel, Foto+Drohne, stb.),
+  // nem csak Foto/Reel. A kulcsok a photoCats normalizált kulcsaihoz illeszkednek.
+  const _s = ((svc.name || '') + ' ' + (svc.category || '')).toLowerCase()
+  const _foto = /foto|photo/.test(_s)
+  const _reel = /reel|video/.test(_s)
+  const _drohne = /drohne|drone/.test(_s) || !!addonDrone
+  const _d360 = /360/.test(_s) || !!addon360
+  const cardType =
+    _foto && _reel ? 'fotoreel' :
+    _foto && _drohne ? 'fotodrohne' :
+    _foto ? 'foto' :
+    _reel ? 'reel' :
+    _drohne ? 'drohne' :
+    _d360 ? '360' : 'foto'
+
   const noteFull = [
     note || '',
     immoOffice ? `Immobilienbüro: ${immoOffice}` : '',
@@ -79,7 +94,7 @@ export async function POST(req) {
   // Core mezők (ezek nélkül nincs használható foglalás-kártya)
   const baseCard = {
     title: immoOffice ? `${immoOffice} — ${svc.name} — ${customerName}` : `${svc.name} — ${customerName}`,
-    card_type: (svc.category || '').toLowerCase().includes('video') ? 'reel' : 'foto',
+    card_type: cardType,
     card_date: date,
     card_time: time,
     column_id: col?.id ?? null,

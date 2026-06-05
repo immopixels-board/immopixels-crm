@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.4.2 — Foglalás: helyes kártya-típus (Foto+Reel, Foto+Drohne)
+## 2026-06-05
+
+### Probléma
+A foglalás-kártya card_type-ja csak Video->reel, minden más->foto volt. Így a
+"Foto + Reel" szolgáltatás is csak "Foto" lett, és a Drohne-addon is elveszett a típusból.
+
+### Javítás
+A card_type mostantól a szolgáltatás nevéből + category-ból + addonokból (addon360,
+addonDrone) számolódik:
+- Foto + Reel  -> fotoreel
+- Foto + Drohne (vagy Foto + Drohne-addon) -> fotodrohne
+- csak Foto -> foto
+- csak Reel/Video -> reel
+- csak Drohne -> drohne
+- 360 -> 360
+A kulcsok a photoCats (típus-chipek) normalizált kulcsaihoz illeszkednek.
+Mellékhaszon: a Monatsabrechnung ár-feloldó (priceForCard) is a helyes típushoz
+társítja az árat.
+
+Érintett: app/api/booking/create/route.js. Nincs új SQL. VER label (BoardApp): v4.4.2
