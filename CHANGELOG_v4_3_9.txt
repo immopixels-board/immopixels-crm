@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.3.9 — Buchungen: foglalás-create ellenállóvá tétele
+## 2026-06-05
+
+### Tünet
+A Buchungen nézetben a régi foglalás "beragad", új foglalás nem jelenik meg.
+
+### Diagnózis
+A /api/booking/create a kártyát a booking_plz / booking_lat / booking_lng oszlopokkal
+együtt szúrja be. Ha ezek az (opcionális, geo) oszlopok HIÁNYOZNAK a cards táblából,
+a teljes insert 500-zal elhasal -> nem jön létre foglalás-kártya -> az új foglalás
+sehol nem látszik (a régi, korábban létrejött kártya marad).
+
+### Javítás
+A create insert mostantól ELŐSZÖR a geo-oszlopokkal próbál, és ha az hiba miatt
+(hiányzó oszlop / schema cache) elhasal, AUTOMATIKUSAN újrapróbál a core mezőkkel
+(geo nélkül). Így a foglalás MINDIG létrejön és megjelenik a Buchungenben.
+A geo-oszlopok helyes működéséhez (távolság/Fahrtenbuch) ajánlott lefuttatni az alábbi
+SQL-t — utána a teljes adat is mentődik.
+
+### Ajánlott SQL (Supabase; NINCS a zipben):
+#   alter table cards add column if not exists booking_plz text;
+#   alter table cards add column if not exists booking_lat double precision;
+#   alter table cards add column if not exists booking_lng double precision;
+
+Érintett: app/api/booking/create/route.js. VER label (BoardApp): v4.3.9

@@ -76,7 +76,8 @@ export async function POST(req) {
   // v4.1.8: a kártya a forrás-igazság a Buchungen nézethez. Ha ez elhasal, NE jöjjön
   // létre árva GCal-esemény (amit a sync booking_source=null kártyaként importálna).
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
-  const { data: card, error: cardErr } = await supabase.from('cards').insert({
+  // Core mezők (ezek nélkül nincs használható foglalás-kártya)
+  const baseCard = {
     title: `${svc.name} — ${customerName}`,
     card_type: (svc.category || '').toLowerCase().includes('video') ? 'reel' : 'foto',
     card_date: date,
@@ -90,9 +91,6 @@ export async function POST(req) {
     addon_360: !!addon360,
     addon_drone: !!addonDrone,
     booking_address: address,
-    booking_plz: plz || null,
-    booking_lat: lat || null,
-    booking_lng: lng || null,
     booking_end_time: endTime,
     booking_source: 'online',
     booking_status: 'pending',
@@ -103,7 +101,15 @@ export async function POST(req) {
     is_todo: false,
     price: 0,
     position: 9999,
-  }).select('id').single()
+  }
+  let { data: card, error: cardErr } = await supabase.from('cards')
+    .insert({ ...baseCard, booking_plz: plz || null, booking_lat: lat || null, booking_lng: lng || null })
+    .select('id').single()
+  if (cardErr && /(column|schema cache|booking_plz|booking_lat|booking_lng)/i.test(cardErr.message || '')) {
+    // Opcionális geo-oszlopok hiányozhatnak a DB-ben — a foglalás akkor is jöjjön létre.
+    console.error('[create] geo cols missing, retry without:', cardErr.message)
+    ;({ data: card, error: cardErr } = await supabase.from('cards').insert(baseCard).select('id').single())
+  }
 
   if (cardErr) {
     console.error('[create] card insert', cardErr.message)
