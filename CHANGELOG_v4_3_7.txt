@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.3.7 — Monatsabrechnung: árak a Kunde service_prices-ből
+## 2026-06-05
+
+### Probléma
+A Monatsabrechnungban minden tétel "— €" volt, mert a (főleg GCal-import) kártyákon a
+price=0, az ügyfélnél (Kunde) viszont be vannak állítva a szolgáltatás-árak (service_prices).
+Ezeket eddig nem vette figyelembe.
+
+### Megoldás
+Új ár-feloldó (priceForCard): kártya ára (ha >0) -> ügyfél service_prices a szolgáltatás-
+típusra -> globális grundpreis. A card_type -> szolgáltatás-id leképezés:
+foto, foto+drohne->fotodron, drohne->dron, reel.
+- A Monatsabrechnung sorokban a feloldott ár jelenik meg (nem "— €").
+- A csoport fejlécében a kijelölt kártyák VÉGÖSSZEGE látszik.
+- A számlatételek (Entwurf) is ezzel az árral mennek a Billomatba.
+
+Megjegyzés: ha egy kártyán explicit ár van állítva, az élvez elsőbbséget. Ha sem a
+kártyán, sem az ügyfélnél, sem a katalógusban nincs ár -> "— €" marad (kézzel pótolható
+a számla-dialógusban).
+
+Érintett: app/BoardApp.js. Nincs új SQL.
+VER label: v4.3.7
