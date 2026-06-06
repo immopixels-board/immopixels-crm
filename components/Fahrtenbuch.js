@@ -26,6 +26,22 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     loadRows()
   },[currentStaff?.id, from, to])
 
+  // Rövid cím: utca + házszám, ÉS a város (PLZ és ország nélkül) — pl. "Maxgärtenstraße 1E, Speyer"
+  const shortAddr = a => {
+    if(!a) return ''
+    const parts = String(a).split(',').map(s=>s.trim()).filter(Boolean)
+    const street = parts[0] || ''
+    let city = ''
+    for(let i=1;i<parts.length;i++){
+      if(/deutschland|germany/i.test(parts[i])) continue
+      const c = parts[i].replace(/^\d{4,5}\s*/,'').trim()
+      if(c){ city = c; break }
+    }
+    return city ? street+', '+city : street
+  }
+  const _toMin = t => { const [h,m]=String(t||'').split(':').map(Number); return (h||0)*60+(m||0) }
+  const _toHHMM = m => { m=Math.max(0,Math.round(m)); const h=Math.floor(m/60)%24; const mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0') }
+
   async function recalcKm(rowsToCalc, opts={}){
     const announce = !!opts.announce
     if(!rowsToCalc || rowsToCalc.length===0){ if(announce) alert('Keine Zeilen mit Von- und Bis-Adresse zum Berechnen.'); return }
@@ -34,10 +50,8 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     for(const row of rowsToCalc){
       // Cím frissítése a forrás-kártyából: ha a kártyán javítottad a címet, ide is bekerül
       let toAddr = row.to_addr
-      if(row.source_card_id){
-        const card = cards.find(c=>c.id===row.source_card_id)
-        if(card?.addr) toAddr = card.addr
-      }
+      const card = row.source_card_id ? cards.find(c=>c.id===row.source_card_id) : null
+      if(card?.addr) toAddr = card.addr
       const fromAddr = row.from_addr
       if(!fromAddr || !toAddr){ failed++; continue }
       try{
@@ -46,8 +60,19 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         if(d.ok===false && d.reason==='no api key'){ noKey=true; break }
         if(d.ok&&d.legs&&d.legs[0]&&d.legs[0].distance){
           const km = parseFloat((d.legs[0].distance/1000).toFixed(1))
-          const patch = { km }
-          if(toAddr !== row.to_addr){ patch.to_addr = toAddr; patch.fahrstrecke = (fromAddr||'').split(',')[0]+' → '+(toAddr||'').split(',')[0] }
+          const patch = { km, to_addr: toAddr, fahrstrecke: shortAddr(fromAddr)+' → '+shortAddr(toAddr) }
+          // Utazási idő a Google-útvonalból: indulás = termin időpontja − menetidő, érkezés = termin
+          const durMin = d.legs[0].duration ? Math.round(d.legs[0].duration/60) : null
+          if(durMin!=null){
+            if(card?.card_time){
+              const arr = String(card.card_time).slice(0,5)
+              patch.time_to = arr
+              patch.time_from = _toHHMM(_toMin(arr) - durMin)
+            } else if(row.zweck==='Heimfahrt' && row.time_from){
+              // Heimfahrt: indulás a shooting végén, érkezés haza = indulás + menetidő
+              patch.time_to = _toHHMM(_toMin(String(row.time_from).slice(0,5)) + durMin)
+            }
+          }
           if(row.id) await supabase.from('fahrtenbuch_rows').update(patch).eq('id',row.id)
           setRows(prev=>prev.map(r=>r.id===row.id?{...r,...patch}:r))
           updated++
@@ -169,8 +194,8 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           // Previous had no end time — can't determine gap, stay chained
           fromAddr = prevAddr
         }
-        const shortFrom = fromAddr.split(',')[0]
-        const shortTo = (c.addr||'').split(',')[0]
+        const shortFrom = shortAddr(fromAddr)
+        const shortTo = shortAddr(c.addr||'')
         newRows.push({
           id: 'new_'+c.id+'_'+Date.now(),
           staff_id: currentStaff.id,
@@ -200,7 +225,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           time_from: lastCard.card_time_to?.slice(0,5)||'',
           time_to: '',
           shooting: 'Heimfahrt',
-          fahrstrecke: lastCard.addr.split(',')[0]+' → '+home.split(',')[0],
+          fahrstrecke: shortAddr(lastCard.addr)+' → '+shortAddr(home),
           from_addr: lastCard.addr,
           to_addr: home,
           kunde: '',
@@ -357,7 +382,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     const csv = [headers, ...rowData].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')
     const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'})
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = `Fahrtenbuch_${currentStaff?.name||''}_${monthLabel}.csv`; a.click()
+    a.download = `Fahrtenbuch - ${currentStaff?.name||''} - ${monthLabel}.csv`; a.click()
   }
 
   function exportExcel() {
@@ -372,15 +397,19 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     ].join('')
     const blob = new Blob([xml], {type:'application/vnd.ms-excel'})
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = `Fahrtenbuch_${currentStaff?.name||''}_${monthLabel}.xls`; a.click()
+    a.download = `Fahrtenbuch - ${currentStaff?.name||''} - ${monthLabel}.xls`; a.click()
   }
 
   function exportPDF() {
     const { headers, rowData } = getExportData()
     const totalKmVal = rows.reduce((s,r)=>s+(parseFloat(r.km)||0),0)
     const totalCostVal = (totalKmVal*RATE).toFixed(2)
-    const style = 'body{font-family:Arial,sans-serif;font-size:11px;margin:20px}h2{font-size:14px;margin-bottom:4px}.meta{font-size:11px;color:#666;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#f4f2ef;font-size:9px;text-transform:uppercase;padding:5px 6px;border:0.5px solid #ddd;text-align:left}td{padding:5px 6px;border:0.5px solid #ddd;font-size:10px}tr:nth-child(even){background:#fafafa}.total{font-weight:bold;background:#f4f2ef}'
-    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'
+    const docTitle = `Fahrtenbuch - ${currentStaff?.name||''} - ${monthLabel}`
+    const style = '@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;font-size:11px;margin:0}h2{font-size:14px;margin-bottom:4px}.meta{font-size:11px;color:#666;margin-bottom:12px}table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#f4f2ef;font-size:9px;text-transform:uppercase;padding:5px 6px;border:0.5px solid #ddd;text-align:left;word-break:break-word}td{padding:5px 6px;border:0.5px solid #ddd;font-size:10px;word-break:break-word}tr:nth-child(even){background:#fafafa}.total{font-weight:bold;background:#f4f2ef}'
+      +'td:first-child,th:first-child{white-space:nowrap;width:62px}'
+      +'th:nth-last-child(-n+4),td:nth-last-child(-n+4){white-space:nowrap;text-align:right;width:46px}'
+      +'th:last-child,td:last-child{width:56px}'
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+docTitle+'</title><style>'+style+'</style></head><body>'
       +'<h2>Fahrtenbuch — '+(currentStaff?.name||'')+'</h2>'
       +'<div class="meta">'+monthLabel+' · Kennzeichen: '+(licensePlate||'—')+' · Heimadresse: '+(currentStaff?.address||'—')+'</div>'
       +'<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'
@@ -390,7 +419,8 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     const w = window.open('','_blank')
     w.document.write(html)
     w.document.close()
-    w.print()
+    try { w.document.title = docTitle } catch(e){}
+    setTimeout(()=>w.print(), 250)
   }
 
   const IS = {background:'transparent',border:'none',outline:'none',fontSize:11,color:'var(--t1)',width:'100%',fontFamily:'Arial',padding:0}

@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.5.1 — Fahrtenbuch: város a Fahrstrecke-ben + utazási idő + PDF formátum
+## 2026-06-06
+
+### 1) Fahrstrecke: utca + házszám + VÁROS
+A Fahrstrecke mostantól a várost is tartalmazza (mint a Shooting oszlop),
+pl. "Maxgärtenstraße 1E, Speyer → Meisenweg 2, Nußloch". A PLZ és az ország nélkül.
+Build-időben és a "km neu" / "Neu aufbauen" futásakor is.
+
+### 2) Utazási idő a Google-útvonalból
+A "km neu" / "Neu aufbauen" a menetidőt is lekéri, és a sor időpontjait eszerint állítja:
+- Shooting-sor: Bis = a termin időpontja, Von = termin − menetidő
+  (pl. termin 14:00, 20 perc út -> Von 13:40, Bis 14:00).
+- Heimfahrt: Bis = Von + menetidő.
+
+### 3) PDF formátum
+- Fekvő (A4 landscape) elrendezés.
+- A DATUM nem törik több sorba.
+- A szám-oszlopok (km Anfang/Ende, KM, Kosten) keskenyebbek és jobbra zártak,
+  így a Kosten összébb húzva, a táblázat levegősebb.
+
+Megjegyzés: a meglévő sorokon az új város/idő a "km neu" vagy "Neu aufbauen" gomb után
+jelenik meg.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.5.1

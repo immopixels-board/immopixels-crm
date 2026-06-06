@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.5.0 — Fahrtenbuch export fájlnév
+## 2026-06-06
+
+### Változás
+A Fahrtenbuch exportok fájlneve mostantól: "Fahrtenbuch - {Mitarbeiter Name} - {Monat}".
+- PDF: a nyomtatási dokumentum <title>-je adja a fájlnevet
+  (pl. "Fahrtenbuch - Daniel Bene - Mai 2026"). + kis késleltetés a printnél, hogy a
+  böngésző biztosan a címet vegye.
+- CSV és Excel fájlnév ugyanerre a formátumra igazítva (eddig alulvonással volt).
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.5.0
