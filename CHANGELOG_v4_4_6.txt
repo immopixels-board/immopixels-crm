@@ -1,0 +1,26 @@
+# ImmoPixels CRM v4.4.6 — Kártya-cím GCal-on is szerkeszthető + Fahrtenbuch dedup + manuális km
+## 2026-06-06
+
+### 1) Kártya címe GCal-szinkronizált kártyán is szerkeszthető (BUG fix)
+Eddig a GCal-ból szinkronizált kártyán (is_gcal) a cím csak olvasható volt -> a hibás
+cím (pl. a "49.312831" koordináta) nem volt javítható. Mostantól ott is szerkeszthető
+(Google Places mező). A cím mentése a GCal-eseménybe is visszaíródik (gcalSyncCard),
+így a következő sync NEM írja vissza a régi/hibás címet.
+
+### 2) Fahrtenbuch: teljes sor-dedup
+Azonos dátum + Von + Bis csak EGYSZER jelenik meg. A duplikált MENTETT sorok a DB-ből is
+törlődnek (a mentett/manuálisan szerkesztett sort tartjuk meg). Megszünteti a kétszeres/
+négyszeres Heimfahrt és a duplikált shooting-sorokat.
+
+### 3) Fahrtenbuch: nincs automatikus km-számítás
+A km betöltéskor és új sor létrehozásakor NEM számolódik automatikusan többé. A km-et a
+"km neu" gombbal lehet (újra)számolni. Ez megszünteti a hibás auto-kalkulációkat
+(pl. a koordináta-cím miatti 315 km).
+
+### Megjegyzés (koordináta a foglalás címében)
+A "49.312831" jellegű koordináta a foglalás címében a foglalási űrlapról / GCal-esemény
+helyszínéből ered. A kártyán most már javítható (#1). A forrásnál (foglalási űrlap)
+megakadályozni külön kör — szólni kell, ha a frontend űrlapot is nézzem.
+
+Érintett: components/CardModal.js, components/Fahrtenbuch.js. Nincs új SQL.
+VER label (BoardApp): v4.4.6

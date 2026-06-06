@@ -736,10 +736,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               </div>
               <div style={{ fontSize: 12, color: '#8a8278', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <i className="ti ti-map-pin" style={{ fontSize: 11 }} />
-                {localCard.is_gcal
-                  ? <span style={{ color: '#8a8278' }}>{localCard.addr || '—'}</span>
-                  : <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
-                }
+                <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
               </div>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 16, padding: 4, flexShrink: 0 }}>

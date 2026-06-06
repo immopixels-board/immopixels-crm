@@ -97,9 +97,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         }).eq('id', r.id)
       }
     }
-    // Recalc km for rows missing it
-    const needsKm = fixedRows.filter(r=>(r.km===null||r.km===0)&&r.from_addr&&r.to_addr)
-    if(needsKm.length>0) recalcMissingKm(needsKm)
+    // (km automatikusan NEM számolódik újra betöltéskor — csak a "km neu" gombbal)
 
     // Find new cards not yet in DB
     const home = currentStaff.address||''
@@ -190,8 +188,23 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       }
     }
     const allRows = [...existingRows.map(r=>({...r,_saved:true})), ...newRows]
-    setRows(allRows)
-    if(home) calcAndSave(newRows, home)
+    // Teljes sor-dedup: azonos dátum + Von + Bis csak egyszer (a mentett sort tartjuk meg)
+    const _norm = s => (s||'').trim().toLowerCase().replace(/\s+/g,' ')
+    const _seen = new Set()
+    const _dupDeleteIds = []
+    const deduped = []
+    for(const r of allRows){
+      const key = r.date+'|'+_norm(r.from_addr)+'|'+_norm(r.to_addr)
+      if(_seen.has(key)){
+        if(r._saved && r.id && !String(r.id).startsWith('new_')) _dupDeleteIds.push(r.id)
+        continue
+      }
+      _seen.add(key); deduped.push(r)
+    }
+    if(_dupDeleteIds.length) await supabase.from('fahrtenbuch_rows').delete().in('id', _dupDeleteIds)
+    setRows(deduped)
+    // Új sorok mentése km nélkül (auto-számítás nincs — a "km neu" gombbal számolható)
+    for(const r of deduped.filter(r=>!r._saved)) await saveRow(r, true)
   }
 
   async function calcAndSave(rowsData, home){
