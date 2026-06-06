@@ -26,21 +26,32 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     loadRows()
   },[currentStaff?.id, from, to])
 
-  async function recalcMissingKm(rowsToCalc){
+  async function recalcKm(rowsToCalc, opts={}){
+    const announce = !!opts.announce
+    if(!rowsToCalc || rowsToCalc.length===0){ if(announce) alert('Keine Zeilen mit Von- und Bis-Adresse zum Berechnen.'); return }
     setCalcLoading(true)
+    let updated=0, failed=0, noKey=false
     for(const row of rowsToCalc){
       try{
         const res = await fetch('/api/fahrtenbuch/distance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stops:[row.from_addr,row.to_addr]})})
         const d = await res.json()
-        if(d.ok&&d.legs[0]&&d.legs[0].distance){
+        if(d.ok===false && d.reason==='no api key'){ noKey=true; break }
+        if(d.ok&&d.legs&&d.legs[0]&&d.legs[0].distance){
           const km = parseFloat((d.legs[0].distance/1000).toFixed(1))
-          await supabase.from('fahrtenbuch_rows').update({km}).eq('id',row.id)
+          if(row.id) await supabase.from('fahrtenbuch_rows').update({km}).eq('id',row.id)
           setRows(prev=>prev.map(r=>r.id===row.id?{...r,km}:r))
-        }
-      }catch(e){}
+          updated++
+        } else { failed++ }
+      }catch(e){ failed++ }
     }
     setCalcLoading(false)
+    if(announce){
+      if(noKey) alert('Google Maps API-Key fehlt. Bitte NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in Vercel setzen.')
+      else if(updated===0 && failed>0) alert('Keine Strecke konnte berechnet werden ('+failed+' Adresse(n) nicht gefunden).')
+      else if(failed>0) alert(updated+' km neu berechnet, '+failed+' Adresse(n) nicht gefunden.')
+    }
   }
+  const recalcMissingKm = (r)=>recalcKm(r)
 
   async function loadRows(){
     if(!currentStaff?.id) return
@@ -351,7 +362,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         </div>
         {calcLoading
           ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
-          : <button onClick={()=>recalcMissingKm(rows.filter(r=>(!r.km||r.km===0)&&r.from_addr&&r.to_addr))}
+          : <button onClick={()=>recalcKm(rows.filter(r=>r.id&&r.from_addr&&r.to_addr),{announce:true})}
               style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
               <i className="ti ti-refresh" style={{fontSize:11}}/> km neu
             </button>

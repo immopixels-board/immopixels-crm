@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.4.4 — Fahrtenbuch "km neu" tényleg újraszámol + visszajelzés
+## 2026-06-05
+
+### Probléma
+A "km neu" gomb csak azokat a sorokat számolta, ahol a km hiányzott vagy 0 volt. Ha már
+volt km, a gomb nem csinált semmit -> "nem működik". Hibák (hiányzó API-kulcs, nem talált
+cím) is némán elnyelődtek.
+
+### Javítás
+- A "km neu" mostantól MINDEN mentett sort újraszámol, amelynek van Von- és Bis-címe
+  (felülírja a meglévő km-et is).
+- Visszajelzés: ha nincs számolható sor / hiányzik a Google Maps API-kulcs / nem talált
+  címet -> érthető üzenet (alert), nem néma.
+- Az automatikus (betöltéskori) hiánypótlás változatlan.
+
+### Megjegyzés
+A távolság a Google Distance Matrix API-t használja: ehhez a Vercelben be kell legyen
+állítva a NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (vagy GOOGLE_MAPS_KEY). Ha hiányzik, a gomb most
+ezt ki is írja.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.4.4
