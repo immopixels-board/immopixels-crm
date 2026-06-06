@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.4.7 — Fahrtenbuch "km neu": cím frissítése a kártyából
+## 2026-06-06
+
+### Probléma
+A kártyán javított címet (pl. a "49.312831" koordináta -> rendes cím) a Fahrtenbuch
+nem vette át: a sor a régi, elmentett (koordinátás) címmel maradt, és a "km neu" csak a
+km-et számolta a régi címből.
+
+### Javítás
+A "km neu" gomb mostantól a forrás-kártyából FRISSÍTI a sor célcímét (to_addr) és a
+Fahrstrecke szöveget, majd ezzel számolja újra a km-et. Így a kártyán javított cím a
+Fahrtenbuchban is megjelenik (gombnyomásra, az automatikus frissítés továbbra sincs).
+
+### Megjegyzés a duplikációkról / rossz láncolásról
+A képen látható dupla és összevissza lábak (pl. "49.312831 -> Meisenweg 2") DUPLIKÁLT
+KÁRTYÁKBÓL erednek (EV-Lbh#011 + EV-Lbh, két DWI-Testimonial). Ezeket a boardon a
+🔁 Duplikate eszközzel kell kitakarítani; utána a Fahrtenbuch megnyitásakor a törölt
+kártyák sorai eltűnnek (v4.4.5), majd a "km neu" frissíti a maradékot.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.4.7

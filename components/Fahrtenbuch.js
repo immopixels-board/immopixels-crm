@@ -32,14 +32,24 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     setCalcLoading(true)
     let updated=0, failed=0, noKey=false
     for(const row of rowsToCalc){
+      // Cím frissítése a forrás-kártyából: ha a kártyán javítottad a címet, ide is bekerül
+      let toAddr = row.to_addr
+      if(row.source_card_id){
+        const card = cards.find(c=>c.id===row.source_card_id)
+        if(card?.addr) toAddr = card.addr
+      }
+      const fromAddr = row.from_addr
+      if(!fromAddr || !toAddr){ failed++; continue }
       try{
-        const res = await fetch('/api/fahrtenbuch/distance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stops:[row.from_addr,row.to_addr]})})
+        const res = await fetch('/api/fahrtenbuch/distance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stops:[fromAddr,toAddr]})})
         const d = await res.json()
         if(d.ok===false && d.reason==='no api key'){ noKey=true; break }
         if(d.ok&&d.legs&&d.legs[0]&&d.legs[0].distance){
           const km = parseFloat((d.legs[0].distance/1000).toFixed(1))
-          if(row.id) await supabase.from('fahrtenbuch_rows').update({km}).eq('id',row.id)
-          setRows(prev=>prev.map(r=>r.id===row.id?{...r,km}:r))
+          const patch = { km }
+          if(toAddr !== row.to_addr){ patch.to_addr = toAddr; patch.fahrstrecke = (fromAddr||'').split(',')[0]+' → '+(toAddr||'').split(',')[0] }
+          if(row.id) await supabase.from('fahrtenbuch_rows').update(patch).eq('id',row.id)
+          setRows(prev=>prev.map(r=>r.id===row.id?{...r,...patch}:r))
           updated++
         } else { failed++ }
       }catch(e){ failed++ }
