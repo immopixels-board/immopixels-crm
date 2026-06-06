@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.4.5 — Fahrtenbuch: törölt kártyák sorai kitakarítása
+## 2026-06-05
+
+### Probléma
+A CRM-ből vagy Google Naptárból törölt kártyák sorai bent maradtak a Fahrtenbuchban.
+
+### Ok (nem a cron!)
+A Fahrtenbuch a fahrtenbuch_rows táblából tölt, és a megnyitáskor/hónapváltáskor épül
+újra (nem napi cron). Eddig viszont SOHA nem törölte azt a sort, amelynek a forrás-
+kártyája (source_card_id) időközben megszűnt.
+
+### Javítás
+Betöltéskor az árva sorok (source_card_id, amelynek kártyája már nincs az élő kártyák
+között) automatikusan törlődnek. A kézzel felvitt, kártya nélküli sorok érintetlenek.
+Biztonsági fék: csak akkor takarít, ha a kártyák már betöltődtek (cards.length>0), hogy
+betöltés közben ne töröljön tévedésből.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.4.5

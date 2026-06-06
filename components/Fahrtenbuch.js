@@ -62,7 +62,20 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       .order('date', {ascending:true}).order('time_from', {ascending:true})
     
     // Get existing rows from DB
-    const existingRows = data || []
+    const existingRowsRaw = data || []
+    // Árva sorok kitakarítása: ha a forrás-kártya (source_card_id) már nem létezik
+    // (CRM-ben törölve / Google-ből törölve), a Fahrtenbuch-sor is törlődjön.
+    // A kézzel felvitt (source_card_id nélküli) sorok érintetlenek maradnak.
+    let existingRows = existingRowsRaw
+    if (cards.length > 0) {
+      const liveIds = new Set(cards.map(c => c.id))
+      const orphan = existingRowsRaw.filter(r => r.source_card_id && !liveIds.has(r.source_card_id))
+      if (orphan.length > 0) {
+        await supabase.from('fahrtenbuch_rows').delete().in('id', orphan.map(r => r.id))
+        const orphanIds = new Set(orphan.map(r => r.id))
+        existingRows = existingRowsRaw.filter(r => !orphanIds.has(r.id))
+      }
+    }
     const existingCardIds = new Set(existingRows.filter(r=>r.source_card_id).map(r=>r.source_card_id))
     // Fill missing to_addr from cards
     const fixedRows = existingRows.map(r => {
