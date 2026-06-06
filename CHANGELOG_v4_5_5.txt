@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.5.5 — Mobil-optimalizálás 1. kör + Kunden kereső + Team-fix
+## 2026-06-06
+
+### 1) Team-fül (alul) üres volt — JAVÍTVA
+A mobil alsó menü "Team" gombja a 'mitarbeiter' nézetet hívta, ami nem létezik
+(a team nézet a 'staff'). Ezért üres maradt. Most a 'staff'-ra mutat -> a Mitarbeiter
+lista jelenik meg.
+
+### 2) Kunden: kereső
+A Kunden oldalon kereső mező (név, Kürzel, cím, e-mail, telefon, kategória, makler nevek).
+Élő szűrés, "×" törli a keresést, találat nélkül üzenet.
+
+### 3) Felső board-menü vízszintes görgetés (mobil)
+A felső gombsor (Neue Karte, + Spalte, Aus Kalender, kereső...) eddig levágódott mobilon.
+Mostantól vízszintesen görgethető (swipe), a gombok nem törnek le és nem vágódnak.
+
+### 4) Kártya-modal kompaktabb nyitás (mobil)
+A kártya-modal magassága a tartalomhoz igazodik (max 90dvh) a fix ~teljes képernyő helyett.
+
+### Következő körben (jelzem, hogy ne maradjon ki):
+- Telefonbuch iPhone-stílusú kompakt lista (a jelenlegi széthúzott/üres detail-panel helyett)
+- Profil oldal mobil túllógás/scroll rendezése
+- Naptár (Kalender) mobil görgetés/elrendezés
+- Chat-ablak mobilon ne lógjon ki, könnyebb kezelhetőség
+- Kártya-modal belső paddingok/betűk további tömörítése (komponens-szintű)
+
+Érintett: app/BoardApp.js, app/globals.css. Nincs új SQL. VER label: v4.5.5

@@ -193,6 +193,14 @@ body{background:var(--bg);font-family:Arial,sans-serif;color:var(--t1)}
 
   /* Action bar wraps */
   .action-bar { flex-wrap: nowrap !important; overflow-x: auto !important; }
+
+  /* Felső board-toolbar: vízszintes görgetés, ne vágja le a gombokat */
+  .board-toolbar { overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; }
+  .board-toolbar::-webkit-scrollbar { height: 0; }
+  .board-toolbar > * { flex-shrink: 0 !important; }
+
+  /* Kártya-modal: a tartalomhoz igazodó magasság (ne nyíljon mindig majdnem teljes képernyőre) */
+  .card-modal-inner { height: auto !important; max-height: 90dvh !important; }
 }
 @media (min-width: 769px) {
   .mobile-menu-btn { display: none !important; }
