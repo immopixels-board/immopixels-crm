@@ -62,8 +62,21 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
     }
   }
   const recalcMissingKm = (r)=>recalcKm(r)
+  // Teljes újraépítés: az adott hónap automatikus sorait (kártyából / Heimfahrt) törli,
+  // és a JELENLEGI kártyákból építi újra a helyes lánccal, majd km-et számol.
+  // A kézzel felvitt sorok (nincs source_card_id, nem Heimfahrt) megmaradnak.
+  async function rebuildMonth(){
+    if(!currentStaff?.id) return
+    if(!window.confirm('Fahrtenbuch für diesen Monat aus den aktuellen Karten neu aufbauen?\nAutomatisch erzeugte Zeilen werden ersetzt — manuell hinzugefügte Zeilen bleiben.')) return
+    setCalcLoading(true)
+    const { data: ex } = await supabase.from('fahrtenbuch_rows').select('id,source_card_id,zweck').eq('staff_id',currentStaff.id).gte('date',from).lte('date',to)
+    const autoIds = (ex||[]).filter(r => r.source_card_id || r.zweck==='Heimfahrt').map(r=>r.id)
+    if(autoIds.length) await supabase.from('fahrtenbuch_rows').delete().in('id', autoIds)
+    setCalcLoading(false)
+    await loadRows({ recalc:true })
+  }
 
-  async function loadRows(){
+  async function loadRows(opts={}){
     if(!currentStaff?.id) return
     const { data } = await supabase.from('fahrtenbuch_rows')
       .select('*')
@@ -198,23 +211,37 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       }
     }
     const allRows = [...existingRows.map(r=>({...r,_saved:true})), ...newRows]
-    // Teljes sor-dedup: azonos dátum + Von + Bis csak egyszer (a mentett sort tartjuk meg)
+    // Dedup: kártyánként EGY sor (source_card_id), a kártya nélküli sorok dátum+Von+Bis szerint.
+    // A jobbik sort tartjuk meg: ne legyen koordináta a címben, illetve a kézi km-es sort.
     const _norm = s => (s||'').trim().toLowerCase().replace(/\s+/g,' ')
-    const _seen = new Set()
+    const _isCoord = s => /^\s*-?\d{1,3}\.\d+(\s*,\s*-?\d{1,3}\.\d+)?\s*$/.test(s||'')
+    const _keyOf = r => r.source_card_id ? ('card:'+r.source_card_id) : (r.date+'|'+_norm(r.from_addr)+'|'+_norm(r.to_addr))
+    const _score = x => ((_isCoord(x.from_addr)||_isCoord(x.to_addr))?0:2) + ((x.km_start||x.km_end)?1:0)
+    const _best = new Map()
+    for(const r of allRows){
+      const k = _keyOf(r); const cur = _best.get(k)
+      if(!cur || _score(r) > _score(cur)) _best.set(k, r)
+    }
     const _dupDeleteIds = []
+    const _usedKeys = new Set()
     const deduped = []
     for(const r of allRows){
-      const key = r.date+'|'+_norm(r.from_addr)+'|'+_norm(r.to_addr)
-      if(_seen.has(key)){
-        if(r._saved && r.id && !String(r.id).startsWith('new_')) _dupDeleteIds.push(r.id)
-        continue
+      const k = _keyOf(r)
+      if(_best.get(k) === r){
+        if(!_usedKeys.has(k)){ deduped.push(r); _usedKeys.add(k) }
+      } else if(r._saved && r.id && !String(r.id).startsWith('new_')){
+        _dupDeleteIds.push(r.id)
       }
-      _seen.add(key); deduped.push(r)
     }
     if(_dupDeleteIds.length) await supabase.from('fahrtenbuch_rows').delete().in('id', _dupDeleteIds)
     setRows(deduped)
     // Új sorok mentése km nélkül (auto-számítás nincs — a "km neu" gombbal számolható)
-    for(const r of deduped.filter(r=>!r._saved)) await saveRow(r, true)
+    const savedNew = []
+    for(const r of deduped.filter(r=>!r._saved)){ const s = await saveRow(r, true); savedNew.push(s || r) }
+    if(opts.recalc){
+      const toCalc = [...deduped.filter(r=>r._saved), ...savedNew].filter(r=>r.from_addr&&r.to_addr)
+      await recalcKm(toCalc)
+    }
   }
 
   async function calcAndSave(rowsData, home){
@@ -236,6 +263,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
   }
 
   async function saveRow(row, immediate=false){
+    let result = null
     if(row.id?.startsWith('new_')){
       const { data } = await supabase.from('fahrtenbuch_rows').insert({
         staff_id: currentStaff.id,
@@ -247,6 +275,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         source_card_id: row.source_card_id||null,
       }).select().single()
       if(data){
+        result = {...data, _saved:true}
         setRows(prev=>prev.map(r=>r.id===row.id ? {...data,_saved:true} : r))
       }
     } else if(row.id && !row.id.startsWith('new_')){
@@ -257,9 +286,11 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         kunde: row.kunde, zweck: row.zweck,
         km_start: row.km_start||null, km_end: row.km_end||null, km: row.km||null,
       }).eq('id', row.id)
+      result = {...row, _saved:true}
       setRows(prev=>prev.map(r=>r.id===row.id ? {...r,_saved:true} : r))
     }
     setSaving(p=>({...p,[row.id]:false}))
+    return result
   }
 
   function updateRow(idx, key, val){
@@ -398,10 +429,16 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
         </div>
         {calcLoading
           ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
-          : <button onClick={()=>recalcKm(rows.filter(r=>r.id&&r.from_addr&&r.to_addr),{announce:true})}
-              style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
-              <i className="ti ti-refresh" style={{fontSize:11}}/> km neu
-            </button>
+          : <div style={{display:'flex',gap:6}}>
+              <button onClick={()=>recalcKm(rows.filter(r=>r.id&&r.from_addr&&r.to_addr),{announce:true})}
+                style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+                <i className="ti ti-refresh" style={{fontSize:11}}/> km neu
+              </button>
+              <button onClick={rebuildMonth} title="Aus aktuellen Karten neu aufbauen (korrigiert Reihenfolge & Adressen)"
+                style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
+                <i className="ti ti-reload" style={{fontSize:11}}/> Neu aufbauen
+              </button>
+            </div>
         }
       </div>
 

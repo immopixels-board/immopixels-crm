@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.4.8 — Fahrtenbuch: kártyánkénti dedup (egy kártya = egy sor)
+## 2026-06-06
+
+### Probléma
+A DWI-Testimonial KÁRTYA nem duplikált, mégis két Fahrtenbuch-sor tartozott hozzá,
+eltérő Von-címmel ("Am Schwanenweiher 13" és "49.312831"). Ezek korábbi építésekből
+visszamaradt, ELMENTETT sorok ugyanazzal a source_card_id-val. A v4.4.6 dedup csak
+dátum+Von+Bis-re nézett -> eltérő Von miatt nem vonta össze.
+
+### Javítás
+A dedup mostantól KÁRTYÁNKÉNT (source_card_id) is összevon: egy kártya = egy sor.
+A kártya nélküli sorok (Heimfahrt, kézi) továbbra is dátum+Von+Bis szerint.
+A két sor közül a JOBBIKAT tartja meg: ne legyen koordináta a címben, illetve a kézzel
+km-mel kitöltött sort; a többit törli a DB-ből.
+
+### Teljes tisztasághoz (chain/from_addr)
+A megtartott sor Von-címe a korábbi (elmentett) láncból származhat, ezért nem mindig a
+legfrissebb. A "km neu" a célcímet a kártyából frissíti. Ha a Von-cím is rossz marad,
+a végső megoldás egy "Fahrtenbuch neu aufbauen" gomb lenne (az adott hónap automatikus
+sorait törli és a jelenlegi kártyákból építi újra) — ez kérésre jön.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.4.8

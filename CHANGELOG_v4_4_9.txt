@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.4.9 — Fahrtenbuch "Neu aufbauen" (tiszta újraépítés)
+## 2026-06-06
+
+### Háttér (a teljes havi PDF alapján)
+- Rendszerszintű DUPLA beszúrás (több napon azonos sorpárok) -> a v4.4.6/4.4.8 dedup ezt
+  betöltéskor kitakarítja (azonos dátum+Von+Bis, ill. azonos kártya).
+- HIBÁS LÁNCOLÁS: a DWI sor Von-címe "Am Schwanenweiher 13" volt a 14:30-as Riegel helyett
+  (a koordináta-cím miatt rosszul láncolt). Ezt a dedup NEM javítja.
+
+### Új: "Neu aufbauen" gomb
+A Fahrtenbuch fejlécében a "km neu" mellett. Megerősítés után:
+1) az adott hónap AUTOMATIKUS sorait (kártyából származó + Heimfahrt) törli,
+2) a JELENLEGI kártyákból építi újra a helyes lánccal és friss címekkel,
+3) km-et számol.
+A kézzel felvitt sorok (nincs source_card_id, nem Heimfahrt) megmaradnak.
+
+Ez a végleges tisztító: a hibás Von-címek, a rossz sorrend és a maradék duplikációk is
+eltűnnek, mert minden a mostani kártyákból épül újra.
+
+### Technikai
+- saveRow visszaadja a mentett sort (valódi DB id).
+- loadRows({recalc:true}) az új+meglévő sorokra lefuttatja a km-számítást.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.4.9
