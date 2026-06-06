@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.5.4 — Fahrtenbuch: Heimfahrt időpontok
+## 2026-06-06
+
+### Kérés
+A Heimfahrt indulása az UTOLSÓ fotózás idejének VÉGE legyen, az érkezés haza pedig
+vég + útidő.
+
+### Javítás
+- Új "_endOf" logika: a fotózás vége = kifejezett vég (card_time_to / booking_end_time);
+  ha nincs megadva, akkor a kezdés + 60 perc (alapértelmezett fotózás-hossz).
+- Heimfahrt VON = az utolsó fotózás vége (a fenti logikával). Eddig csak a card_time_to-t
+  nézte, ami sokszor üres -> üres maradt a Heimfahrt időpontja.
+- Heimfahrt BIS = VON + útidő (Google-menetidő a "km neu" / "Neu aufbauen" futásakor).
+- A "km neu" a régi (üres idejű) Heimfahrt soroknál is pótolja a VON-t a nap utolsó
+  kártyájából.
+
+Megjegyzés: a 60 perces alapértelmezett fotózás-hossz csak akkor él, ha a kártyán nincs
+vége megadva. Ha más alapértéket szeretnél, szólj.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.5.4

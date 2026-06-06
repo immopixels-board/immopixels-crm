@@ -47,6 +47,13 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
   }
   const _toMin = t => { const [h,m]=String(t||'').split(':').map(Number); return (h||0)*60+(m||0) }
   const _toHHMM = m => { m=Math.max(0,Math.round(m)); const h=Math.floor(m/60)%24; const mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0') }
+  // Fotózás VÉGE: kifejezett vég (card_time_to / booking_end_time), különben kezdés + 60 perc
+  const _endOf = c => {
+    const e = c?.card_time_to || c?.booking_end_time || ''
+    if(e) return String(e).slice(0,5)
+    if(c?.card_time) return _toHHMM(_toMin(String(c.card_time).slice(0,5)) + 60)
+    return ''
+  }
 
   async function recalcKm(rowsToCalc, opts={}){
     const announce = !!opts.announce
@@ -74,9 +81,16 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
               const arr = String(card.card_time).slice(0,5)
               patch.time_to = arr
               patch.time_from = _toHHMM(_toMin(arr) - durMin)
-            } else if(row.zweck==='Heimfahrt' && row.time_from){
-              // Heimfahrt: indulás a shooting végén, érkezés haza = indulás + menetidő
-              patch.time_to = _toHHMM(_toMin(String(row.time_from).slice(0,5)) + durMin)
+            } else if(row.zweck==='Heimfahrt'){
+              // Heimfahrt: indulás = utolsó fotózás vége, érkezés haza = indulás + menetidő
+              let dep = row.time_from ? String(row.time_from).slice(0,5) : ''
+              if(!dep){
+                const dayCards = cards.filter(c=>c.card_date===row.date && c.card_time)
+                  .sort((a,b)=>String(a.card_time||'').localeCompare(String(b.card_time||'')))
+                const lc = dayCards[dayCards.length-1]
+                if(lc) dep = _endOf(lc)
+              }
+              if(dep){ patch.time_from = dep; patch.time_to = _toHHMM(_toMin(dep) + durMin) }
             }
           }
           if(row.id) await supabase.from('fahrtenbuch_rows').update(patch).eq('id',row.id)
@@ -228,7 +242,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           id: 'new_home_'+date+'_'+Date.now(),
           staff_id: currentStaff.id,
           date,
-          time_from: lastCard.card_time_to?.slice(0,5)||'',
+          time_from: _endOf(lastCard),
           time_to: '',
           shooting: 'Heimfahrt',
           fahrstrecke: shortAddr(lastCard.addr)+' → '+shortAddr(home),
