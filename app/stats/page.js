@@ -19,6 +19,7 @@ export default function StatsPage() {
   const [igInput, setIgInput] = useState('')
   const [savingGoals, setSavingGoals] = useState(false)
   const [year] = useState(new Date().getFullYear())
+  const [bm, setBm] = useState({ on: false, byClient: {}, byMonth: Array(12).fill(0), total: 0 })
 
   useEffect(() => { init() }, [])
 
@@ -44,6 +45,14 @@ export default function StatsPage() {
         setIgInput(g.ig_current || '')
       } catch(e) {}
     }
+    // Billomat nettó bevétel (Umsatz) — ügyfelenként + havonta; minden más a CRM-ből marad
+    try {
+      const r = await fetch(`/api/billomat/revenue?staff_id=${staff.id}&year=${year}`)
+      const d = await r.json()
+      if (d?.ok && (d.total > 0 || Object.keys(d.byClient || {}).length > 0)) {
+        setBm({ on: true, byClient: d.byClient || {}, byMonth: d.byMonth || Array(12).fill(0), total: d.total || 0 })
+      }
+    } catch(e) {}
     setLoading(false)
   }
 
@@ -64,7 +73,7 @@ export default function StatsPage() {
   // Calculations
   const yearCards = cards.filter(c => c.card_date?.startsWith(year + ''))
   const totalAufnahmen = yearCards.length
-  const totalUmsatz = yearCards.reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
+  const totalUmsatz = bm.on ? bm.total : yearCards.reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
 
   const monthlyData = MONTHS.map((m, i) => ({
     month: m,
@@ -93,6 +102,10 @@ export default function StatsPage() {
   }
 
   function clientUmsatz(client) {
+    // Billomat nettó, ha az ügyfél össze van kötve és van adat; egyébként CRM-becslés
+    if (bm.on && client.billomat_client_id != null && client.billomat_client_id !== '') {
+      return bm.byClient[String(client.billomat_client_id)] || 0
+    }
     const name = client.short_name || client.name
     const clientCards = yearCards.filter(c => c.client_name && (
       c.client_name.toLowerCase() === name.toLowerCase() ||
@@ -195,7 +208,7 @@ export default function StatsPage() {
           {[
             { label: 'Kunden', value: clients.length },
             { label: `Aufnahmen ${year}`, value: totalAufnahmen },
-            { label: `Umsatz ${year}`, value: totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—' },
+            { label: `Umsatz ${year}${bm.on ? ' · netto (Billomat)' : ''}`, value: totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—' },
             { label: 'Ø pro Aufnahme', value: totalAufnahmen && totalUmsatz ? Math.round(totalUmsatz / totalAufnahmen).toLocaleString('de-DE') + ' €' : '—' },
           ].map(s => (
             <div key={s.label} style={{ background: '#fff', border: '0.5px solid #ddd9d2', borderRadius: 10, padding: '12px 14px' }}>
@@ -302,7 +315,7 @@ export default function StatsPage() {
             <div style={{ fontSize: 10, fontWeight: 700, color: '#8a8278', textTransform: 'uppercase' }}>Gesamt</div>
             {MONTHS.map((m, mi) => {
               const cnt = monthlyData[mi].count
-              const monthUmsatz = yearCards.filter(c => new Date(c.card_date).getMonth() === mi).reduce((s, c) => s + (parseFloat(c.price)||0), 0)
+              const monthUmsatz = bm.on ? (bm.byMonth[mi] || 0) : yearCards.filter(c => new Date(c.card_date).getMonth() === mi).reduce((s, c) => s + (parseFloat(c.price)||0), 0)
               return <div key={m} style={{ textAlign: 'center', fontSize: 10 }}>
                 <div style={{ fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
                 {monthUmsatz > 0 && <div style={{ color:'#15803d', fontWeight:700, marginTop:2 }}>{monthUmsatz.toLocaleString('de-DE')}€</div>}

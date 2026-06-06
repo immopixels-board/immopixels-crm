@@ -1,0 +1,29 @@
+# ImmoPixels CRM v4.5.2 — Stats: Umsatz a Billomatból (nettó bevétel ügyfelenként)
+## 2026-06-06
+
+### Új: /api/billomat/revenue
+GET ?staff_id=<uuid>&year=YYYY — admin vagy can_invoice szükséges.
+A Billomat számláiból kiszámolja az adott év NETTÓ bevételét:
+- ügyfelenként (billomat_client_id szerint, "byClient"),
+- havonta ("byMonth"),
+- összesen ("total").
+Csak a BEVÉTELNEK számító státuszok: OPEN, OVERDUE, PAID (a DRAFT és CANCELED kimarad).
+Hatékony lapozás: date DESC sorrend, és az évnél régebbi számláknál megáll.
+
+### Stats oldal
+Ha a Billomat elérhető és van adat, az Umsatz innen jön:
+- "Umsatz {year}" fejléc + "Umsatz-Ziel" kör + Ø pro Aufnahme -> Billomat nettó össz.
+- Ügyfél-soroknál az Umsatz oszlop -> az adott ügyfél Billomat nettó bevétele
+  (azoknál, amelyek össze vannak kötve billomat_client_id-vel; a többinél a régi
+  CRM-becslés marad).
+- Havi Umsatz (alsó sor zöld szám) -> Billomat havi nettó.
+- A fejléc jelzi: "Umsatz {year} · netto (Billomat)".
+
+MINDEN MÁS (Kunden, Aufnahmen darabszám, Instagram, havi darab-mátrix) a CRM-ből marad.
+Ha a Billomat nem elérhető / nincs adat, minden visszaesik a korábbi CRM-számításra.
+
+Megjegyzés: az ügyfelekhez a Billomat-összekötés a billomat_client_id alapján megy
+(Kunden importnál / számlázásnál áll be). Akinél ez hiányzik, ott CRM-becslés látszik.
+
+Érintett: app/api/billomat/revenue/route.js (új), app/stats/page.js. Nincs új SQL.
+VER label (BoardApp): v4.5.2
