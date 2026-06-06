@@ -15,6 +15,7 @@ export default function BuchungenView({ supabase, staff, me }) {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [mode, setMode] = useState('list') // list | calendar
   const [weekStart, setWeekStart] = useState(()=>mondayOf(new Date()))
   const [updating, setUpdating] = useState(null)
@@ -195,10 +196,15 @@ export default function BuchungenView({ supabase, staff, me }) {
   function fmt(d,t){ if(!d) return '—'; return new Date(d+'T12:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})+' · '+String(t).slice(0,5) }
   const staffColor = init => staff?.find(s=>s.init===init)?.color || '#b8892a'
 
+  const _q = search.trim().toLowerCase()
+  const visibleBookings = _q
+    ? bookings.filter(b => `${b.client_name||''} ${b.customer_name||''} ${b.customer_email||''} ${b.customer_phone||''} ${b.serviceName||''} ${b.booking_address||''} ${b.title||''}`.toLowerCase().includes(_q))
+    : bookings
+
   // calendar week data
   const weekDays = Array.from({length:7},(_,i)=>{ const d=new Date(weekStart); d.setDate(d.getDate()+i); return d })
   const byDay = {}
-  bookings.filter(b=>b.booking_status!=='cancelled').forEach(b=>{ (byDay[b.card_date] ??= []).push(b) })
+  visibleBookings.filter(b=>b.booking_status!=='cancelled').forEach(b=>{ (byDay[b.card_date] ??= []).push(b) })
   Object.values(byDay).forEach(arr=>arr.sort((a,b)=>String(a.card_time).localeCompare(String(b.card_time))))
 
   const ST = { fontSize:10, fontWeight:700, letterSpacing:'.4px', textTransform:'uppercase', padding:'2px 8px', borderRadius:10, display:'inline-block' }
@@ -219,6 +225,8 @@ export default function BuchungenView({ supabase, staff, me }) {
             </button>
           ))}
         </div>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche: Kunde, Kontakt, Adresse, E-Mail…"
+          style={{ flex:'1 1 220px', minWidth:160, maxWidth:360, padding:'6px 10px', borderRadius:7, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t1)', fontSize:12, outline:'none' }} />
         <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
           <button onClick={()=>load()} disabled={loading} title="Aktualisieren" style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:loading?'default':'pointer', display:'flex', alignItems:'center', gap:4, opacity:loading?.6:1 }}>
             <i className="ti ti-refresh" style={{fontSize:12}} /> Aktualisieren
@@ -270,8 +278,8 @@ export default function BuchungenView({ supabase, staff, me }) {
       <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
         {loading ? <div style={{ textAlign:'center', padding:40, color:'var(--t3)', fontSize:13 }}>Wird geladen...</div>
         : mode==='list' ? (
-          bookings.length===0 ? <div style={{ textAlign:'center', padding:40, color:'var(--t3)', fontSize:13 }}>Keine Buchungen gefunden</div>
-          : bookings.map(b=>{
+          visibleBookings.length===0 ? <div style={{ textAlign:'center', padding:40, color:'var(--t3)', fontSize:13 }}>{_q ? 'Keine Treffer für die Suche.' : 'Keine Buchungen gefunden'}</div>
+          : visibleBookings.map(b=>{
             const st = STATUS[b.booking_status]||STATUS.pending
             const isUp = updating===b.id
             return (

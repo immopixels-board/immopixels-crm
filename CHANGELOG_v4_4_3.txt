@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.4.3 — Buchungen kereső + Foto+Reel+360 / Foto+Reel+Drohne+360 típusok
+## 2026-06-05
+
+### 1) Kereső a Buchungen nézetben
+A Buchungen fejlécében új keresőmező. Szűr: Kunde (Immobilienbüro), Ansprechpartner
+(kontakt), e-mail, telefon, szolgáltatás, cím, cím-szöveg. Listára ÉS naptár nézetre is
+hat. Üres találatnál "Keine Treffer für die Suche." üzenet.
+
+### 2) Új kártya-típus kombinációk a foglalásnál
+A card_type mapper mostantól felismeri:
+- Foto + Reel + 360°            -> kulcs: fotoreel360
+- Foto + Reel + Drohne + 360°   -> kulcs: fotoreeldrohne360
+(a 360/Drohne addonokból + a szolgáltatás nevéből).
+
+FONTOS: hogy ezek a típusok szép címkével/színnel jelenjenek meg a kártyán, a típus-
+legördülőben ("+ NEUE KATEGORIE") fel kell venni KÉT kategóriát PONTOSAN ezekkel a
+nevekkel (a normalizált kulcs így egyezik):
+  - "Foto + Reel + 360°"
+  - "Foto + Reel + Drohne + 360°"
+Ezek nélkül a kártya a típust nyers szövegként / alap "Foto"-ként mutatná.
+
+Érintett: components/BuchungenView.js, app/api/booking/create/route.js.
+Nincs új SQL. VER label (BoardApp): v4.4.3

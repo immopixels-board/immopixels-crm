@@ -72,6 +72,8 @@ export async function POST(req) {
   const _drohne = /drohne|drone/.test(_s) || !!addonDrone
   const _d360 = /360/.test(_s) || !!addon360
   const cardType =
+    _foto && _reel && _drohne && _d360 ? 'fotoreeldrohne360' :
+    _foto && _reel && _d360 ? 'fotoreel360' :
     _foto && _reel ? 'fotoreel' :
     _foto && _drohne ? 'fotodrohne' :
     _foto ? 'foto' :
