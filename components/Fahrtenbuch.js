@@ -2,14 +2,20 @@
 import { useState, useEffect, useRef } from 'react'
 
 function pad(n){return String(n).padStart(2,'0')}
+function ymd(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
 function fmtDate(s){if(!s)return'—';const d=new Date(s+'T00:00:00');return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+String(d.getFullYear()).slice(2)}
-function getMonthDates(date){const d=new Date(date);return{from:new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10),to:new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10)}}
+// Időzóna-biztos: a "YYYY-MM-DD" stringből közvetlenül vesszük az évet/hónapot (nincs UTC-csúszás).
+function getMonthDates(dateStr){
+  const [y,m] = String(dateStr).split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate() // m 1-alapú: new Date(y,m,0) = az m-edik hónap utolsó napja
+  return { from: ymd(y,m,1), to: ymd(y,m,lastDay) }
+}
 
 const RATE = 0.30
 
 export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
   const [selStaffId, setSelStaffId] = useState(()=>me?.id||null)
-  const [selDate, setSelDate] = useState(new Date().toISOString().slice(0,10))
+  const [selDate, setSelDate] = useState(()=>{const n=new Date();return ymd(n.getFullYear(),n.getMonth()+1,1)})
   const [rows, setRows] = useState([])
   const [calcLoading, setCalcLoading] = useState(false)
   const [licensePlate, setLicensePlate] = useState('')
@@ -356,7 +362,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
 
   const totalKm = rows.reduce((s,r)=>s+(parseFloat(r.km)||0),0)
   const totalCost = (totalKm*RATE).toFixed(2)
-  const monthLabel = new Date(selDate).toLocaleDateString('de-DE',{month:'long',year:'numeric'})
+  const monthLabel = new Date(selDate+'T00:00:00').toLocaleDateString('de-DE',{month:'long',year:'numeric'})
   const clientNames = [...new Set(cards.filter(c=>c.client_name).map(c=>c.client_name))].sort()
 
   function getExportData() {
@@ -440,10 +446,10 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           </select>
         )}
         <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:'auto'}}>
-          <button onClick={()=>{const d=new Date(selDate);d.setMonth(d.getMonth()-1);setSelDate(d.toISOString().slice(0,10))}}
+          <button onClick={()=>{const[y,m]=selDate.split('-').map(Number);let nm=m-1,ny=y;if(nm<1){nm=12;ny--}setSelDate(ymd(ny,nm,1))}}
             style={{background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--t2)',fontSize:14}}>‹</button>
           <span style={{fontSize:12,fontWeight:700,color:'var(--t1)',minWidth:130,textAlign:'center'}}>{monthLabel}</span>
-          <button onClick={()=>{const d=new Date(selDate);d.setMonth(d.getMonth()+1);setSelDate(d.toISOString().slice(0,10))}}
+          <button onClick={()=>{const[y,m]=selDate.split('-').map(Number);let nm=m+1,ny=y;if(nm>12){nm=1;ny++}setSelDate(ymd(ny,nm,1))}}
             style={{background:'var(--bg3)',border:'0.5px solid var(--border)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--t2)',fontSize:14}}>›</button>
         </div>
         <div style={{display:'flex',gap:5}}>

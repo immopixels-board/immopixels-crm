@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.5.3 — Fahrtenbuch: hónap-tartomány időzóna-fix
+## 2026-06-06
+
+### Probléma
+A hónap választásakor megjelent az ELŐZŐ hónap utolsó napja is. Ok: a hónap-határok
+toISOString()-tel készültek (UTC), és mivel Németország UTC+1/+2, a helyi hónap-elseje
+az előző nap 23:00 UTC-re csúszott -> a "from" az előző hónap utolsó napja lett.
+
+### Javítás
+- A hónap-határok (from/to) mostantól közvetlenül a "YYYY-MM" stringből készülnek,
+  UTC-csúszás nélkül: from = a hónap 1. napja, to = a hónap utolsó napja.
+- A hónap-léptető gombok (‹ ›) is string-alapúak, túlcsordulás-mentesek (dec->jan, jan->dec),
+  és mindig a hónap 1-jére állnak.
+- selDate kezdőérték és a havi felirat is helyi idő szerint.
+
+Így a választott hónap az 1. naptól az utolsó napig jelenik meg, az előző hónap utolsó
+napja nélkül.
+
+Érintett: components/Fahrtenbuch.js. Nincs új SQL. VER label (BoardApp): v4.5.3
