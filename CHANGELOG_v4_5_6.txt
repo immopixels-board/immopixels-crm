@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.5.6 — Kártya-duplázás + Beschreibung @taggelés + újra-számlázás
+## 2026-06-06
+
+### 1) Kártya duplázása
+A kártya-modal fejlécében új "duplikál" gomb (📋 ikon a × mellett). Megerősítés után
+másolatot készít ugyanabba az oszlopba "(Kopie)" utótaggal. A GCal/booking/berechnet
+mezők NEM másolódnak (is_gcal=false, nincs gcal_id/booking_*/billed_*), így tiszta,
+szerkeszthető másolat jön létre.
+
+### 2) Beschreibung @mitarbeiter taggelés
+Eddig a Beschreibung mező (EditableField) nem támogatta a @mention-t — csak a Schnellnotiz.
+Mostantól a Beschreibungban is működik:
+- gépelés közben @ után megjelenik a mitarbeiter-lista (autocomplete),
+- mentéskor a frissen megtaggelt kollégák értesítést kapnak (card_mention),
+- a megjelenítés is rendesen kiemeli a @neveket.
+
+### 3) Már "berechnet" fotózások újra számlázhatók
+- Monatsabrechnung Kunde-mód: mostantól a már berechnet kártyák is megjelennek
+  ("✓ berechnet" jelzéssel), előre nincsenek bepipálva, de KIJELÖLHETŐK és újra
+  számlázhatók. (Hónap-módban eddig is kijelölhetők voltak.)
+- Kártya-modal: ha a fotózás berechnet, zöld sáv jelzi a Rechnung-számmal és egy
+  "Erneut berechnen" gombbal, ami törli a berechnet-jelölést (billed_at/billed_invoice_id),
+  így újra bekerül a számlázandók közé.
+
+Érintett: components/CardModal.js, app/BoardApp.js. Nincs új SQL. VER label: v4.5.6

@@ -230,9 +230,10 @@ function NoteField({ value, onSave, staff }) {
   )
 }
 
-function EditableField({ value, onSave, style, multiline, placeholder }) {
+function EditableField({ value, onSave, style, multiline, placeholder, staff, renderValue }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(value || '')
+  const [mention, setMention] = useState({ show: false, query: '', pos: 0 })
   const ref = useRef(null)
 
   useEffect(() => { setVal(value || '') }, [value])
@@ -240,25 +241,66 @@ function EditableField({ value, onSave, style, multiline, placeholder }) {
 
   function save() {
     setEditing(false)
+    setMention(p => ({ ...p, show: false }))
     if (val !== value) onSave(val)
+  }
+
+  function handleChange(e) {
+    const v = e.target.value
+    setVal(v)
+    if (staff && multiline) {
+      const pos = e.target.selectionStart
+      const before = v.slice(0, pos)
+      const atIdx = before.lastIndexOf('@')
+      if (atIdx >= 0 && !before.slice(atIdx + 1).includes(' ')) setMention({ show: true, query: before.slice(atIdx + 1), pos: atIdx })
+      else setMention(p => ({ ...p, show: false }))
+    }
+  }
+  function selectMention(s) {
+    const ta = ref.current; if (!ta) return
+    const before = val.slice(0, mention.pos)
+    const after = val.slice(ta.selectionStart)
+    const insert = '@' + s.name + ' '
+    const newVal = before + insert + after
+    setVal(newVal)
+    setMention(p => ({ ...p, show: false }))
+    setTimeout(() => ta.focus(), 0)
   }
 
   if (editing) {
     const props = {
       ref, value: val,
-      onChange: e => setVal(e.target.value),
-      onBlur: save,
-      onKeyDown: e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); save() } if (e.key === 'Escape') { setVal(value||''); setEditing(false) } },
+      onChange: handleChange,
+      onBlur: () => setTimeout(save, 150),
+      onKeyDown: e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); save() } if (e.key === 'Escape') { setVal(value||''); setMention(p=>({...p,show:false})); setEditing(false) } },
       style: { width: '100%', background: '#fff', border: '1.5px solid #b8892a', borderRadius: 6, padding: '5px 8px', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', fontFamily: 'Arial', outline: 'none', resize: multiline ? 'vertical' : 'none', minHeight: multiline ? 60 : 'auto', ...style }
     }
-    return multiline ? <textarea {...props} rows={3} /> : <input {...props} />
+    return (
+      <div style={{ position: 'relative' }}>
+        {multiline ? <textarea {...props} rows={3} /> : <input {...props} />}
+        {mention.show && staff && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 9999, background: '#fff', border: '1px solid #ddd9d2', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', minWidth: 160, overflow: 'hidden', marginTop: 2 }}>
+            {(staff || []).filter(s => s.name && s.name.toLowerCase().includes(mention.query.toLowerCase())).slice(0, 5).map(s => (
+              <div key={s.id} onMouseDown={e => { e.preventDefault(); selectMention(s) }}
+                style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f4f2ef'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: (s.color||'#b8892a') + '22', color: s.color||'#b8892a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+                  {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
+                </div>
+                {s.name}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
     <div onClick={() => setEditing(true)} style={{ cursor: 'pointer', borderRadius: 5, padding: '3px 5px', margin: '-3px -5px', transition: 'background .12s', position: 'relative', ...style }}
       onMouseEnter={e => e.currentTarget.style.background = '#f4f2ef'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-      <span style={{ color: val ? 'inherit' : '#aaa8a0' }}>{val || placeholder || 'Klicken zum Bearbeiten...'}</span>
+      <span style={{ color: val ? 'inherit' : '#aaa8a0' }}>{val ? (renderValue ? renderValue(val) : val) : (placeholder || 'Klicken zum Bearbeiten...')}</span>
       <i className="ti ti-pencil" style={{ fontSize: 10, color: '#ccc8c0', marginLeft: 5, verticalAlign: 'middle' }} />
     </div>
   )
@@ -623,6 +665,58 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     }
   }
 
+  // Beschreibung mentés + értesítés az ÚJONNAN megtaggelt mitarbeiternek
+  async function saveDescription(value) {
+    const prevIds = parseMentionedStaffIds(localCard.description || '')
+    await save('description', value)
+    const newIds = parseMentionedStaffIds(value || '').filter(id => !prevIds.includes(id) && id !== currentStaff?.id)
+    for (const recipientId of newIds) {
+      try { await sendNotification?.(supabase, { recipientId, senderId: currentStaff.id, type: 'card_mention', cardId: card.id, message: (localCard.title ? localCard.title + ': ' : '') + 'in der Beschreibung getaggt' }) } catch(e) {}
+    }
+  }
+
+  // Kártya duplázása: másolat ugyanabba az oszlopba, GCal/booking/berechnet mezők nélkül
+  async function duplicateCard() {
+    if (currentStaff?.role_level === 'demo') return
+    if (!confirm('Diese Karte duplizieren?')) return
+    const c = localCard
+    const copy = {
+      column_id: c.column_id, board_id: c.board_id,
+      title: (c.title || 'Karte') + ' (Kopie)',
+      position: (c.position ?? 9999),
+      description: c.description || null,
+      client_name: c.client_name || null, customer_name: c.customer_name || null,
+      card_type: c.card_type || null, price: c.price ?? null,
+      addr: c.addr || null, booking_address: c.booking_address || null,
+      card_date: c.card_date || null, card_time: c.card_time || null,
+      card_time_to: c.card_time_to || null, card_color: c.card_color || null,
+      drive_link: c.drive_link || null, customer_email: c.customer_email || null,
+      customer_phone: c.customer_phone || null,
+      // szándékosan NEM másolt: is_gcal, gcal_id, booking_*, billed_at, billed_invoice_id, is_todo, deleted_*
+      is_gcal: false,
+    }
+    Object.keys(copy).forEach(k => copy[k] === undefined && delete copy[k])
+    let { error } = await supabase.from('cards').insert(copy)
+    if (error) {
+      // ha valamelyik oszlop nem létezik, próbáljuk a minimális készlettel
+      const minimal = { column_id: c.column_id, board_id: c.board_id, title: copy.title, description: copy.description, client_name: copy.client_name, card_type: copy.card_type, price: copy.price, addr: copy.addr, card_date: copy.card_date, card_time: copy.card_time }
+      Object.keys(minimal).forEach(k => minimal[k] === undefined && delete minimal[k])
+      const r2 = await supabase.from('cards').insert(minimal); error = r2.error
+    }
+    if (error) { alert('Duplizieren fehlgeschlagen: ' + error.message); return }
+    onUpdate()
+    onClose()
+  }
+
+  // "berechnet" jelölés törlése -> a fotózás újra számlázható
+  async function clearBilled() {
+    if (currentStaff?.role_level === 'demo') return
+    if (!confirm('Diese Aufnahme wieder als NICHT berechnet markieren (für erneute Abrechnung)?')) return
+    await supabase.from('cards').update({ billed_at: null, billed_invoice_id: null, updated_at: new Date().toISOString() }).eq('id', card.id)
+    setLocalCard(p => ({ ...p, billed_at: null, billed_invoice_id: null }))
+    onUpdate()
+  }
+
   async function addTeam(staffId) {
     await supabase.from('card_team').insert({ card_id: card.id, staff_id: staffId })
     await sendNotification?.(supabase, { recipientId: staffId, senderId: currentStaff?.id, type: 'card_assigned', cardId: card.id, message: localCard.title || 'Karte' })
@@ -739,14 +833,27 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 <PlacesAddrField value={localCard.addr} onSave={v => save('addr', v)} />
               </div>
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 16, padding: 4, flexShrink: 0 }}>
-              <i className="ti ti-x" />
-            </button>
+            <div style={{ display:'flex', alignItems:'center', gap:2, flexShrink:0 }}>
+              <button onClick={duplicateCard} title="Karte duplizieren" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 15, padding: 4 }}>
+                <i className="ti ti-copy" />
+              </button>
+              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8278', fontSize: 16, padding: 4 }}>
+                <i className="ti ti-x" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Body */}
         <div className="card-modal-scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {localCard.billed_at && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'#dcfce7', border:'0.5px solid #86efac', borderRadius:8 }}>
+              <i className="ti ti-file-euro" style={{ fontSize:13, color:'#15803d' }} />
+              <span style={{ fontSize:12, color:'#15803d', fontWeight:600, flex:1 }}>Berechnet{localCard.billed_invoice_id ? ' · Rechnung #'+localCard.billed_invoice_id : ''}</span>
+              <button onClick={clearBilled} style={{ background:'#fff', border:'0.5px solid #86efac', borderRadius:6, padding:'4px 9px', fontSize:11, fontWeight:600, color:'#15803d', cursor:'pointer' }}>Erneut berechnen</button>
+            </div>
+          )}
 
           {/* Status */}
           <div>
@@ -841,7 +948,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 <div style={{ fontSize: 13, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word' }}
                   dangerouslySetInnerHTML={{ __html: localCard.description }} />
               ) : (
-                <EditableField value={localCard.description} onSave={v => save('description', v)} multiline placeholder="Beschreibung hinzufügen oder Datei hierher ziehen..." style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
+                <EditableField value={localCard.description} onSave={saveDescription} staff={staff} multiline placeholder="Beschreibung hinzufügen oder Datei hierher ziehen... (@name zum Taggen)" style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
               )}
             </div>
           </div>
