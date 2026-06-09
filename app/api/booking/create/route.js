@@ -25,7 +25,7 @@ const PHOTOG_NAME = { CD: 'Cristian Dina', DB: 'Daniel Bene' }
 
 export async function POST(req) {
   const { createClient } = await import('@supabase/supabase-js')
-  const { getDaySlots, pickLeastBusyProvider, getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
+  const { getDaySlots, pickLeastBusyProvider, pickClosestProvider, getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,7 +37,7 @@ export async function POST(req) {
 
   const { serviceId, date, time, address, plz, lat, lng,
           customerName, customerEmail, customerPhone, note,
-          immoOffice, addon360, addonDrone } = body
+          immoOffice, addon360, addonDrone, provider } = body
 
   if (!serviceId || !date || !time || !address || !customerName || !customerEmail)
     return NextResponse.json({ error: 'missing required fields' }, { status: 400, headers: CORS })
@@ -50,8 +50,15 @@ export async function POST(req) {
   if (!slot) return NextResponse.json({ error: 'slot unavailable' }, { status: 409, headers: CORS })
   const travelTight = !!slot.warn
 
-  const staffInit = await pickLeastBusyProvider(slot.providers, date)
-  const photographer = PHOTOG_NAME[staffInit] || staffInit
+  // Fotós: ha az ügyfél választott ÉS az adott slotban szabad -> azt; különben automatikus = legközelebbi szabad
+  let staffInit
+  if (provider && slot.providers.includes(provider)) {
+    staffInit = provider
+  } else {
+    staffInit = await pickClosestProvider(slot.providers, date, address)
+  }
+  const { data: pStaff } = await supabase.from('staff').select('id, name').eq('init', staffInit).maybeSingle()
+  const photographer = pStaff?.name || PHOTOG_NAME[staffInit] || staffInit
 
   const { data: svc } = await supabase.from('booking_services').select('*').eq('id', serviceId).single()
   if (!svc) return NextResponse.json({ error: 'service not found' }, { status: 404, headers: CORS })
@@ -134,8 +141,7 @@ export async function POST(req) {
     return NextResponse.json({ error: 'save error', detail: cardErr.message }, { status: 500, headers: CORS })
   }
 
-  const { data: staffRow } = await supabase.from('staff').select('id').eq('init', staffInit).maybeSingle()
-  if (staffRow?.id) await supabase.from('card_team').insert({ card_id: card.id, staff_id: staffRow.id })
+  if (pStaff?.id) await supabase.from('card_team').insert({ card_id: card.id, staff_id: pStaff.id })
 
   // ── Google Calendar esemény a FŐ/fotós naptárba, UTÁN ──
   let gcalId = null

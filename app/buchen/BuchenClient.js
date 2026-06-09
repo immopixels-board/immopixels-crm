@@ -17,6 +17,7 @@ export default function BuchenClient() {
   const [addonDrone, setAddonDrone] = useState(false)
   const [date, setDate] = useState('')
   const [time, setTime] = useState(null)
+  const [provider, setProvider] = useState(null) // null = automatikus (mint eddig)
   const [slots, setSlots] = useState([])
   const [slotsFull, setSlotsFull] = useState([])
   const [warnTimes, setWarnTimes] = useState([])
@@ -111,7 +112,7 @@ export default function BuchenClient() {
   // Slots betöltése — STEP 3 (Termin), az ADDRESS-szel együtt → utazás-tudatos
   useEffect(() => {
     if (step !== 3 || !service || !date) return
-    setLoadingSlots(true); setTime(null); setSlots([]); setSlotsFull([]); setWarnTimes([])
+    setLoadingSlots(true); setTime(null); setProvider(null); setSlots([]); setSlotsFull([]); setWarnTimes([])
     const a360 = (is360Available && addon360) ? 1 : 0
     const aDrone = (isDroneAvailable && addonDrone) ? 1 : 0
     const addrParam = addr.address ? `&address=${encodeURIComponent(addr.address)}` : ''
@@ -134,6 +135,7 @@ export default function BuchenClient() {
           customerEmail:contact.email, customerPhone:contact.phone,
           immoOffice:contact.office, note:contact.note,
           addon360: is360Available && addon360, addonDrone: isDroneAvailable && addonDrone,
+          provider: provider || undefined,
         })
       })
       const d = await res.json()
@@ -458,7 +460,7 @@ export default function BuchenClient() {
                       const isWarn = warnTimes.includes(t)
                       return (
                         <button key={t} className={`ip-slot${time===t?' sel':''}${!isFree?' busy':''}${isFree&&isWarn?' warn':''}`}
-                          onClick={()=>isFree&&setTime(t)} disabled={!isFree} title={isWarn?'Knapp wegen Anfahrt':''}>
+                          onClick={()=>{ if(isFree){ setTime(t); setProvider(null) } }} disabled={!isFree} title={isWarn?'Knapp wegen Anfahrt':''}>
                           {t}{isFree&&isWarn?' ⚠':''}
                         </button>
                       )
@@ -467,6 +469,34 @@ export default function BuchenClient() {
                   {warnTimes.length>0 && (
                     <div style={{marginTop:10,fontSize:11,color:'#b8892a',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
                       ⚠ Markierte Zeiten sind wegen der Anfahrt zwischen Terminen knapp. Buchung möglich — wir bestätigen die Machbarkeit.
+                    </div>
+                  )}
+                  {time && freeInitsAtTime && freeInitsAtTime.length>0 && (
+                    <div style={{marginTop:14}}>
+                      <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Fotograf (optional)</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                        <button type="button" onClick={()=>setProvider(null)}
+                          style={{display:'flex',alignItems:'center',gap:6,padding:'7px 12px',borderRadius:9,cursor:'pointer',
+                            border:'1px solid '+(provider===null?GOLD:'#e6ddc9'),background:provider===null?GOLD:'#fff',color:provider===null?'#fff':DARK,fontSize:12,fontWeight:700}}>
+                          ✨ Automatisch
+                        </button>
+                        {providers.filter(pr=>freeInitsAtTime.includes(pr.init)).map(pr=>{
+                          const sel = provider===pr.init
+                          return (
+                            <button type="button" key={pr.init} onClick={()=>setProvider(pr.init)}
+                              style={{display:'flex',alignItems:'center',gap:7,padding:'5px 12px 5px 6px',borderRadius:9,cursor:'pointer',
+                                border:'1px solid '+(sel?GOLD:'#e6ddc9'),background:sel?GOLD:'#fff',color:sel?'#fff':DARK,fontSize:12,fontWeight:700}}>
+                              <Avatar p={pr} size={24} />
+                              {pr.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {provider===null && slotForTime?.auto && (
+                        <div style={{marginTop:8,fontSize:12,color:GOLD,fontWeight:700}}>
+                          ✨ Automatisch: {(providers.find(p=>p.init===slotForTime.auto)?.name)||slotForTime.auto}
+                        </div>
+                      )}
                     </div>
                   )}
                 </>

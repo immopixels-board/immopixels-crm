@@ -1,0 +1,29 @@
+# ImmoPixels CRM v4.5.7 — Booking: opcionális fotós-választás + legközelebbi auto
+## 2026-06-09
+
+### Tisztán hozzáadás — a jelenlegi foglalás viselkedése alapból VÁLTOZATLAN.
+
+### 1) Opcionális fotós-választás (nem legördülő)
+Az időpont kiválasztása után megjelenik egy "Fotograf (optional)" sor chipekkel:
+- "✨ Automatisch" (alapból kijelölve = mint eddig),
+- az adott időpontban SZABAD fotósok (booking_providers; most CD + Daniel, bővíthető új sorral).
+Ha az ügyfél nem nyúl hozzá -> automatikus. Ha választ egy fotóst, az megy a foglalásba.
+
+### 2) "Automatisch: X" jelzés
+Időpont kiválasztásakor kiírja, kit rendelne hozzá automatikusan a rendszer
+(pl. "✨ Automatisch: Daniel Bene"). A slots API mostantól slotonként ad egy "auto"
+mezőt (a legközelebbi szabad fotós).
+
+### 3) Auto-választás logikája: legközelebbi lakcím
+Az automatika a SZABAD fotósok közül a lakcíme (staff.address) szerint a shoot-helyszínhez
+LEGKÖZELEBBI fotóst választja (Google menetidő). Ha nincs cím / Maps-kulcs / táv ->
+visszaesik a korábbi "legkevésbé terhelt" logikára (semmi nem törik).
+
+### Biztonság (semmi meglévő nem változik)
+- A create egy ÚJ, opcionális "provider" mezőt fogad. Hiányzik -> automatikus (mint eddig).
+- Ha a választott fotós az adott slotban mégsem szabad -> automatikusra esik vissza.
+- A kártya + card_team + GCal-esemény létrehozása szóról szóra ugyanaz; csak a kiválasztott
+  fotós init-je lehet más. A fotós neve mostantól a staff-ból jön (új fotós is jól jelenik meg).
+
+Érintett: app/buchen/BuchenClient.js, app/api/booking/create/route.js, lib/booking/slots.js.
+Nincs új SQL. VER label: v4.5.7
