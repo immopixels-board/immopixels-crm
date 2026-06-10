@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.5.8 — Widget: Makler / Monat (csak admin)
+## 2026-06-09
+
+### Új widget: "Makler / Monat" — csak neked (admin)
+Board-widget, a To-Do mintájára. Csak admin szerepkörnél jelenik meg.
+
+- HAVI lebontás: nyitható/zárható hónap-szekciók (a fejlécre kattintva). Alap: a
+  legutóbbi hónap nyitva.
+- AUTOMATIKUS kitöltés: az adott hónapban fotózott ügyfelek (kártya client_name) +
+  a felvételek száma (Aufn.). Magától töltődik a kártyákból.
+- PIPÁLÁS = csak jelölés (mint a To-Do): kipipálva a sor a lista ALJÁRA kerül, áthúzva.
+  Semmihez nem kapcsolódik (nem billed_at, nem számlázás).
+- SZERKESZTÉS: soronként átnevezés (ceruza) és törlés (kuka), valamint
+  "+ Makler hinzufügen" a kézi felvitelhez.
+- MENTÉS: helyben (localStorage, csak ezen az eszközön/böngészőben), semmilyen
+  szerver-adathoz nem nyúl.
+
+### Hozzáadás
+Widget-hozzáadó ablak ("Eigenes Widget") tetején — csak adminnak — egy gomb:
+"Makler-Monatsliste hinzufügen (nur für dich)". Ha már létezik, megnyitja.
+
+Érintett: app/BoardApp.js. Nincs új SQL. VER label: v4.5.8
