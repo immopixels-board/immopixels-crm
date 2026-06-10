@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.5.9 — Makler/Monat widget: töltődjön fel (dátum-tartalék + diagnosztika)
+## 2026-06-09
+
+### Probléma
+A Makler/Monat widget üres listát mutatott. Ok-jelölt: a csoportosítás csak a card_date
+szerint ment, és sok kártyán (pl. cég-kártyák) nincs kitöltött shooting-dátum -> kimaradtak.
+
+### Javítás
+- A hónaphoz a dátum: elsődlegesen card_date; ha nincs/rossz formátum, akkor created_at
+  (a kártya létrehozása) a tartalék. Így a dátum nélküli kártyák is a megfelelő hónapba
+  kerülnek (közelítőleg), nem tűnnek el.
+- Név-tartalék: client_name -> ha üres, customer_name -> ha üres, a kártya címe.
+- Ha mégis üres a lista, most kiírja, hány kártya töltődött be ("X Karten geladen"),
+  hogy egy pillantásra látsszon: 0 = betöltési/jogosultsági gond; >0 = adat/dátum gond.
+
+Érintett: app/BoardApp.js. Nincs új SQL. VER label: v4.5.9
