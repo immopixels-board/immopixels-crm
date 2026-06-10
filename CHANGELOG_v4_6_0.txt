@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.6.0 — Makler-widget finomítás + widget-szín + widget ki/be
+## 2026-06-10
+
+### Honnan / mit hív be a Makler/Monat widget
+A board `cards` állapotából (loadCards = az ÖSSZES nem törölt kártya a Supabase cards
+táblából). Mostantól CSAK a Kundékat számolja: minden kártyát feloldunk a clients/
+Telefonbuch ügyfélre (resolveClientObj); ami nem oldható fel valódi Kundéra, kimarad.
+A sor neve a Kunde Kürzelje/neve.
+
+### Makler-widget
+- CSAK KUNDEN: a fenti szűrés.
+- HÓNAP-SORREND: emelkedő — a legkorábbi hónap felül, a legutóbbi (pl. december) ALUL.
+  Alapból a legutóbbi (alsó) hónap van nyitva.
+- GÖRGETHETŐ: a lista max. magasságot kap és belül görgethető (nem nő a végtelenségbe).
+- MÉRET: alapból akkora mint a To Do (260×300), továbbra is átméretezhető.
+
+### Minden widgetre
+- HEADER-SZÍN változtatható: a fejléc paletta-ikonjával egyéni szín választható
+  (10 szín + "Standard" visszaállítás).
+- WIDGET KI/BE: a "Eigenes Widget" ablakban egy lista minden widgetet teljesen
+  be-/kikapcsol (kikapcsolva nem jelenik meg, és a footerből is eltűnik).
+
+Érintett: app/BoardApp.js. Nincs új SQL. VER label: v4.6.0
