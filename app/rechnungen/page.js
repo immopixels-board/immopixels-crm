@@ -9,7 +9,7 @@ const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100
-const addDays = (d, n) => { const x = new Date(d + 'T00:00:00'); if (isNaN(x)) return ''; x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
+const addDays = (d, n) => { const p = String(d || '').split('-').map(Number); if (p.length < 3 || !p[0]) return ''; return new Date(Date.UTC(p[0], p[1] - 1, p[2] + (parseInt(n) || 0))).toISOString().slice(0, 10) }
 const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open: { label: 'Offen', c: '#9a6a12', bg: '#f6efe0' }, overdue: { label: 'Überfällig', c: '#b3402f', bg: '#fae7e2' }, paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' }, storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' } }
 
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
@@ -64,14 +64,14 @@ export default function RechnungenPage() {
     if (!c) return {}
     return { company: c.name || '', contact: [c.contact_firstname, c.contact_lastname].filter(Boolean).join(' '), address: c.addr || '', email: c.contact_email || c.email || '', phone: c.contact_tel || c.tel || '', kundennr: c.kundennr || '' }
   }
-  function newInvoice() { try { localStorage.removeItem('ip-invoice-prefill') } catch {} window.open('/rechnungen/neu', '_blank') }
+  function newInvoice() { try { localStorage.removeItem('ip-invoice-prefill') } catch {} window.location.href = '/rechnungen/neu' }
   function openEditorPrefill(pf, cls) {
     const c = (cls || clients).find(x => x.id === pf.client_id || (x.short_name || x.name) === pf.client_name || x.name === pf.client_name)
     const d = pf.invoice_date || new Date().toISOString().slice(0, 10)
     setEditor({ items: pf.items && pf.items.length ? pf.items : [{ description: pf.description || '', qty: 1, unit_price: pf.price || '', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19 }], invoice_date: d, due_date: addDays(d, 14), client_name: pf.client_name || (c ? (c.short_name || c.name) : ''), client_id: c?.id || null, buyer: buyerFromClient(c), notes: '' })
     setTab('rechnungen')
   }
-  function editInvoice(inv) { window.open('/rechnungen/neu?id=' + inv.id, '_blank') }
+  function editInvoice(inv) { window.location.href = '/rechnungen/neu?id=' + inv.id }
 
   function calcTotals(items, klein) {
     let net = 0, vat = 0
@@ -137,6 +137,7 @@ export default function RechnungenPage() {
   const kpiMonth = sum(issued.filter(i => { const d = i.invoice_date || ''; return d.slice(0, 4) === String(curY) && +d.slice(5, 7) === curM + 1 }))
   const kpiYear = sum(inYear(curY)), kpiAll = sum(issued)
   const kpiOpen = invoices.filter(i => i.status === 'open' || i.status === 'overdue').reduce((s, i) => s + (i.total_gross || 0), 0)
+  const draftList = invoices.filter(i => i.status === 'draft'); const kpiDraft = draftList.reduce((s, i) => s + (i.total_gross || 0), 0)
   const monthVals = MONTHS.map((_, m) => sum(inYear(year).filter(i => +(i.invoice_date || '').slice(5, 7) === m + 1)))
   const maxMonth = Math.max(1, ...monthVals)
   const byClient = {}; inYear(year).forEach(i => { const k = i.client_name || '—'; byClient[k] = (byClient[k] || 0) + val(i) })
@@ -164,6 +165,7 @@ export default function RechnungenPage() {
           <Kpi label="Dieses Jahr" value={kpiYear} sub={String(curY)} />
           <Kpi label="Gesamt" value={kpiAll} sub={years.length ? years[years.length - 1] + '–' + years[0] : '—'} />
           <Kpi label="Offen (brutto)" value={kpiOpen} sub="unbezahlt" accent />
+          <Kpi label="Entwürfe" value={kpiDraft} sub={draftList.length + ' Stück · ohne Nr.'} />
         </div>
         <Card title="Umsatz pro Monat" right={<select value={year} onChange={e => setYear(+e.target.value)} style={selS}>{(years.length ? years : [curY]).map(y => <option key={y} value={y}>{y}</option>)}</select>}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, padding: '8px 0' }}>
@@ -318,6 +320,30 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
 
 function ImportTab({ clients, myId, seller, onDone }) {
   const [rows, setRows] = useState(null); const [head, setHead] = useState([]); const [map, setMap] = useState({}); const [busy, setBusy] = useState(false); const [done, setDone] = useState(null)
+  const [bz, setBz] = useState(false); const [bdone, setBdone] = useState(null)
+  async function billomatImport() {
+    if (!confirm('Kunden aus Billomat per API importieren (inkl. Kundennummer)?')) return
+    setBz(true); setBdone(null)
+    try {
+      const r = await fetch('/api/billomat/clients'); const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'API-Fehler')
+      let created = 0, updated = 0, failed = 0
+      for (const b of j.clients) {
+        if (!b.name) continue
+        const addr = [b.street, [b.zip, b.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+        const row = { name: b.name, addr: addr || null, email: b.email || null, tel: b.phone || null, contact_firstname: b.first_name || null, contact_lastname: b.last_name || null, kundennr: b.kundennr || null, billomat_client_id: b.billomat_id || null }
+        let ex = null
+        if (b.billomat_id) { const { data } = await supabase.from('clients').select('id').eq('billomat_client_id', b.billomat_id).maybeSingle(); ex = data }
+        if (!ex) { const { data } = await supabase.from('clients').select('id').ilike('name', b.name).maybeSingle(); ex = data }
+        if (ex) { const { error } = await supabase.from('clients').update(row).eq('id', ex.id); error ? failed++ : updated++ }
+        else { const { error } = await supabase.from('clients').insert(row); error ? failed++ : created++ }
+      }
+      setBdone({ total: j.clients.length, created, updated, failed })
+      onDone && onDone()
+      if (failed && (created + updated) === 0) alert('Alle fehlgeschlagen — fehlt evtl. die Spalte „kundennr"/"billomat_client_id" in der Tabelle clients (SQL ausführen).')
+    } catch (e) { alert('Billomat-Import-Fehler: ' + (e.message || e)) }
+    setBz(false)
+  }
   function parseCSV(text) { const fl = text.split('\n')[0]; const delim = (fl.split(';').length > fl.split(',').length) ? ';' : ','; const out = []; let row = [], cur = '', q = false; for (let i = 0; i < text.length; i++) { const ch = text[i]; if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch } else { if (ch === '"') q = true; else if (ch === delim) { row.push(cur); cur = '' } else if (ch === '\n') { row.push(cur); out.push(row); row = []; cur = '' } else if (ch !== '\r') cur += ch } } if (cur || row.length) { row.push(cur); out.push(row) } return out.filter(r => r.some(c => (c || '').trim() !== '')) }
   function guess(h) { const find = ks => h.findIndex(x => ks.some(k => x.toLowerCase().includes(k))); return { number: find(['nummer', 'rechnungsnr', 'invoice', 'beleg']), date: find(['datum', 'date']), client: find(['kunde', 'name', 'firma', 'client']), net: find(['netto', 'net']), gross: find(['brutto', 'gesamt', 'total', 'gross']), status: find(['status', 'bezahlt', 'paid']) } }
   function onFile(e) { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => { const all = parseCSV(String(r.result)); if (all.length < 2) { alert('Leere CSV'); return } setHead(all[0]); setRows(all.slice(1)); setMap(guess(all[0])) }; r.readAsText(f, 'utf-8') }
@@ -327,7 +353,14 @@ function ImportTab({ clients, myId, seller, onDone }) {
   function mapDate(v) { const s = (v || '').trim(); let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/); if (m) return m[3] + '-' + m[2] + '-' + m[1]; m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0].slice(0, 10); return new Date().toISOString().slice(0, 10) }
   async function doImport() { if (map.client < 0) { alert('Kunden-Spalte zuordnen.'); return } setBusy(true); let created = 0, imported = 0, skipped = 0; try { const cache = {}; for (const r of rows) { const name = (r[map.client] || '').trim(); if (!name) { skipped++; continue } let cid = existsClient(name)?.id || cache[norm(name)]; if (!cid) { const { data: nc } = await supabase.from('clients').insert({ name }).select('id').single(); if (nc) { cid = nc.id; cache[norm(name)] = cid; created++ } } const numv = map.number >= 0 ? (r[map.number] || '').trim() : null; if (numv) { const { data: ex } = await supabase.from('invoices').select('id').eq('invoice_number', numv).maybeSingle(); if (ex) { skipped++; continue } } const gross = map.gross >= 0 ? num(r[map.gross]) : 0; const net = map.net >= 0 ? num(r[map.net]) : round2(gross / 1.19); const { error } = await supabase.from('invoices').insert({ invoice_number: numv, client_id: cid, client_name: name, invoice_date: map.date >= 0 ? mapDate(r[map.date]) : new Date().toISOString().slice(0, 10), status: map.status >= 0 ? statusOf(r[map.status]) : 'paid', total_net: net, vat_amount: round2(gross - net), total_gross: gross, seller, buyer: { company: name }, created_by: myId, finalized_at: new Date().toISOString(), notes: 'Import (Billomat)' }); if (!error) imported++; else skipped++ } setDone({ created, imported, skipped }); setRows(null); onDone && onDone() } catch (e) { alert('Import-Fehler: ' + (e.message || e)) } setBusy(false) }
   return (
-    <Card title="Billomat-Import (CSV, einmalig)">
+    <Card title="Kunden & Rechnungen importieren">
+      <div style={{ border: '1.5px solid ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 14, marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>① Kunden aus Billomat (API) — empfohlen</div>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Holt alle Kunden direkt aus Billomat — <b>inkl. Kundennummer</b>, Adresse, E-Mail, Telefon. Bestehende werden aktualisiert, fehlende neu angelegt. Kein CSV nötig.</div>
+        {bdone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {bdone.total} Kunden: {bdone.created} neu, {bdone.updated} aktualisiert{bdone.failed ? ', ' + bdone.failed + ' Fehler' : ''}.</div>}
+        <button onClick={billomatImport} disabled={bz} style={primary}>{bz ? 'Importiere…' : '⬇ Aus Billomat importieren (API)'}</button>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>② Rechnungen aus Billomat (CSV, einmalig)</div>
       <div style={{ fontSize: 13, color: MUT, marginBottom: 12, lineHeight: 1.6 }}>Rechnungen aus Billomat als CSV exportieren und hochladen. Bestehende Kunden = <b style={{ color: '#2f7a4f' }}>✓ vorhanden</b>, nur fehlende neu. Bereits importierte Nummern werden übersprungen.</div>
       {done && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2f7a4f', marginBottom: 12 }}>✓ Fertig: {done.imported} Rechnungen, {done.created} neue Kunden, {done.skipped} übersprungen.</div>}
       <input type="file" accept=".csv,text/csv" onChange={onFile} style={{ fontSize: 13, marginBottom: 14 }} />

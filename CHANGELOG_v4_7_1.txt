@@ -1,0 +1,49 @@
+# ImmoPixels CRM v4.7.1 — Számlázó nagy frissítés
+## 2026-06-11
+
+### ★ ÚJ: havi fotózás-lista pipálással (a CRM nagy előnye)
+- A számlaszerkesztőben Kunde kiválasztása után megjelennek az ügyfél FOTÓZÁSAI
+  havi bontásban. Egy pipa → automatikusan POZÍCIÓ lesz belőle (dátum + cím + leírás
+  előtöltve, ár beírható). A 'berechnet' shootok jelölve. Nem kell újra gépelni.
+
+### Felület (Billomat-szerű, UGYANABBAN az ablakban)
+- A számlakészítés már NEM popup és NEM külön ablak: ugyanabban az ablakban nyílik
+  full-oldalas szerkesztő. Mentés után automatikusan visszaugrik a Rechnungen listára.
+- PDF: "PDF (neuer Tab)" gomb — ÚJ FÜLÖN nyílik, te töltöd le.
+
+### Javítások
+- Fällig: a -1 napos csúszás (13 helyett 14) JAVÍTVA — tiszta UTC dátum-matek.
+  A "In … Tagen" mező most elfogadja a beírt számot, és a dátummal együtt frissül.
+- PDF: a "Gesamt brutto" áthúzó arany vonal JAVÍTVA (a sor FÖLÉ került), oszlopok igazítva.
+- ÁR-hiba (199,99 → 19.999) javítva minden mezőben.
+
+### Pozíciók
+- DUPLÁZÁS gomb (⎘) — egy kattintással másolható egy tétel.
+- Rabatt % oszlop pozíciónként (a Netto a kedvezménnyel számol).
+
+### Rechnungsnummer
+- Festschreibéskor automatikusan emelkedik ÉS módosítható (egyedi szám kötelező — a DB
+  nem enged duplikátumot; ha mégis ütközik, hibát jelez).
+
+### Umsatz
+- Az Entwürfe (vázlatok) most KÜLÖN KPI-ben látszanak (darab + összeg).
+
+### ★ ÚJ: számla e-mailben (Entwurf állapotban is)
+- "📧 Per E-Mail" gomb: rechnung@immopixels.de-ről, PDF csatolva, 3 előre megírt
+  Schablonéval (Rechnung anbei / Zahlungserinnerung / Danke+Bewertung) + automatikus
+  ImmoPixels footer. (Backend: /api/invoice/email, nodemailer/SMTP.)
+
+### ★ ÚJ: Billomat-API ügyfél-import
+- Import fül: "⬇ Aus Billomat importieren (API)" — minden ügyfél, KUNDENNUMMERREL,
+  címmel, e-maillel, telefonnal. Nincs CSV. (Backend: /api/billomat/clients.)
+
+## SZÜKSÉGES SQL (Supabase) — a Billomat-importhoz és Kundennummerhez:
+  alter table clients add column if not exists kundennr text;
+  alter table clients add column if not exists billomat_client_id text;
+  -- (invoice_items.discount már a v4.6.8-ból)
+
+## E-MAIL env (Vercel) — ha külön rechnung@ postafiók kell:
+  EMAIL_INVOICE_USER / EMAIL_INVOICE_PASS (opcionális; alapból a meglévő SMTP-t
+  használja, from = rechnung@immopixels.de; felülírható: EMAIL_INVOICE_FROM)
+
+VER label: v4.7.1

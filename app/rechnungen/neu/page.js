@@ -5,12 +5,20 @@ import { generateZugferdPdf } from '../../../lib/invoice/zugferd'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', BG = '#f4f1ea'
+const MONNAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100
-const addDays = (d, n) => { const x = new Date(d + 'T00:00:00'); if (isNaN(x)) return ''; x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
+// TZ-biztos: tisztán UTC dátum-matek (nincs -1 nap csúszás)
+const addDays = (d, n) => { const p = String(d || '').split('-').map(Number); if (p.length < 3 || !p[0]) return ''; return new Date(Date.UTC(p[0], p[1] - 1, p[2] + (parseInt(n) || 0))).toISOString().slice(0, 10) }
+const dueDays = (inv) => { const a = String(inv.invoice_date || '').split('-').map(Number), d = String(inv.due_date || '').split('-').map(Number); if (a.length < 3 || d.length < 3 || !a[0] || !d[0]) return 14; return Math.round((Date.UTC(d[0], d[1] - 1, d[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000) }
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
 const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: '', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [] }
+const SCHABLONEN = {
+  rechnung: { label: 'Rechnung anbei', subject: 'Ihre Rechnung von ImmoPixels', body: 'anbei erhalten Sie Ihre Rechnung als PDF. Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nVielen Dank für die gute Zusammenarbeit!' },
+  erinnerung: { label: 'Zahlungserinnerung', subject: 'Zahlungserinnerung — Ihre Rechnung', body: 'wir möchten Sie freundlich an die noch offene Rechnung (im Anhang) erinnern. Sollten Sie den Betrag bereits überwiesen haben, betrachten Sie diese Nachricht als gegenstandslos.' },
+  danke: { label: 'Danke + Bewertung', subject: 'Vielen Dank — Ihre Rechnung', body: 'vielen Dank für Ihren Auftrag! Im Anhang finden Sie Ihre Rechnung.\n\nWenn Sie zufrieden waren, freuen wir uns sehr über eine kurze Google-Bewertung.' }
+}
 const emptyItem = vat => ({ title: '', desc: '', qty: 1, unit_price: '', discount: '', vat_rate: vat })
 
 export default function NeueRechnungPage() {
@@ -21,7 +29,9 @@ export default function NeueRechnungPage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [savedNo, setSavedNo] = useState(null)
+  const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}
+  const [shootsOpen, setShootsOpen] = useState({})
+  const [emailModal, setEmailModal] = useState(false)
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -37,105 +47,158 @@ export default function NeueRechnungPage() {
     const { data: s2 } = await supabase.from('settings').select('value').eq('key', 'invoice_template').maybeSingle()
     if (s2?.value) { try { setTemplate({ ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }) } catch {} }
 
-    const params = new URLSearchParams(window.location.search)
-    const id = params.get('id')
+    const id = new URLSearchParams(window.location.search).get('id')
     const today = new Date().toISOString().slice(0, 10)
     if (id) {
       const { data: row } = await supabase.from('invoices').select('*').eq('id', id).single()
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', id).order('position')
-      if (row) setInv({ ...row, buyer: row.buyer || {}, items: (its && its.length ? its : [emptyItem(19)]).map(it => { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: it.unit_price ?? '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19 } }) })
+      if (row) { setInv({ ...row, buyer: row.buyer || {}, items: (its && its.length ? its : [emptyItem(19)]).map(splitItem) }); loadShoots(row.client_id, row.client_name, cls || []) }
       else newBlank(today, sl)
     } else {
       let pf = null; try { pf = JSON.parse(localStorage.getItem('ip-invoice-prefill') || 'null') } catch {}
       if (pf) localStorage.removeItem('ip-invoice-prefill')
       if (pf) {
         const c = (cls || []).find(x => x.id === pf.client_id || x.name === pf.client_name || x.short_name === pf.client_name)
-        setInv({ invoice_date: pf.invoice_date || today, due_date: addDays(pf.invoice_date || today, 14), client_id: c?.id || null, client_name: c?.name || pf.client_name || '', buyer: c ? buyerFromClient(c) : {}, notes: '', items: (pf.items && pf.items.length ? pf.items : [emptyItem(sl.kleinunternehmer ? 0 : 19)]).map(it => { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: it.unit_price ?? '', discount: it.discount || '', vat_rate: it.vat_rate ?? (sl.kleinunternehmer ? 0 : 19) } }) })
+        setInv({ invoice_date: pf.invoice_date || today, due_date: addDays(pf.invoice_date || today, 14), client_id: c?.id || null, client_name: c?.name || pf.client_name || '', buyer: c ? buyerFromClient(c) : {}, notes: '', invoice_number: '', items: (pf.items && pf.items.length ? pf.items : [emptyItem(sl.kleinunternehmer ? 0 : 19)]).map(splitItem) })
+        if (c) loadShoots(c.id, c.name, cls || [])
       } else newBlank(today, sl)
     }
     setLoading(false)
   }
-  function newBlank(today, sl) { setInv({ invoice_date: today, due_date: addDays(today, 14), client_id: null, client_name: '', buyer: {}, notes: '', items: [emptyItem(sl.kleinunternehmer ? 0 : 19)] }) }
+  function splitItem(it) { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: (it.unit_price === 0 || it.unit_price) ? it.unit_price : '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19, _card: it._card } }
+  function newBlank(today, sl) { setInv({ invoice_date: today, due_date: addDays(today, 14), client_id: null, client_name: '', buyer: {}, notes: '', invoice_number: '', items: [emptyItem(sl.kleinunternehmer ? 0 : 19)] }); setShoots(null) }
   function buyerFromClient(c) { if (!c) return {}; return { company: c.name || '', contact: [c.contact_firstname, c.contact_lastname].filter(Boolean).join(' '), address: c.addr || '', email: c.contact_email || c.email || '', phone: c.contact_tel || c.tel || '', kundennr: c.kundennr || '' } }
+
+  async function loadShoots(clientId, clientName, cls) {
+    const c = (cls || clients).find(x => x.id === clientId || x.name === clientName || x.short_name === clientName)
+    const keys = [c?.short_name, c?.name, clientName].filter(Boolean)
+    if (!keys.length) { setShoots(null); return }
+    const { data } = await supabase.from('cards').select('id,title,addr,description,card_date,card_type,client_name,billed_at').in('client_name', keys).not('card_date', 'is', null).order('card_date', { ascending: false })
+    const groups = {}
+    ;(data || []).forEach(cd => { const mk = (cd.card_date || '').slice(0, 7); if (!mk) return; (groups[mk] = groups[mk] || []).push(cd) })
+    setShoots(groups)
+    const first = Object.keys(groups).sort().reverse()[0]; if (first) setShootsOpen({ [first]: true })
+  }
 
   const set = patch => setInv(p => ({ ...p, ...patch }))
   const setBuyer = patch => setInv(p => ({ ...p, buyer: { ...(p.buyer || {}), ...patch } }))
   const setItem = (i, patch) => setInv(p => ({ ...p, items: p.items.map((it, j) => j === i ? { ...it, ...patch } : it) }))
   const addItem = () => setInv(p => ({ ...p, items: [...p.items, emptyItem(seller.kleinunternehmer ? 0 : 19)] }))
+  const dupItem = i => setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { ...a[i], _card: undefined }); return { ...p, items: a } })
   const delItem = i => setInv(p => ({ ...p, items: p.items.filter((_, j) => j !== i) }))
-  const moveItem = (i, dir) => setInv(p => { const a = [...p.items]; const j = i + dir; if (j < 0 || j >= a.length) return p; const tmp = a[i]; a[i] = a[j]; a[j] = tmp; return { ...p, items: a } })
+  const moveItem = (i, dir) => setInv(p => { const a = [...p.items]; const j = i + dir; if (j < 0 || j >= a.length) return p; const t = a[i]; a[i] = a[j]; a[j] = t; return { ...p, items: a } })
   const onDate = v => set({ invoice_date: v, due_date: addDays(v, 14) })
-  const onClient = name => { const c = clients.find(x => x.name === name || x.short_name === name); set({ client_name: c?.name || name, client_id: c?.id || null, buyer: c ? buyerFromClient(c) : (inv.buyer || {}) }) }
+  const onClient = name => { const c = clients.find(x => x.name === name || x.short_name === name); set({ client_name: c?.name || name, client_id: c?.id || null, buyer: c ? buyerFromClient(c) : (inv.buyer || {}) }); if (c) loadShoots(c.id, c.name, clients); else setShoots(null) }
+
+  function shootChecked(cardId) { return (inv?.items || []).some(it => it._card === cardId) }
+  function toggleShoot(cd, on) {
+    setInv(p => {
+      if (on) {
+        const title = [fmt(cd.card_date), p.client_name, cd.addr].filter(Boolean).join(' - ')
+        const desc = cd.description || cd.card_type || 'Immobilienfotografie + Postproduktion'
+        const items = p.items.filter(it => it.title || it.desc || num(it.unit_price) || it._card)
+        return { ...p, items: [...items, { title, desc, qty: 1, unit_price: '', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _card: cd.id }] }
+      }
+      return { ...p, items: p.items.filter(it => it._card !== cd.id) }
+    })
+  }
 
   function totals() { let net = 0, vat = 0; (inv?.items || []).forEach(it => { const ln = num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100); net += ln; vat += seller.kleinunternehmer ? 0 : ln * num(it.vat_rate) / 100 }); return { net: round2(net), vat: round2(vat), gross: round2(net + vat) } }
-  function toInvoiceObj(numberStr) { const t = totals(); return { invoice_number: numberStr || inv.invoice_number || null, client_name: inv.client_name, invoice_date: inv.invoice_date, due_date: inv.due_date, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes, buyer: inv.buyer || {}, storno_of: inv.storno_of || null } }
   function itemsForDb(invId) { const rate = it => seller.kleinunternehmer ? 0 : num(it.vat_rate); return inv.items.filter(it => (it.title || '').trim() || (it.desc || '').trim() || num(it.unit_price)).map((it, i) => { const ln = round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)); return { invoice_id: invId, position: i + 1, description: [it.title, it.desc].filter(Boolean).join('\n'), qty: num(it.qty), unit_price: num(it.unit_price), discount: num(it.discount), vat_rate: rate(it), line_net: ln, line_gross: round2(ln * (1 + rate(it) / 100)) } }) }
+  function toInvoiceObj() { const t = totals(); return { invoice_number: inv.invoice_number || null, client_name: inv.client_name, invoice_date: inv.invoice_date, due_date: inv.due_date, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes, buyer: inv.buyer || {}, storno_of: inv.storno_of || null } }
 
-  async function save(finalize) {
+  async function save(finalize, redirect = true) {
     setBusy(true)
     try {
       const t = totals()
       const base = { client_id: inv.client_id || null, client_name: inv.client_name || '', invoice_date: inv.invoice_date, due_date: inv.due_date || null, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes || null, seller, buyer: inv.buyer || {}, created_by: myId }
       let invId = inv.id
-      if (invId) { const { error } = await supabase.from('invoices').update(base).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
-      else { const { data, error } = await supabase.from('invoices').insert({ ...base, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
+      if (invId) { const { error } = await supabase.from('invoices').update({ ...base, invoice_number: inv.invoice_number || null }).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
+      else { const { data, error } = await supabase.from('invoices').insert({ ...base, invoice_number: inv.invoice_number || null, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
       const rows = itemsForDb(invId)
       if (rows.length) { const { error: ie } = await supabase.from('invoice_items').insert(rows); if (ie) throw ie }
       if (finalize) {
-        const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear()
-        const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr
-        await supabase.from('invoices').update({ invoice_number: numData, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
-        setInv(p => ({ ...p, invoice_number: numData, status: 'open' })); setSavedNo(numData)
-      } else { setSavedNo('Entwurf gespeichert') }
-    } catch (e) { alert('Fehler beim Speichern: ' + (e.message || e)) }
-    setBusy(false)
+        let numberStr = inv.invoice_number
+        if (!numberStr) { const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear(); const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd }
+        const { error: ferr } = await supabase.from('invoices').update({ invoice_number: numberStr, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
+        if (ferr) throw ferr
+      }
+      if (redirect) { window.location.href = '/rechnungen'; return true }
+      return invId
+    } catch (e) { alert('Fehler beim Speichern: ' + (e.message || e) + (String(e.message || '').includes('duplicate') ? '\n→ Diese Rechnungsnummer existiert bereits.' : '')); setBusy(false); return false }
   }
+
+  async function makePdfBytes() { return await generateZugferdPdf({ inv: toInvoiceObj(), items: itemsForDb('x'), seller, template }) }
   async function pdf() {
     setBusy(true)
-    try { const obj = toInvoiceObj(); const items = itemsForDb('x'); const bytes = await generateZugferdPdf({ inv: obj, items, seller, template }); const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = 'Rechnung-' + (obj.invoice_number || 'Entwurf') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000) } catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
+    try { const bytes = await makePdfBytes(); const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 60000) }
+    catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }
 
   if (loading || !inv) return <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'Arial', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUT }}>Lädt…</div>
   const t = totals()
   const finalized = inv.id && inv.status && inv.status !== 'draft'
+  const monthKeys = shoots ? Object.keys(shoots).sort().reverse() : []
 
   return (
     <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'Arial, sans-serif', color: DARK }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#fff', borderBottom: '1px solid ' + LINE, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{finalized ? 'Rechnung ' + inv.invoice_number : (inv.id ? 'Entwurf bearbeiten' : 'Neue Rechnung')}{savedNo && <span style={{ color: '#2f7a4f', fontSize: 12, marginLeft: 10 }}>✓ {savedNo}</span>}</div>
-        <button onClick={pdf} disabled={busy} style={ghost}>PDF</button>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#fff', borderBottom: '1px solid ' + LINE, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{finalized ? 'Rechnung ' + inv.invoice_number : (inv.id ? 'Entwurf bearbeiten' : 'Neue Rechnung')}</div>
+        <button onClick={() => setEmailModal(true)} disabled={busy} style={ghost}>📧 Per E-Mail</button>
+        <button onClick={pdf} disabled={busy} style={ghost}>PDF (neuer Tab)</button>
         {!finalized && <button onClick={() => save(false)} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
-        {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + fortlaufende Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
-        <button onClick={() => window.close()} style={ghost}>Schließen</button>
+        {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
+        <button onClick={() => { window.location.href = '/rechnungen' }} style={ghost}>Schließen</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, maxWidth: 1200, margin: '0 auto', padding: 18, alignItems: 'start' }}>
         <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 18 }}>
-          <Lbl>Anschrift</Lbl>
-          <textarea value={[inv.buyer?.company, inv.buyer?.contact, inv.buyer?.address].filter(Boolean).join('\n')} readOnly rows={4} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial', color: MUT, background: '#f9f7f2' }} placeholder="(über Kunde rechts wählen)" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div><Lbl>Rechnungsnummer (änderbar)</Lbl><input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder="automatisch beim Festschreiben" disabled={finalized} style={{ ...box, width: '100%' }} /></div>
             <div><Lbl>Datum</Lbl><input type="date" value={inv.invoice_date} onChange={e => onDate(e.target.value)} style={{ ...box, width: '100%' }} /></div>
-            <div><Lbl>Rechnungsnummer</Lbl><input value={inv.invoice_number || 'Entwurf · vorläufig'} disabled style={{ ...box, width: '100%', color: MUT, background: '#f6f4ef' }} /></div>
           </div>
+          <div style={{ marginTop: 12 }}><Lbl>Anschrift</Lbl><textarea value={[inv.buyer?.company, inv.buyer?.contact, inv.buyer?.address].filter(Boolean).join('\n')} readOnly rows={3} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial', color: MUT, background: '#f9f7f2' }} placeholder="(Kunde rechts wählen)" /></div>
           <div style={{ marginTop: 12 }}><Lbl>Einleitungstext</Lbl><textarea value={inv.intro ?? template.intro} onChange={e => set({ intro: e.target.value })} rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} /></div>
 
+          {/* HAVI FOTÓZÁSOK — pipálással pozícióvá */}
+          {shoots && monthKeys.length > 0 && (
+            <div style={{ border: '1.5px dashed ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 12, marginTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: DARK, marginBottom: 4 }}>📸 Aufnahmen von „{inv.client_name}" <span style={{ fontWeight: 400, color: MUT }}>— abhaken → wird Position</span></div>
+              {monthKeys.map(mk => {
+                const [yy, mm] = mk.split('-'); const open = !!shootsOpen[mk]
+                return (
+                  <div key={mk}>
+                    <div onClick={() => setShootsOpen(s => ({ ...s, [mk]: !open }))} style={{ fontSize: 12, fontWeight: 800, color: GOLD, margin: '10px 0 4px', cursor: 'pointer' }}>{open ? '▾' : '▸'} {MONNAMES[+mm - 1]} {yy} <span style={{ color: MUT, fontWeight: 400 }}>({shoots[mk].length})</span></div>
+                    {open && shoots[mk].map(cd => (
+                      <label key={cd.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 4px', borderBottom: '.5px solid ' + LINE, fontSize: 12, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={shootChecked(cd.id)} onChange={e => toggleShoot(cd, e.target.checked)} style={{ width: 16, height: 16, accentColor: GOLD }} />
+                        <span><b>{fmt(cd.card_date)}</b> · {cd.addr || cd.title}{cd.billed_at ? <span style={{ color: '#b3402f', marginLeft: 6 }}>• berechnet</span> : ''}<br /><span style={{ color: MUT, fontSize: 11 }}>{cd.description || cd.card_type || ''}</span></span>
+                      </label>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div style={{ marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 800 }}>Positionen</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '22px 52px 86px 70px 56px 1fr 26px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
-            <span>Pos</span><span>Anzahl</span><span>Preis</span><span>Steuer</span><span>Rabatt</span><span>Titel / Beschreibung</span><span></span>
+          <div style={{ display: 'grid', gridTemplateColumns: '22px 48px 84px 64px 52px 1fr 54px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
+            <span>Pos</span><span>Anzahl</span><span>Preis</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span><span></span>
           </div>
           {inv.items.map((it, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 52px 86px 70px 56px 1fr 26px', gap: 6, marginBottom: 8, alignItems: 'start', background: '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 48px 84px 64px 52px 1fr 54px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: MUT, textAlign: 'center', paddingTop: 8 }}>{i + 1}</div>
               <input value={it.qty} onChange={e => setItem(i, { qty: e.target.value })} style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit_price} onChange={e => setItem(i, { unit_price: e.target.value })} placeholder="0,00" style={{ ...box, textAlign: 'right' }} />
               <select value={it.vat_rate} onChange={e => setItem(i, { vat_rate: e.target.value })} disabled={seller.kleinunternehmer} style={box}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select>
-              <input value={it.discount} onChange={e => setItem(i, { discount: e.target.value })} placeholder="0%" style={{ ...box, textAlign: 'right' }} />
+              <input value={it.discount} onChange={e => setItem(i, { discount: e.target.value })} placeholder="0" style={{ ...box, textAlign: 'right' }} />
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
-                <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung (z.B. Immobilienfotografie + Postproduktion)" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
+                <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', paddingTop: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', paddingTop: 4 }}>
+                <button title="Duplizieren" onClick={() => dupItem(i)} style={icon}>⎘</button>
                 <button onClick={() => moveItem(i, -1)} style={icon}>↑</button>
                 <button onClick={() => moveItem(i, 1)} style={icon}>↓</button>
                 <button onClick={() => delItem(i)} style={{ ...icon, color: '#b3402f' }}>✕</button>
@@ -156,7 +219,7 @@ export default function NeueRechnungPage() {
             <input list="clf" value={inv.client_name} onChange={e => onClient(e.target.value)} placeholder="Kunde suchen (voller Name)…" style={{ ...box, width: '100%' }} />
             <datalist id="clf">{clients.map(c => <option key={c.id} value={c.name} />)}</datalist>
             {inv.buyer?.company && (
-              <div style={{ marginTop: 10, fontSize: 12, color: DARK, lineHeight: 1.5 }}>
+              <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
                 {inv.buyer.kundennr && <div style={{ color: GOLD, fontWeight: 700 }}>[{inv.buyer.kundennr}]</div>}
                 <div style={{ fontWeight: 700 }}>{inv.buyer.company}</div>
                 {inv.buyer.contact && <div>{inv.buyer.contact}</div>}
@@ -167,7 +230,7 @@ export default function NeueRechnungPage() {
             )}
           </Side>
           <Side title="Fälligkeit">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>In <input value={dueDays(inv)} onChange={e => set({ due_date: addDays(inv.invoice_date, parseInt(e.target.value) || 0) })} style={{ ...box, width: 44, textAlign: 'center' }} /> Tagen =
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>In <input value={dueDays(inv)} onChange={e => set({ due_date: addDays(inv.invoice_date, e.target.value) })} style={{ ...box, width: 46, textAlign: 'center' }} /> Tagen =
               <input type="date" value={inv.due_date || ''} onChange={e => set({ due_date: e.target.value })} style={{ ...box, flex: 1 }} /></div>
           </Side>
           <Side title="Kundendaten">
@@ -180,11 +243,53 @@ export default function NeueRechnungPage() {
           </Side>
         </div>
       </div>
+
+      {emailModal && <EmailModal inv={inv} seller={seller} template={template} makePdfBytes={makePdfBytes} ensureSaved={() => save(false, false)} onClose={() => setEmailModal(false)} />}
     </div>
   )
 }
 
-function dueDays(inv) { if (!inv.due_date || !inv.invoice_date) return 14; const a = new Date(inv.invoice_date + 'T00:00:00'), d = new Date(inv.due_date + 'T00:00:00'); return Math.round((d - a) / 86400000) }
+function EmailModal({ inv, seller, template, makePdfBytes, ensureSaved, onClose }) {
+  const [to, setTo] = useState(inv.buyer?.email || '')
+  const [tpl, setTpl] = useState('rechnung')
+  const [subject, setSubject] = useState(SCHABLONEN.rechnung.subject)
+  const [body, setBody] = useState(SCHABLONEN.rechnung.body)
+  const [sending, setSending] = useState(false)
+  const pick = k => { setTpl(k); setSubject(SCHABLONEN[k].subject); setBody(SCHABLONEN[k].body) }
+  async function send() {
+    if (!to) { alert('Empfänger-E-Mail fehlt.'); return }
+    setSending(true)
+    try {
+      await ensureSaved()
+      const bytes = await makePdfBytes()
+      let bin = ''; const arr = new Uint8Array(bytes); for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]); const b64 = btoa(bin)
+      const r = await fetch('/api/invoice/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, subject, body, greeting: 'Sehr geehrte Damen und Herren,', pdfBase64: b64, filename: 'Rechnung-' + (inv.invoice_number || 'Entwurf') + '.pdf', seller }) })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.error || 'Senden fehlgeschlagen')
+      alert('✓ E-Mail gesendet an ' + to); onClose()
+    } catch (e) { alert('E-Mail-Fehler: ' + (e.message || e)) }
+    setSending(false)
+  }
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '50px 16px', zIndex: 50, overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: 520 }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: 17 }}>Rechnung per E-Mail senden</h2>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 14 }}>Absender: <b style={{ color: DARK }}>rechnung@immopixels.de</b> · PDF im Anhang · auch im Entwurf möglich</div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>{Object.entries(SCHABLONEN).map(([k, v]) => <button key={k} onClick={() => pick(k)} style={{ ...(tpl === k ? primary : ghost), padding: '6px 10px', fontSize: 11 }}>{v.label}</button>)}</div>
+        <Lbl>An</Lbl><input value={to} onChange={e => setTo(e.target.value)} style={{ ...box, width: '100%', marginBottom: 10 }} />
+        <Lbl>Betreff</Lbl><input value={subject} onChange={e => setSubject(e.target.value)} style={{ ...box, width: '100%', marginBottom: 10 }} />
+        <Lbl>Text</Lbl><textarea value={body} onChange={e => setBody(e.target.value)} rows={6} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
+        <div style={{ fontSize: 11, color: MUT, marginTop: 6 }}>Footer (ImmoPixels e.K. + Bankdaten) wird automatisch angehängt.</div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          <button onClick={onClose} style={ghost}>Abbrechen</button>
+          <button onClick={send} disabled={sending} style={primary}>{sending ? 'Sende…' : 'Senden'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function fmt(d) { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}.${m[2]}.${m[1]}` : (d || '') }
 function Lbl({ children }) { return <div style={{ fontSize: 10, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>{children}</div> }
 function Side({ title, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: 'hidden' }}><div style={{ background: DARK, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.5px', padding: '8px 12px', textTransform: 'uppercase' }}>{title}</div><div style={{ padding: 12 }}>{children}</div></div> }
 function Field({ label, v, on }) { return <div style={{ marginBottom: 8 }}><Lbl>{label}</Lbl><input value={v || ''} onChange={e => on(e.target.value)} style={{ ...box, width: '100%' }} /></div> }

@@ -862,7 +862,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               const line1 = [fmt(localCard.card_date), localCard.client_name, addr].filter(Boolean).join(' - ')
               const pf = { client_name: localCard.client_name || '', invoice_date: localCard.card_date || new Date().toISOString().slice(0, 10), items: [{ description: (line1 ? line1 + '\n' : '') + 'Immobilienfotografie + Postproduktion', qty: 1, unit_price: localCard.price || '', discount: '', vat_rate: 19 }] }
               try { localStorage.setItem('ip-invoice-prefill', JSON.stringify(pf)) } catch {}
-              window.open('/rechnungen/neu', '_blank')
+              window.location.href = '/rechnungen/neu'
             }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', background: '#fbf3e3', border: '1px solid #e7cf9e', borderRadius: 8, color: '#9a6a12', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               🧾 Eigene Rechnung erstellen <span style={{ fontWeight: 400, fontSize: 10, color: '#b08a3a' }}>(Testphase)</span>
             </button>
