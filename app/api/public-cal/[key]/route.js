@@ -28,23 +28,33 @@ export async function GET(req, { params }) {
   const orExpr = names.map(n => `client_name.ilike.${n}`).join(',')
 
   const { data: cards } = await supabase.from('cards')
-    .select('id, title, card_date, card_time, card_time_to, booking_end_time, addr, booking_address, card_type')
+    .select('id, title, card_date, card_time, card_time_to, booking_end_time, addr, booking_address, card_type, card_team(staff_id)')
     .is('deleted_at', null)
     .not('card_date', 'is', null)
     .or(orExpr)
     .order('card_date', { ascending: true })
 
+  // fotós(ok) feloldása a card_team-ből (kivel van a fotózás)
+  const { data: staff } = await supabase.from('staff').select('id, name, init')
+  const staffById = Object.fromEntries((staff || []).map(s => [s.id, s]))
+
   const shoots = (cards || [])
     .filter(c => c.card_type !== 'todo')
-    .map(c => ({
-      id: c.id,
-      title: c.title || '',
-      date: c.card_date,
-      time: (c.card_time || '').slice(0, 5),
-      timeTo: (c.card_time_to || c.booking_end_time || '').slice(0, 5),
-      address: c.booking_address || c.addr || '',
-      type: c.card_type || '',
-    }))
+    .map(c => {
+      const people = (c.card_team || []).map(t => staffById[t.staff_id]).filter(Boolean)
+      const photographer = people.map(p => p.name || p.init).join(', ')
+      return {
+        id: c.id,
+        title: c.title || '',
+        date: c.card_date,
+        time: (c.card_time || '').slice(0, 5),
+        timeTo: (c.card_time_to || c.booking_end_time || '').slice(0, 5),
+        address: c.booking_address || c.addr || '',
+        type: c.card_type || '',
+        photographer,
+        photographerShort: people.map(p => (p.name || p.init || '').split(' ')[0]).join(', '),
+      }
+    })
 
   return NextResponse.json({ ok: true, client: { name: client.short_name || client.name }, shoots })
 }

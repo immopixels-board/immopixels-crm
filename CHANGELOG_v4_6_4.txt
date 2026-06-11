@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.6.4 — Nyilvános naptár: Google-szerű havi nézet + "kivel"
+## 2026-06-11
+
+### Havi nézet — Google-naptár stílus (a mi színeinkben)
+- A napokban közvetlenül látszanak az események kis színes csíkként (idő + fotós neve),
+  napi max 3 + "+N" jelzés. Mai nap kiemelve, fejléc Mo–So.
+- Napra koppintva alul a részletek (idő, cím, típus, fotós) cím-másolással és Maps linkkel.
+
+### "Kivel van a fotózás" — mindenhol
+- A publikus API visszaadja a hozzárendelt fotós(oka)t a card_team-ből.
+- Lista nézet: minden tételnél "mit <Név>" + színes jelölés és bal oldali színcsík.
+- Havi nézet: az események fotósonként SZÍNEZVE, plusz jelmagyarázat (ki = melyik szín).
+  (A CRM-ben a kártyákon ezt eddig is az avatarok mutatták.)
+
+Érintett: app/api/public-cal/[key]/route.js, app/cal/[key]/CalClient.js. Nincs új SQL.
+VER label: v4.6.4
