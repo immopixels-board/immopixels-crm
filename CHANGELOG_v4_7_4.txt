@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.7.4 — Kunden lista nézet + csoportos törlés
+## 2026-06-11
+- Kunden: ▦ Karten / ☰ Liste nézetváltó a fejlécben.
+- Liste nézet: checkbox oszlop + "összes" jelölő → csoportos kijelölés, majd
+  "🗑 N löschen" gomb a fejlécben. Sorra kattintva továbbra is megnyílik a szerkesztő.
+- Így a Billomatból tévedésből behozott régi ügyfelek gyorsan kijelölhetők és törölhetők
+  (a Kunden nézetből ÉS a számla-választóból is eltűnnek).
+- A hozzárendelt Aufnahmen/Rechnungen megmaradnak; rechnunggal összekötött ügyfél nem
+  törölhető (pontos üzenet). A client_maklers előbb törlődik.
+
+Érintett: app/BoardApp.js. VER label: v4.7.4
