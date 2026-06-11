@@ -1,0 +1,34 @@
+# ImmoPixels CRM v4.6.8 — Számlázó: sablon a valós minta szerint + kártya-gomb
+## 2026-06-11
+
+### Kártyán (Fotózások)
+- Új "🧾 Eigene Rechnung erstellen (Testphase)" gomb (csak can_invoice). A kártya
+  adataiból (Kunde, dátum, cím, ár) előtölt egy számlatételt és megnyitja a saját
+  számlázót — a tesztfázis alatt a Billomat mellett.
+
+### Számla-szerkesztő
+- Kunde kiválasztása után megjelenik és szerkeszthető: Firmenname, Ansprechpartner,
+  Adresse, Telefon, E-Mail, Kundennummer (a Kunde adataiból előtöltve).
+- Fällig MINDIG automatikusan +14 nap a dátumtól; ha a dátumot változtatod, a Fällig is
+  frissül (kézzel felülírható).
+- Pozíciók SZÁMOZVA (a sorszám nem szerkeszthető). Új RABATT (%) oszlop pozíciónként
+  (a Netto a kedvezménnyel számolódik, mint a mintán).
+
+### Számla-PDF (a feltöltött ImmoPixels-minta szerint)
+- Fejléc (feladó sor, címzett, "Rechnung Nr · Kundennummer · Datum") CSAK az 1. oldalon.
+- Footer (cég / Ust-ID / elérhetőség / bankadatok 3 hasábban) CSAK az utolsó oldal alján
+  — több oldalnál NEM ismétlődik. A tétel-fejléc (Pos…) minden oldalon megvan az olvashatóságért.
+- Oszlopok: Pos, Beschreibung (2 sor), Anzahl, Preis, Rabatt, Steuer, Netto; majd
+  Zwischensumme netto / USt 19 % / Gesamt brutto.
+- Záró szöveg + fizetési határidő + Bewertungs-/Buchungs-Link.
+
+### Sablon testreszabás + reklámfelület (mint Billomatban)
+- "⚙ Vorlage & Absender": valós ImmoPixels e.K. adatok előre kitöltve (USt-IdNr
+  DE351098294, IBAN/BIC, elérhetőségek). Vorlage fül: Logo-URL, Einleitungs-/Schlusstext,
+  Bewertungs-/Buchungs-Link, tetszőleges Werbe-Links, és egy QR-CODE Ziel-URL, ami
+  a számla végére beágyazott QR-kódként jelenik meg (reklámfelület).
+
+### Beágyazott e-számla
+- A ZUGFeRD/Factur-X XML a Rabattal csökkentett nettóval készül.
+
+FONTOS — egy oszlop kell az invoice_items-be (SQL a chatben). VER label: v4.6.8

@@ -855,6 +855,19 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             </div>
           )}
 
+          {currentStaff?.can_invoice && (
+            <button onClick={() => {
+              const fmt = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}.${m[2]}.${m[1]}` : '' }
+              const addr = localCard.addr || localCard.booking_address || ''
+              const line1 = [fmt(localCard.card_date), localCard.client_name, addr].filter(Boolean).join(' - ')
+              const pf = { client_name: localCard.client_name || '', invoice_date: localCard.card_date || new Date().toISOString().slice(0, 10), items: [{ description: (line1 ? line1 + '\n' : '') + 'Immobilienfotografie + Postproduktion', qty: 1, unit_price: localCard.price || '', discount: '', vat_rate: 19 }] }
+              try { localStorage.setItem('ip-invoice-prefill', JSON.stringify(pf)) } catch {}
+              window.location.href = '/rechnungen'
+            }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', background: '#fbf3e3', border: '1px solid #e7cf9e', borderRadius: 8, color: '#9a6a12', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              🧾 Eigene Rechnung erstellen <span style={{ fontWeight: 400, fontSize: 10, color: '#b08a3a' }}>(Testphase)</span>
+            </button>
+          )}
+
           {/* Status */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Status</div>
