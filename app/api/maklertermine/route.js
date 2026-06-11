@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 30
 
-function svc() { const { createClient } = require('@supabase/supabase-js'); return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY) }
+async function svc() { const { createClient } = await import('@supabase/supabase-js'); return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY) }
 function guessType(s) { const t = String(s || '').toLowerCase(); const foto = /foto/.test(t), reel = /reel/.test(t), dron = /drohne|drone|dron/.test(t); if (foto && reel) return 'foto-reel'; if (foto && dron) return 'foto-dron'; if (reel) return 'reel'; if (dron) return 'dron'; return 'foto' }
 
 // GET → naptárak listája
@@ -48,7 +48,7 @@ export async function POST(req) {
   if (!create) return NextResponse.json({ ok: true, count: events.length, events: events.slice(0, 200) })
 
   if (!clientName || !columnId) return NextResponse.json({ ok: false, error: 'clientName/columnId fehlt' }, { status: 400 })
-  const sb = svc()
+  const sb = await svc()
   // meglévők (duplikátum-szűrés): client + dátum + cím
   const { data: existing } = await sb.from('cards').select('card_date,title').eq('client_name', clientName).gte('card_date', y + '-01-01').lte('card_date', y + '-12-31').is('deleted_at', null)
   const seen = new Set((existing || []).map(c => (c.card_date || '') + '|' + (c.title || '')))

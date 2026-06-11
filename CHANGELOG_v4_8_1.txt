@@ -1,0 +1,10 @@
+# ImmoPixels CRM v4.8.1 — Build-fix (Makler-Termine route)
+## 2026-06-11
+- Hibajavítás: a /api/maklertermine route require('@supabase/supabase-js')-t használt,
+  ami Next.js App Router (ESM) buildet megbuktatta ("npm run build" exit 1).
+  → await import('@supabase/supabase-js')-re cserélve (a többi route konvenciója szerint),
+  a svc() async lett és awaitelve.
+- maxDuration 60 → 30 (a működő route-okhoz igazítva).
+- Funkcionálisan azonos a v4.8.0-val (Makler Google-Kalender → CRM-kártya import).
+
+Érintett: app/api/maklertermine/route.js. VER label: v4.8.1
