@@ -1,0 +1,10 @@
+# ImmoPixels CRM v4.7.6 — Új ár-szolgáltatások a Kunde-kártyán
+## 2026-06-11
+- A Kunde-szerkesztő Preise részéhez 5 új szolgáltatás-ársor (a meglévők mellé):
+  Reel mit Makler, Foto + Reel, Foto + Reel mit Makler, Aussenaufnahmen,
+  KI Bildbearbeitung (alap 29,99 €).
+- A szolgáltatás-katalógus mostantól MERGE-elődik a mentett árlistával, így az új sorok
+  akkor is megjelennek, ha már volt mentett service_prices — a meglévő (kézzel beírt)
+  árak megmaradnak.
+
+Érintett: app/BoardApp.js. VER label: v4.7.6
