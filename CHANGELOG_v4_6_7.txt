@@ -1,0 +1,29 @@
+# ImmoPixels CRM v4.6.7 — Számlázó: készítés + ZUGFeRD PDF + CSV-import + storno
+## 2026-06-11
+
+### Rechnungen-fül (teljes)
+- "+ Neue Rechnung": Kunde (clients-listából), dátum/Fälligkeit, tételek (Beschreibung,
+  Menge, Preis, MwSt 19/7/0 — Kleinunternehmernél 0), élő Netto/MwSt/Gesamt.
+  "Als Entwurf speichern" vagy "Festschreiben & Nr. vergeben" (lückenlos sorszám a
+  next_invoice_number RPC-vel, status=open, finalized_at -> ettől GoBD-véglegesített).
+- Entwurf szerkeszthető; véglegesített számla nem.
+- STORNO (GoBD): az eredeti marad, automatikus NEGATÍV Stornorechnung saját sorszámmal,
+  storno_of hivatkozással; az eredeti "Storniert" lesz.
+- PDF: ZUGFeRD 2.4 / Factur-X — látható számla + BEÁGYAZOTT factur-x.xml (EN 16931 CII),
+  letöltés "Rechnung-<Nr>.pdf".
+
+### Import-fül: Billomat CSV (egyszeri)
+- CSV feltöltés, automatikus oszlop-felismerés + kézi hozzárendelés (Nr./Datum/Kunde/
+  Netto/Brutto/Status), előnézet. Meglévő Kunde = "✓ vorhanden", csak az új jön létre;
+  már importált Rechnungsnummer kimarad.
+
+### Absender
+- "⚙ Absender": cégnév, cím, USt-IdNr, St-Nr, IBAN/BIC, Kleinunternehmer (§19) kapcsoló;
+  settings-be mentve (invoice_seller), a számlán/PDF-en/XML-ben ezt használja.
+
+### Függőség
+- Új: pdf-lib (a ZUGFeRD-PDF generálásához). Vercel a deploykor telepíti.
+
+FONTOS: a v4.6.6 SQL-nek (invoices/invoice_items + next_invoice_number + RLS) futnia
+kell. Érintett: app/rechnungen/page.js, lib/invoice/zugferd.js (új), package.json.
+VER label: v4.6.7

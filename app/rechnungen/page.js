@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { generateZugferdPdf } from '../../lib/invoice/zugferd'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
-const eur = n => (n || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+const num = v => { const s = String(v ?? '').trim().replace(/\./g, '').replace(',', '.').replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const STATUS = {
   draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' },
   open: { label: 'Offen', c: '#9a6a12', bg: '#f6efe0' },
@@ -14,6 +16,7 @@ const STATUS = {
   paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' },
   storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' },
 }
+const DEFAULT_SELLER = { name: 'ImmoPixels', street: '', zip: '', city: 'Mannheim', vatId: '', taxNo: '', iban: '', bic: '', kleinunternehmer: false }
 
 export default function RechnungenPage() {
   const [loading, setLoading] = useState(true)
@@ -21,7 +24,14 @@ export default function RechnungenPage() {
   const [brutto, setBrutto] = useState(false)
   const [year, setYear] = useState(new Date().getFullYear())
   const [invoices, setInvoices] = useState([])
+  const [clients, setClients] = useState([])
   const [hasTable, setHasTable] = useState(true)
+  const [myId, setMyId] = useState(null)
+  const [seller, setSeller] = useState(DEFAULT_SELLER)
+  const [editor, setEditor] = useState(null)     // számla szerkesztő
+  const [sellerModal, setSellerModal] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -29,14 +39,112 @@ export default function RechnungenPage() {
     if (!user) { window.location.href = '/login'; return }
     const { data: staff } = await supabase.from('staff').select('*').eq('email', user.email).single()
     if (!staff || (staff.role_level !== 'admin' && !staff.can_invoice)) { window.location.href = '/'; return }
+    setMyId(staff.id)
+    const { data: cls } = await supabase.from('clients').select('id,name,short_name').order('name')
+    setClients(cls || [])
+    const { data: sset } = await supabase.from('settings').select('value').eq('key', 'invoice_seller').maybeSingle()
+    if (sset?.value) { try { setSeller({ ...DEFAULT_SELLER, ...JSON.parse(sset.value) }) } catch {} }
+    await reload()
+    setLoading(false)
+  }
+  async function reload() {
     try {
       const { data, error } = await supabase.from('invoices')
-        .select('id,invoice_number,client_id,client_name,invoice_date,status,total_net,total_gross,storno_of')
-        .order('invoice_date', { ascending: false })
-      if (error) setHasTable(false)
-      else setInvoices(data || [])
+        .select('id,invoice_number,client_id,client_name,invoice_date,due_date,status,total_net,vat_amount,total_gross,storno_of,notes')
+        .order('invoice_date', { ascending: false }).order('invoice_number', { ascending: false })
+      if (error) { setHasTable(false); return }
+      setInvoices(data || [])
     } catch { setHasTable(false) }
-    setLoading(false)
+  }
+
+  async function saveSeller() {
+    await supabase.from('settings').upsert({ key: 'invoice_seller', value: JSON.stringify(seller) }, { onConflict: 'key' })
+    setSellerModal(false)
+  }
+
+  // ── számla mentés / festschreiben ──
+  function calcTotals(items, klein) {
+    let net = 0, vat = 0
+    items.forEach(it => { const ln = (num(it.qty)) * num(it.unit_price); net += ln; vat += klein ? 0 : ln * (num(it.vat_rate)) / 100 })
+    return { net: round(net), vat: round(vat), gross: round(net + vat) }
+  }
+  function round(n) { return Math.round(n * 100) / 100 }
+
+  async function persistInvoice(ed, finalize) {
+    setBusy(true)
+    try {
+      const items = ed.items.filter(it => (it.description || '').trim() || num(it.unit_price))
+      const t = calcTotals(items, seller.kleinunternehmer)
+      const base = {
+        client_id: ed.client_id || null, client_name: ed.client_name || '',
+        invoice_date: ed.invoice_date, due_date: ed.due_date || null,
+        total_net: t.net, vat_amount: t.vat, total_gross: t.gross,
+        notes: ed.notes || null, seller, created_by: myId,
+      }
+      let invId = ed.id
+      if (invId) {
+        await supabase.from('invoices').update(base).eq('id', invId)
+        await supabase.from('invoice_items').delete().eq('invoice_id', invId)
+      } else {
+        const { data, error } = await supabase.from('invoices').insert({ ...base, status: 'draft' }).select('id').single()
+        if (error) throw error
+        invId = data.id
+      }
+      const itemRows = items.map((it, i) => ({ invoice_id: invId, position: i + 1, description: it.description || '', qty: num(it.qty), unit_price: num(it.unit_price), vat_rate: seller.kleinunternehmer ? 0 : num(it.vat_rate), line_net: round(num(it.qty) * num(it.unit_price)), line_gross: round(num(it.qty) * num(it.unit_price) * (1 + (seller.kleinunternehmer ? 0 : num(it.vat_rate)) / 100)) }))
+      if (itemRows.length) await supabase.from('invoice_items').insert(itemRows)
+
+      if (finalize) {
+        const y = +(ed.invoice_date || '').slice(0, 4) || new Date().getFullYear()
+        const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y })
+        if (nerr) throw nerr
+        await supabase.from('invoices').update({ invoice_number: numData, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
+      }
+      setEditor(null); await reload()
+    } catch (e) { alert('Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
+  async function storno(inv) {
+    if (!confirm('Rechnung ' + inv.invoice_number + ' stornieren? Es wird eine Stornorechnung (negativ) erstellt.')) return
+    setBusy(true)
+    try {
+      const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
+      const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear()
+      const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y })
+      if (nerr) throw nerr
+      const { data: sRow, error } = await supabase.from('invoices').insert({
+        invoice_number: numData, client_id: inv.client_id, client_name: inv.client_name,
+        invoice_date: new Date().toISOString().slice(0, 10), status: 'storno', storno_of: inv.id,
+        total_net: -inv.total_net, vat_amount: -inv.vat_amount, total_gross: -inv.total_gross,
+        notes: 'Storno zu ' + inv.invoice_number, seller, created_by: myId, finalized_at: new Date().toISOString(),
+      }).select('id').single()
+      if (error) throw error
+      if (its?.length) await supabase.from('invoice_items').insert(its.map((it, i) => ({ invoice_id: sRow.id, position: i + 1, description: it.description, qty: it.qty, unit_price: it.unit_price, vat_rate: it.vat_rate, line_net: -it.line_net, line_gross: -it.line_gross })))
+      await supabase.from('invoices').update({ status: 'storno' }).eq('id', inv.id)
+      await reload()
+    } catch (e) { alert('Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
+  async function downloadPdf(inv) {
+    setBusy(true)
+    try {
+      const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
+      const bytes = await generateZugferdPdf({ inv, items: its || [], seller })
+      const blob = new Blob([bytes], { type: 'application/pdf' })
+      const u = URL.createObjectURL(blob); const a = document.createElement('a')
+      a.href = u; a.download = 'Rechnung-' + (inv.invoice_number || 'Entwurf') + '.pdf'; a.click()
+      setTimeout(() => URL.revokeObjectURL(u), 3000)
+    } catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
+  function newInvoice() {
+    setEditor({ items: [{ description: '', qty: 1, unit_price: '', vat_rate: seller.kleinunternehmer ? 0 : 19 }], invoice_date: new Date().toISOString().slice(0, 10), due_date: '', client_name: '', client_id: null, notes: '' })
+  }
+  async function editInvoice(inv) {
+    const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
+    setEditor({ ...inv, items: (its && its.length) ? its : [{ description: '', qty: 1, unit_price: '', vat_rate: 19 }] })
   }
 
   if (loading) return <Shell><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></Shell>
@@ -48,27 +156,21 @@ export default function RechnungenPage() {
   const sum = arr => arr.reduce((s, i) => s + val(i), 0)
   const inYear = y => issued.filter(i => (i.invoice_date || '').slice(0, 4) === String(y))
   const kpiMonth = sum(issued.filter(i => { const d = i.invoice_date || ''; return d.slice(0, 4) === String(curY) && +d.slice(5, 7) === curM + 1 }))
-  const kpiYear = sum(inYear(curY))
-  const kpiAll = sum(issued)
+  const kpiYear = sum(inYear(curY)), kpiAll = sum(issued)
   const kpiOpen = invoices.filter(i => i.status === 'open' || i.status === 'overdue').reduce((s, i) => s + (i.total_gross || 0), 0)
-
-  // havi diagram a kiválasztott évre
   const monthVals = MONTHS.map((_, m) => sum(inYear(year).filter(i => +(i.invoice_date || '').slice(5, 7) === m + 1)))
   const maxMonth = Math.max(1, ...monthVals)
-  // kunde szerint (kiválasztott év)
-  const byClient = {}
-  inYear(year).forEach(i => { const k = i.client_name || '—'; byClient[k] = (byClient[k] || 0) + val(i) })
-  const clientRows = Object.entries(byClient).sort((a, b) => b[1] - a[1])
-  const maxClient = Math.max(1, ...clientRows.map(r => r[1]))
+  const byClient = {}; inYear(year).forEach(i => { const k = i.client_name || '—'; byClient[k] = (byClient[k] || 0) + val(i) })
+  const clientRows = Object.entries(byClient).sort((a, b) => b[1] - a[1]); const maxClient = Math.max(1, ...clientRows.map(r => r[1]))
 
   return (
     <Shell>
-      {/* fejléc */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Abrechnung</h1>
         <span style={{ fontSize: 11, fontWeight: 700, color: GOLD, background: '#f6efe0', border: '1px solid #ecdfc4', borderRadius: 20, padding: '3px 10px' }}>🔒 nur du</span>
         <div style={{ flex: 1 }} />
-        <a href="/" style={{ fontSize: 12, color: MUT, textDecoration: 'none' }}>← zurück zum Board</a>
+        <button onClick={() => setSellerModal(true)} style={ghost}>⚙ Absender</button>
+        <a href="/" style={{ fontSize: 12, color: MUT, textDecoration: 'none' }}>← Board</a>
       </div>
       <div style={{ display: 'flex', gap: 8, margin: '14px 0', flexWrap: 'wrap' }}>
         {[['umsatz', '📊 Umsatz'], ['rechnungen', '🧾 Rechnungen'], ['import', '⬇️ Import']].map(([id, lbl]) => (
@@ -83,96 +185,70 @@ export default function RechnungenPage() {
         )}
       </div>
 
-      {!hasTable && (
-        <div style={{ background: '#fff7e6', border: '1px solid #f0d68a', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#7a5a10', marginBottom: 16 }}>
-          ⚠ Die Rechnungs-Tabellen sind noch nicht angelegt. Führe das bereitgestellte SQL in Supabase aus, dann erscheinen hier deine Daten.
-        </div>
-      )}
+      {!hasTable && <div style={{ background: '#fff7e6', border: '1px solid #f0d68a', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#7a5a10', marginBottom: 16 }}>⚠ Rechnungs-Tabellen fehlen. Bitte das SQL in Supabase ausführen.</div>}
 
       {tab === 'umsatz' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 18 }}>
-            <Kpi label={'Dieser Monat'} value={kpiMonth} sub={MONTHS[curM] + ' ' + curY} />
-            <Kpi label={'Dieses Jahr'} value={kpiYear} sub={String(curY)} />
-            <Kpi label={'Gesamt'} value={kpiAll} sub={years.length ? years[years.length - 1] + '–' + years[0] : '—'} />
-            <Kpi label={'Offen (brutto)'} value={kpiOpen} sub={'unbezahlt'} accent />
+            <Kpi label="Dieser Monat" value={kpiMonth} sub={MONTHS[curM] + ' ' + curY} />
+            <Kpi label="Dieses Jahr" value={kpiYear} sub={String(curY)} />
+            <Kpi label="Gesamt" value={kpiAll} sub={years.length ? years[years.length - 1] + '–' + years[0] : '—'} />
+            <Kpi label="Offen (brutto)" value={kpiOpen} sub="unbezahlt" accent />
           </div>
-
-          <Card title={'Umsatz pro Monat'} right={
-            <select value={year} onChange={e => setYear(+e.target.value)} style={selS}>
-              {(years.length ? years : [curY]).map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          }>
+          <Card title="Umsatz pro Monat" right={<select value={year} onChange={e => setYear(+e.target.value)} style={selS}>{(years.length ? years : [curY]).map(y => <option key={y} value={y}>{y}</option>)}</select>}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, padding: '8px 0' }}>
-              {monthVals.map((v, m) => {
-                const isCur = year === curY && m === curM
-                return (
-                  <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ fontSize: 9, color: MUT, whiteSpace: 'nowrap' }}>{v ? Math.round(v / 1000) + 'k' : ''}</div>
-                    <div title={eur(v)} style={{ width: '100%', height: Math.max(2, (v / maxMonth) * 120), background: isCur ? 'repeating-linear-gradient(45deg,' + GOLD + ',' + GOLD + ' 4px,#d4ab5e 4px,#d4ab5e 8px)' : GOLD, borderRadius: '4px 4px 0 0', opacity: v ? 1 : .25 }} />
-                    <div style={{ fontSize: 10, color: DARK, fontWeight: isCur ? 800 : 500 }}>{MONTHS[m]}</div>
-                  </div>
-                )
-              })}
+              {monthVals.map((v, m) => { const isCur = year === curY && m === curM; return (
+                <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ fontSize: 9, color: MUT }}>{v ? Math.round(v / 1000) + 'k' : ''}</div>
+                  <div title={eur(v)} style={{ width: '100%', height: Math.max(2, (v / maxMonth) * 120), background: isCur ? 'repeating-linear-gradient(45deg,' + GOLD + ',' + GOLD + ' 4px,#d4ab5e 4px,#d4ab5e 8px)' : GOLD, borderRadius: '4px 4px 0 0', opacity: v ? 1 : .25 }} />
+                  <div style={{ fontSize: 10, fontWeight: isCur ? 800 : 500 }}>{MONTHS[m]}</div>
+                </div>) })}
             </div>
           </Card>
-
           {years.length > 1 && (
-            <Card title={'Mehrjahresvergleich'}>
-              {years.slice().reverse().map(y => {
-                const t = sum(inYear(y)); const mx = Math.max(1, ...years.map(yy => sum(inYear(yy))))
-                return (
-                  <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{ width: 42, fontSize: 12, fontWeight: 700 }}>{y}</span>
-                    <div style={{ flex: 1, background: '#f3eee2', borderRadius: 6, height: 16, overflow: 'hidden' }}>
-                      <div style={{ width: (t / mx * 100) + '%', height: '100%', background: y === curY ? GOLD : '#cdb27e' }} />
-                    </div>
-                    <span style={{ width: 110, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{eur(t)}</span>
-                  </div>
-                )
-              })}
+            <Card title="Mehrjahresvergleich">
+              {years.slice().reverse().map(y => { const t = sum(inYear(y)); const mx = Math.max(1, ...years.map(yy => sum(inYear(yy)))); return (
+                <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <span style={{ width: 42, fontSize: 12, fontWeight: 700 }}>{y}</span>
+                  <div style={{ flex: 1, background: '#f3eee2', borderRadius: 6, height: 16, overflow: 'hidden' }}><div style={{ width: (t / mx * 100) + '%', height: '100%', background: y === curY ? GOLD : '#cdb27e' }} /></div>
+                  <span style={{ width: 110, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{eur(t)}</span>
+                </div>) })}
             </Card>
           )}
-
           <Card title={'Umsatz nach Kunde · ' + year}>
-            {clientRows.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: '8px 0' }}>Keine Daten für {year}.</div>}
+            {clientRows.length === 0 && <div style={{ color: MUT, fontSize: 13 }}>Keine Daten für {year}.</div>}
             {clientRows.map(([name, t]) => (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
                 <span style={{ width: 150, fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                <div style={{ flex: 1, background: '#f3eee2', borderRadius: 6, height: 14, overflow: 'hidden' }}>
-                  <div style={{ width: (t / maxClient * 100) + '%', height: '100%', background: GOLD }} />
-                </div>
+                <div style={{ flex: 1, background: '#f3eee2', borderRadius: 6, height: 14, overflow: 'hidden' }}><div style={{ width: (t / maxClient * 100) + '%', height: '100%', background: GOLD }} /></div>
                 <span style={{ width: 100, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{eur(t)}</span>
               </div>
             ))}
           </Card>
-          {brutto && <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Brutto inkl. MwSt. · Netto-Werte ohne MwSt.</div>}
         </>
       )}
 
       {tab === 'rechnungen' && (
-        <Card title={'Rechnungen (' + invoices.length + ')'} right={<span style={{ fontSize: 11, color: MUT }}>Erstellen / PDF / Storno: nächster Schritt</span>}>
-          {invoices.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: '12px 0' }}>Noch keine Rechnungen. Über „Import" lassen sich bestehende Kunden/Rechnungen übernehmen.</div>}
+        <Card title={'Rechnungen (' + invoices.length + ')'} right={<button onClick={newInvoice} style={primary}>+ Neue Rechnung</button>}>
+          {invoices.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: '12px 0' }}>Noch keine Rechnungen.</div>}
           {invoices.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead><tr style={{ textAlign: 'left', color: MUT }}>
-                  {['Nr.', 'Datum', 'Kunde', 'Status', 'Netto', 'Brutto'].map(h => <th key={h} style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE, whiteSpace: 'nowrap' }}>{h}</th>)}
-                </tr></thead>
+                <thead><tr style={{ textAlign: 'left', color: MUT }}>{['Nr.', 'Datum', 'Kunde', 'Status', 'Brutto', ''].map((h, i) => <th key={i} style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {invoices.map(i => {
-                    const st = STATUS[i.status] || STATUS.open
-                    return (
-                      <tr key={i.id} style={{ borderBottom: '0.5px solid ' + LINE }}>
-                        <td style={{ padding: '7px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{i.invoice_number || '—'}</td>
-                        <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{i.invoice_date}</td>
-                        <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
-                        <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
-                        <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{eur(i.total_net)}</td>
-                        <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
-                      </tr>
-                    )
-                  })}
+                  {invoices.map(i => { const st = STATUS[i.status] || STATUS.open; return (
+                    <tr key={i.id} style={{ borderBottom: '0.5px solid ' + LINE }}>
+                      <td style={{ padding: '7px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{i.invoice_number || '—'}</td>
+                      <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{i.invoice_date}</td>
+                      <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
+                      <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
+                      <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
+                      <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        <button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>
+                        {i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}
+                        {i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}
+                      </td>
+                    </tr>) })}
                 </tbody>
               </table>
             </div>
@@ -180,46 +256,209 @@ export default function RechnungenPage() {
         </Card>
       )}
 
-      {tab === 'import' && (
-        <Card title={'Import'}>
-          <div style={{ color: MUT, fontSize: 13, lineHeight: 1.6 }}>
-            Hier kommt der <b style={{ color: DARK }}>Billomat-Import</b> hin: bestehende Kunden werden mit „✓ vorhanden" markiert, nur neue werden übernommen.
-            <br />Vor dem Bau brauche ich nur deine Entscheidung: <b style={{ color: DARK }}>einmaliger CSV-Import</b> oder <b style={{ color: DARK }}>laufende Billomat-API-Synchronisation</b>.
-          </div>
-        </Card>
-      )}
+      {tab === 'import' && <ImportTab clients={clients} myId={myId} seller={seller} onDone={reload} />}
+
+      {editor && <InvoiceEditor ed={editor} setEd={setEditor} clients={clients} seller={seller} busy={busy}
+        onClose={() => setEditor(null)} onDraft={() => persistInvoice(editor, false)} onFinalize={() => persistInvoice(editor, true)} calc={calcTotals} />}
+
+      {sellerModal && <SellerModal seller={seller} setSeller={setSeller} onClose={() => setSellerModal(false)} onSave={saveSeller} />}
     </Shell>
   )
 }
 
-function Shell({ children }) {
+// ── Számla-szerkesztő ──
+function InvoiceEditor({ ed, setEd, clients, seller, busy, onClose, onDraft, onFinalize }) {
+  const isNew = !ed.id || ed.status === 'draft'
+  const set = patch => setEd(p => ({ ...p, ...patch }))
+  const setItem = (i, patch) => setEd(p => ({ ...p, items: p.items.map((it, j) => j === i ? { ...it, ...patch } : it) }))
+  const addItem = () => setEd(p => ({ ...p, items: [...p.items, { description: '', qty: 1, unit_price: '', vat_rate: seller.kleinunternehmer ? 0 : 19 }] }))
+  const delItem = i => setEd(p => ({ ...p, items: p.items.filter((_, j) => j !== i) }))
+  const nm = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n }
+  let net = 0, vat = 0; ed.items.forEach(it => { const ln = nm(it.qty) * nm(it.unit_price); net += ln; vat += seller.kleinunternehmer ? 0 : ln * nm(it.vat_rate) / 100 })
   return (
-    <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 80px' }}>{children}</div>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
-    </div>
+    <Modal onClose={onClose} wide>
+      <h2 style={{ margin: '0 0 14px', fontSize: 17 }}>{ed.id ? (ed.status === 'draft' ? 'Entwurf bearbeiten' : 'Rechnung') : 'Neue Rechnung'}</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div><label style={LBL}>Kunde</label>
+          <input list="cl" value={ed.client_name} onChange={e => { const c = clients.find(x => (x.short_name || x.name) === e.target.value || x.name === e.target.value); set({ client_name: e.target.value, client_id: c?.id || null }) }} style={inp} placeholder="Kunde…" />
+          <datalist id="cl">{clients.map(c => <option key={c.id} value={c.short_name || c.name} />)}</datalist>
+        </div>
+        <div><label style={LBL}>Datum</label><input type="date" value={ed.invoice_date} onChange={e => set({ invoice_date: e.target.value })} style={inp} /></div>
+        <div><label style={LBL}>Fällig</label><input type="date" value={ed.due_date || ''} onChange={e => set({ due_date: e.target.value })} style={inp} /></div>
+      </div>
+      <label style={LBL}>Positionen</label>
+      {ed.items.map((it, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 90px 70px 30px', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+          <input value={it.description} onChange={e => setItem(i, { description: e.target.value })} placeholder="Beschreibung" style={inp} />
+          <input value={it.qty} onChange={e => setItem(i, { qty: e.target.value })} placeholder="Menge" style={{ ...inp, textAlign: 'right' }} />
+          <input value={it.unit_price} onChange={e => setItem(i, { unit_price: e.target.value })} placeholder="Preis €" style={{ ...inp, textAlign: 'right' }} />
+          <select value={it.vat_rate} onChange={e => setItem(i, { vat_rate: e.target.value })} disabled={seller.kleinunternehmer} style={inp}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select>
+          <button onClick={() => delItem(i)} style={{ ...mini, color: '#b3402f' }}>✕</button>
+        </div>
+      ))}
+      <button onClick={addItem} style={{ ...ghost, marginTop: 2 }}>+ Position</button>
+      <div style={{ marginTop: 12 }}><label style={LBL}>Notiz</label><input value={ed.notes || ''} onChange={e => set({ notes: e.target.value })} style={inp} placeholder="optional" /></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 18, marginTop: 14, fontSize: 13 }}>
+        <span style={{ color: MUT }}>Netto: <b style={{ color: DARK }}>{eur(net)}</b></span>
+        <span style={{ color: MUT }}>MwSt: <b style={{ color: DARK }}>{eur(vat)}</b></span>
+        <span style={{ color: MUT }}>Gesamt: <b style={{ color: GOLD }}>{eur(net + vat)}</b></span>
+      </div>
+      {seller.kleinunternehmer && <div style={{ fontSize: 11, color: MUT, textAlign: 'right', marginTop: 4 }}>§ 19 UStG — keine MwSt.</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
+        <button onClick={onClose} style={ghost}>Abbrechen</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {isNew && <button onClick={onDraft} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
+          {isNew && <button onClick={() => { if (confirm('Festschreiben? Danach ist die Rechnung unveränderlich und erhält eine fortlaufende Nummer.')) onFinalize() }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben & Nr. vergeben'}</button>}
+        </div>
+      </div>
+    </Modal>
   )
+}
+
+// ── Absender ──
+function SellerModal({ seller, setSeller, onClose, onSave }) {
+  const set = patch => setSeller(p => ({ ...p, ...patch }))
+  const f = (k, lbl, ph) => <div><label style={LBL}>{lbl}</label><input value={seller[k] || ''} onChange={e => set({ [k]: e.target.value })} style={inp} placeholder={ph} /></div>
+  return (
+    <Modal onClose={onClose}>
+      <h2 style={{ margin: '0 0 14px', fontSize: 17 }}>Absender / Rechnungsdaten</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ gridColumn: '1/-1' }}>{f('name', 'Firmenname', 'ImmoPixels')}</div>
+        <div style={{ gridColumn: '1/-1' }}>{f('street', 'Straße & Nr.', '')}</div>
+        {f('zip', 'PLZ', '')}{f('city', 'Stadt', 'Mannheim')}
+        {f('vatId', 'USt-IdNr.', 'DE…')}{f('taxNo', 'Steuernummer', '')}
+        {f('iban', 'IBAN', '')}{f('bic', 'BIC', '')}
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 13, cursor: 'pointer' }}>
+        <input type="checkbox" checked={!!seller.kleinunternehmer} onChange={e => set({ kleinunternehmer: e.target.checked })} />
+        Kleinunternehmer (§ 19 UStG — keine MwSt. ausweisen)
+      </label>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+        <button onClick={onClose} style={ghost}>Abbrechen</button>
+        <button onClick={onSave} style={primary}>Speichern</button>
+      </div>
+    </Modal>
+  )
+}
+
+// ── CSV Import (Billomat, egyszeri) ──
+function ImportTab({ clients, myId, seller, onDone }) {
+  const [rows, setRows] = useState(null)
+  const [head, setHead] = useState([])
+  const [map, setMap] = useState({})
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(null)
+
+  function parseCSV(text) {
+    const firstLine = text.split('\n')[0]
+    const delim = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ','
+    const out = []; let row = [], cur = '', q = false
+    for (let i = 0; i < text.length; i++) { const ch = text[i]
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++ } else q = false } else cur += ch }
+      else { if (ch === '"') q = true; else if (ch === delim) { row.push(cur); cur = '' } else if (ch === '\n') { row.push(cur); out.push(row); row = []; cur = '' } else if (ch !== '\r') cur += ch } }
+    if (cur || row.length) { row.push(cur); out.push(row) }
+    return out.filter(r => r.some(c => (c || '').trim() !== ''))
+  }
+  function guess(headers) {
+    const find = keys => headers.findIndex(h => keys.some(k => h.toLowerCase().includes(k)))
+    return {
+      number: find(['nummer', 'rechnungsnr', 'invoice', 'beleg']),
+      date: find(['datum', 'date']),
+      client: find(['kunde', 'name', 'firma', 'client', 'empfänger']),
+      net: find(['netto', 'net']),
+      gross: find(['brutto', 'gesamt', 'total', 'gross']),
+      status: find(['status', 'bezahlt', 'paid']),
+    }
+  }
+  function onFile(e) {
+    const file = e.target.files?.[0]; if (!file) return
+    const r = new FileReader(); r.onload = () => { const all = parseCSV(String(r.result)); if (all.length < 2) { alert('Leere/ungültige CSV'); return } setHead(all[0]); setRows(all.slice(1)); setMap(guess(all[0])) }; r.readAsText(file, 'utf-8')
+  }
+  const norm = s => (s || '').trim().toLowerCase()
+  const existsClient = name => clients.find(c => norm(c.short_name) === norm(name) || norm(c.name) === norm(name))
+  function statusOf(v) { const s = norm(v); if (s.includes('storn')) return 'storno'; if (s.includes('bezahlt') || s.includes('paid') || s === 'ja' || s === '1') return 'paid'; if (s.includes('überf') || s.includes('overdue')) return 'overdue'; return 'open' }
+  function mapDate(v) { const s = (v || '').trim(); let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/); if (m) return m[3] + '-' + m[2] + '-' + m[1]; m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0].slice(0, 10); return new Date().toISOString().slice(0, 10) }
+
+  async function doImport() {
+    if (map.client < 0) { alert('Bitte mindestens die Kunden-Spalte zuordnen.'); return }
+    setBusy(true)
+    let created = 0, imported = 0, skipped = 0
+    try {
+      const clientCache = {}
+      for (const r of rows) {
+        const name = (r[map.client] || '').trim(); if (!name) { skipped++; continue }
+        let cid = existsClient(name)?.id || clientCache[norm(name)]
+        if (!cid) { const { data: nc } = await supabase.from('clients').insert({ name }).select('id').single(); if (nc) { cid = nc.id; clientCache[norm(name)] = cid; created++ } }
+        const numv = map.number >= 0 ? (r[map.number] || '').trim() : null
+        if (numv) { const { data: ex } = await supabase.from('invoices').select('id').eq('invoice_number', numv).maybeSingle(); if (ex) { skipped++; continue } }
+        const gross = map.gross >= 0 ? num(r[map.gross]) : 0
+        const net = map.net >= 0 ? num(r[map.net]) : round2(gross / 1.19)
+        const { error } = await supabase.from('invoices').insert({
+          invoice_number: numv, client_id: cid, client_name: name, invoice_date: map.date >= 0 ? mapDate(r[map.date]) : new Date().toISOString().slice(0, 10),
+          status: map.status >= 0 ? statusOf(r[map.status]) : 'paid', total_net: net, vat_amount: round2(gross - net), total_gross: gross,
+          seller, created_by: myId, finalized_at: new Date().toISOString(), notes: 'Import (Billomat)',
+        })
+        if (!error) imported++; else skipped++
+      }
+      setDone({ created, imported, skipped }); setRows(null); onDone && onDone()
+    } catch (e) { alert('Import-Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+  function round2(n) { return Math.round((Number(n) || 0) * 100) / 100 }
+
+  return (
+    <Card title="Billomat-Import (CSV, einmalig)">
+      <div style={{ fontSize: 13, color: MUT, marginBottom: 12, lineHeight: 1.6 }}>
+        Exportiere deine Rechnungen aus Billomat als CSV und lade sie hier hoch. Bestehende Kunden werden erkannt (<b style={{ color: '#2f7a4f' }}>✓ vorhanden</b>), nur fehlende neu angelegt. Bereits importierte Rechnungsnummern werden übersprungen.
+      </div>
+      {done && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2f7a4f', marginBottom: 12 }}>✓ Import fertig: {done.imported} Rechnungen, {done.created} neue Kunden, {done.skipped} übersprungen.</div>}
+      <input type="file" accept=".csv,text/csv" onChange={onFile} style={{ fontSize: 13, marginBottom: 14 }} />
+      {rows && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 14 }}>
+            {[['number', 'Rechnungsnr.'], ['date', 'Datum'], ['client', 'Kunde *'], ['net', 'Netto'], ['gross', 'Brutto'], ['status', 'Status']].map(([k, lbl]) => (
+              <div key={k}><label style={LBL}>{lbl}</label>
+                <select value={map[k] ?? -1} onChange={e => setMap(m => ({ ...m, [k]: +e.target.value }))} style={inp}>
+                  <option value={-1}>— ignorieren —</option>
+                  {head.map((h, i) => <option key={i} value={i}>{h || ('Spalte ' + (i + 1))}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: MUT, marginBottom: 8 }}>{rows.length} Zeilen erkannt. Vorschau:</div>
+          <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+            <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%' }}>
+              <thead><tr style={{ color: MUT, textAlign: 'left' }}>{['Nr.', 'Datum', 'Kunde', 'Brutto', ''].map((h, i) => <th key={i} style={{ padding: '4px 6px', borderBottom: '1px solid ' + LINE }}>{h}</th>)}</tr></thead>
+              <tbody>{rows.slice(0, 4).map((r, i) => { const nm2 = (r[map.client] || '').trim(); const ex = existsClient(nm2); return (
+                <tr key={i}><td style={td}>{map.number >= 0 ? r[map.number] : '—'}</td><td style={td}>{map.date >= 0 ? r[map.date] : '—'}</td><td style={td}>{nm2}</td><td style={td}>{map.gross >= 0 ? r[map.gross] : '—'}</td><td style={td}>{ex ? <span style={{ color: '#2f7a4f' }}>✓ vorhanden</span> : <span style={{ color: GOLD }}>neu</span>}</td></tr>) })}</tbody>
+            </table>
+          </div>
+          <button onClick={doImport} disabled={busy} style={primary}>{busy ? 'Importiere…' : 'Import starten (' + rows.length + ')'}</button>
+        </>
+      )}
+    </Card>
+  )
+}
+
+// ── UI primitívek ──
+function Shell({ children }) {
+  return <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}><div style={{ maxWidth: 920, margin: '0 auto', padding: '24px 16px 90px' }}>{children}</div></div>
 }
 function Kpi({ label, value, sub, accent }) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}>
-      <div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#9a6a12' : DARK, marginTop: 4 }}>{(value || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</div>
-      <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div>
-    </div>
-  )
+  return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#9a6a12' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div>
 }
 function Card({ title, right, children }) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
-        <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-        {right}
-      </div>
-      {children}
-    </div>
-  )
+  return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>{right}</div>{children}</div>
+}
+function Modal({ children, onClose, wide }) {
+  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 100, overflowY: 'auto' }}><div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: wide ? 640 : 460, fontFamily: 'Arial' }}>{children}</div></div>
 }
 const tabBtn = a => ({ padding: '8px 14px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid ' + (a ? GOLD : LINE), background: a ? GOLD : '#fff', color: a ? '#fff' : MUT })
 const toggle = a => ({ padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: a ? GOLD : '#fff', color: a ? '#fff' : MUT })
 const selS = { border: '1px solid ' + LINE, borderRadius: 7, padding: '5px 8px', fontSize: 12, background: '#fff', color: DARK, fontWeight: 700 }
+const primary = { background: GOLD, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
+const ghost = { background: '#fff', color: DARK, border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }
+const mini = { background: 'none', border: '1px solid ' + LINE, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: DARK, marginLeft: 4 }
+const inp = { width: '100%', border: '1.5px solid ' + LINE, borderRadius: 7, padding: '7px 9px', fontSize: 12, color: DARK, fontFamily: 'Arial', outline: 'none', boxSizing: 'border-box' }
+const LBL = { fontSize: 10, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4, display: 'block' }
+const td = { padding: '4px 6px', borderBottom: '0.5px solid ' + LINE, whiteSpace: 'nowrap' }
