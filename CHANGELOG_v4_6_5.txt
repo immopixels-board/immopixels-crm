@@ -1,0 +1,24 @@
+# ImmoPixels CRM v4.6.5 — Külön Bartz-Fahrtenbuch oldal (CRM-től teljesen független)
+## 2026-06-11
+
+### Új önálló oldal: /bartz-fahrtenbuch
+A bartzi dolgozók saját Fahrtenbuchja. Ugyanaz az elv mint nálunk, de TELJESEN külön:
+az adatok NEM a CRM-be (Supabase) mentődnek, hanem helyben (localStorage, ezen az
+eszközön/böngészőben). A CRM adataihoz semmilyen módon nem nyúl.
+
+- PROFILOK: tetszőleges számú profil, mindegyiknek saját NÉV + Heimatadresse (🏠 Home).
+  Hozzáadás / szerkesztés / törlés. Profilváltó legördülő, görgethető lista.
+- GYORS-CÍMEK soronként Von/Bis mezőnél:
+  - 🏠 Home = az adott profil saját címe,
+  - 🏢 Büro = fix: Maximilianstraße 37, 67433 Neustadt an der Weinstraße,
+  - vagy szabad Google-Maps-cím beírható (mint nálunk).
+- KM: "km berechnen" soronként vagy "Alle km berechnen"; a meglévő távolság-API-t
+  használja (Google Distance — nem CRM-adat). Kézi km felülírás is lehet.
+  Pauschale 0,30 €/km, Kosten automatikusan.
+- HAVI nézet: hónap előre/hátra, összeg (km + Kosten).
+- EXPORT mint nálunk: PDF (A4 fekvő), Excel, CSV. Fájlnév: "Fahrtenbuch - <Profil> - <Monat>".
+
+Megnyitás: https://<domain>/bartz-fahrtenbuch
+
+Érintett (új): app/bartz-fahrtenbuch/page.js, app/bartz-fahrtenbuch/BartzFahrtenbuch.js.
+Nincs új SQL. VER label: v4.6.5
