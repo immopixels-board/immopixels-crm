@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.7.3 — Számlák törlése
+## 2026-06-11
+- Rechnungen lista: checkbox oszlop + "összes" a fejlécben → csoportos kijelölés,
+  majd "🗑 N löschen" gomb. Soronként is van 🗑 gomb.
+- Számlaszerkesztő (/neu): "🗑 Löschen" gomb a felső sávban (mentett számlánál).
+- Festgeschriebene (végleges) számlák GoBD miatt nem törölhetők — ilyenkor pontos üzenet
+  ("bitte stornieren"). A vázlatok (Entwurf) törölhetők. Az RLS-blokk is észlelve
+  (ténylegesen törölt sorok ellenőrzése).
+
+## Ha a törlés "nem csinál semmit" (RLS): futtasd Supabase-ben, hogy a jogosultaknak
+## engedélyezve legyen a DELETE (a végleges védelmet a meglévő trigger adja):
+  drop policy if exists invoices_delete on invoices;
+  create policy invoices_delete on invoices for delete using (
+    exists (select 1 from staff s where s.email = auth.jwt()->>'email'
+            and (s.role_level='admin' or s.can_invoice)));
+  drop policy if exists invoice_items_delete on invoice_items;
+  create policy invoice_items_delete on invoice_items for delete using (
+    exists (select 1 from staff s where s.email = auth.jwt()->>'email'
+            and (s.role_level='admin' or s.can_invoice)));
+
+VER label: v4.7.3

@@ -29,6 +29,7 @@ export default function RechnungenPage() {
   const [editor, setEditor] = useState(null)
   const [settingsModal, setSettingsModal] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [selected, setSelected] = useState(() => new Set())
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -115,6 +116,25 @@ export default function RechnungenPage() {
     } catch (e) { alert('Fehler: ' + (e.message || e)) }
     setBusy(false)
   }
+  async function delInvoices(ids) {
+    if (!ids.length) return
+    if (!confirm(ids.length + ' Rechnung(en) endgültig löschen? (Festgeschriebene können nicht gelöscht werden — dafür Storno.)')) return
+    setBusy(true)
+    let del = 0, blocked = 0
+    try {
+      for (const id of ids) {
+        await supabase.from('invoice_items').delete().eq('invoice_id', id)
+        const { data, error } = await supabase.from('invoices').delete().eq('id', id).select('id')
+        if (error || !data || !data.length) blocked++; else del++
+      }
+      setSelected(new Set()); await reload()
+      if (blocked) alert('✓ ' + del + ' gelöscht. ' + blocked + ' konnten nicht gelöscht werden (festgeschrieben → bitte stornieren).')
+    } catch (e) { alert('Fehler beim Löschen: ' + (e.message || e)) }
+    setBusy(false)
+  }
+  function toggleSel(id) { setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n }) }
+  function toggleSelAll() { setSelected(s => s.size === invoices.length ? new Set() : new Set(invoices.map(i => i.id))) }
+
   async function downloadPdf(inv) {
     setBusy(true)
     try {
@@ -177,17 +197,20 @@ export default function RechnungenPage() {
       </>}
 
       {tab === 'rechnungen' && (
-        <Card title={'Rechnungen (' + invoices.length + ')'} right={<button onClick={newInvoice} style={primary}>+ Neue Rechnung</button>}>
+        <Card title={'Rechnungen (' + invoices.length + ')'} right={<div style={{ display: 'flex', gap: 8 }}>{selected.size > 0 && <button onClick={() => delInvoices([...selected])} disabled={busy} style={{ ...primary, background: '#b3402f' }}>🗑 {selected.size} löschen</button>}<button onClick={newInvoice} style={primary}>+ Neue Rechnung</button></div>}>
           {invoices.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: '12px 0' }}>Noch keine Rechnungen.</div>}
           {invoices.length > 0 && <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead><tr style={{ textAlign: 'left', color: MUT }}>{['Nr.', 'Datum', 'Kunde', 'Status', 'Brutto', ''].map((h, i) => <th key={i} style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-            <tbody>{invoices.map(i => { const st = STATUS[i.status] || STATUS.open; return <tr key={i.id} style={{ borderBottom: '0.5px solid ' + LINE }}>
+            <thead><tr style={{ textAlign: 'left', color: MUT }}>
+              <th style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE }}><input type="checkbox" checked={selected.size === invoices.length && invoices.length > 0} onChange={toggleSelAll} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></th>
+              {['Nr.', 'Datum', 'Kunde', 'Status', 'Brutto', ''].map((h, i) => <th key={i} style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+            <tbody>{invoices.map(i => { const st = STATUS[i.status] || STATUS.open; const sel = selected.has(i.id); return <tr key={i.id} style={{ borderBottom: '0.5px solid ' + LINE, background: sel ? '#fdf6ea' : 'transparent' }}>
+              <td style={{ padding: '7px 8px' }}><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></td>
               <td style={{ padding: '7px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{i.invoice_number || '—'}</td>
               <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{i.invoice_date}</td>
               <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
               <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
               <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
-              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}</td>
+              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
             </tr> })}</tbody></table></div>}
         </Card>
       )}

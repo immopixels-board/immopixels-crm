@@ -151,6 +151,18 @@ export default function NeueRechnungPage() {
   }
 
   async function makePdfBytes() { return await generateZugferdPdf({ inv: toInvoiceObj(), items: itemsForDb('x'), seller, template }) }
+  async function delInvoice() {
+    if (!inv.id) { window.location.href = '/rechnungen'; return }
+    if (!confirm('Diese Rechnung endgültig löschen?' + (finalized ? '\n(Festgeschrieben — Löschen evtl. blockiert, ggf. stornieren.)' : ''))) return
+    setBusy(true)
+    try {
+      await supabase.from('invoice_items').delete().eq('invoice_id', inv.id)
+      const { data, error } = await supabase.from('invoices').delete().eq('id', inv.id).select('id')
+      if (error) throw error
+      if (!data || !data.length) throw new Error('keine Berechtigung oder festgeschrieben')
+      window.location.href = '/rechnungen'
+    } catch (e) { alert('Löschen nicht möglich: ' + (e.message || e) + '\n(Festgeschriebene Rechnungen bitte stornieren.)'); setBusy(false) }
+  }
   async function pdf() {
     setBusy(true)
     try { const bytes = await makePdfBytes(); const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 60000) }
@@ -171,6 +183,7 @@ export default function NeueRechnungPage() {
         <button onClick={pdf} disabled={busy} style={ghost}>PDF (neuer Tab)</button>
         {!finalized && <button onClick={() => save(false)} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
         {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
+        {inv.id && <button onClick={delInvoice} disabled={busy} style={{ ...ghost, color: '#b3402f', borderColor: '#e9c9c2' }}>🗑 Löschen</button>}
         <button onClick={() => { window.location.href = '/rechnungen' }} style={ghost}>Schließen</button>
       </div>
 
