@@ -20,6 +20,31 @@ const SCHABLONEN = {
   danke: { label: 'Danke + Bewertung', subject: 'Vielen Dank — Ihre Rechnung', body: 'vielen Dank für Ihren Auftrag! Im Anhang finden Sie Ihre Rechnung.\n\nWenn Sie zufrieden waren, freuen wir uns sehr über eine kurze Google-Bewertung.' }
 }
 const emptyItem = vat => ({ title: '', desc: '', qty: 1, unit_price: '', discount: '', vat_rate: vat })
+const SERVICE_CATALOG = [
+  { id: 'foto', label: 'Fotoshooting', grundpreis: '199.00' },
+  { id: 'fotodron', label: 'Foto + Drohne', grundpreis: '349.00' },
+  { id: 'dron', label: 'Drohne', grundpreis: '179.00' },
+  { id: 'reel', label: 'Reel', grundpreis: '249.00' },
+  { id: 'reelmakler', label: 'Reel mit Makler', grundpreis: '' },
+  { id: 'fotoreel', label: 'Foto + Reel', grundpreis: '' },
+  { id: 'fotoreelmakler', label: 'Foto + Reel mit Makler', grundpreis: '' },
+  { id: 'aussen', label: 'Aussenaufnahmen', grundpreis: '' },
+  { id: 'kibild', label: 'KI Bildbearbeitung', grundpreis: '29.99' },
+]
+function serviceIdFor(tt) {
+  const s = String(tt || '').toLowerCase()
+  const hasFoto = /foto/.test(s), hasReel = /reel/.test(s), hasDrohne = /drohne|drone|dron/.test(s), hasMakler = /makler/.test(s), hasAussen = /aussen|außen/.test(s), hasKI = /\bki\b|künstlich|\bai\b/.test(s)
+  if (hasKI && !hasFoto && !hasReel) return 'kibild'
+  if (hasAussen && !hasFoto && !hasReel) return 'aussen'
+  if (hasFoto && hasReel && hasMakler) return 'fotoreelmakler'
+  if (hasReel && hasMakler && !hasFoto) return 'reelmakler'
+  if (hasFoto && hasReel) return 'fotoreel'
+  if (hasFoto && hasDrohne) return 'fotodron'
+  if (hasReel && !hasFoto) return 'reel'
+  if (hasDrohne && !hasFoto) return 'dron'
+  if (hasFoto) return 'foto'
+  return null
+}
 
 export default function NeueRechnungPage() {
   const [loading, setLoading] = useState(true)
@@ -33,6 +58,7 @@ export default function NeueRechnungPage() {
   const [shootsOpen, setShootsOpen] = useState({})
   const [emailModal, setEmailModal] = useState(false)
   const [fahrt, setFahrt] = useState({ start: DEFAULT_TEMPLATE.startAddress, rate: DEFAULT_TEMPLATE.kmRate })
+  const [svcPrices, setSvcPrices] = useState(SERVICE_CATALOG)
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -41,8 +67,12 @@ export default function NeueRechnungPage() {
     const { data: staff } = await supabase.from('staff').select('*').eq('email', user.email).single()
     if (!staff || (staff.role_level !== 'admin' && !staff.can_invoice)) { window.location.href = '/'; return }
     setMyId(staff.id)
-    const { data: cls } = await supabase.from('clients').select('id,name,short_name,addr,email,tel,contact_firstname,contact_lastname,contact_tel,contact_email').order('name')
+    const { data: cls } = await supabase.from('clients').select('id,name,short_name,addr,email,tel,contact_firstname,contact_lastname,contact_tel,contact_email,service_prices').order('name')
     setClients(cls || [])
+    const { data: sp } = await supabase.from('settings').select('value').eq('key', 'service_prices').maybeSingle()
+    let savedSp = []; if (sp?.value) { try { savedSp = JSON.parse(sp.value) } catch {} }
+    const spById = {}; (savedSp || []).forEach(s => { if (s && s.id) spById[s.id] = s })
+    setSvcPrices(SERVICE_CATALOG.map(c => spById[c.id] ? { ...c, grundpreis: spById[c.id].grundpreis ?? c.grundpreis } : c))
     const { data: s1 } = await supabase.from('settings').select('value').eq('key', 'invoice_seller').maybeSingle(); let sl = DEFAULT_SELLER
     if (s1?.value) { try { sl = { ...DEFAULT_SELLER, ...JSON.parse(s1.value) }; setSeller(sl) } catch {} }
     const { data: s2 } = await supabase.from('settings').select('value').eq('key', 'invoice_template').maybeSingle()
@@ -96,12 +126,21 @@ export default function NeueRechnungPage() {
     if (!cd.booking_address && cd.addr && !addr.toLowerCase().includes(String(cd.addr).toLowerCase())) addr = [addr, cd.addr].filter(Boolean).join(', ')
     const title = [dd, clientShort, addr].filter(Boolean).join(' - ')
     const tt = ((cd.card_type || '') + ' ' + (cd.title || '')).toLowerCase()
-    const hasReel = /reel/.test(tt), hasDrohne = /drohne|drone|dron/.test(tt)
+    const hasReel = /reel/.test(tt), hasDrohne = /drohne|drone|dron/.test(tt), hasMakler = /makler/.test(tt)
     const isEditing = /edit|bearbeitung|postpro/.test(tt) && !/foto/.test(cd.card_type || '')
     let parts
     if (isEditing) parts = ['Postproduktion']
-    else { parts = ['Immobilienfotografie']; if (hasDrohne) parts.push('Drohne'); if (hasReel) parts.push('Reel'); parts.push('Postproduktion') }
-    return { title, desc: parts.join(' + '), price: cd.price || '', addr }
+    else { parts = ['Immobilienfotografie']; if (hasDrohne) parts.push('Drohne'); if (hasReel) parts.push(hasMakler ? 'Reel mit Makler' : 'Reel'); parts.push('Postproduktion') }
+    // Ár: ügyfél service_prices[felismert típus] -> globális grundpreis -> kártya ára
+    const svcId = serviceIdFor(tt)
+    const cp = client?.service_prices || {}
+    let price = ''
+    if (svcId) {
+      if (cp[svcId] != null && parseFloat(cp[svcId]) > 0) price = parseFloat(cp[svcId])
+      else { const g = svcPrices.find(s => s.id === svcId); if (g && parseFloat(g.grundpreis) > 0) price = parseFloat(g.grundpreis) }
+    }
+    if (!price && cd.price) price = cd.price
+    return { title, desc: parts.join(' + '), price, addr }
   }
 
   const set = patch => setInv(p => ({ ...p, ...patch }))
@@ -127,7 +166,8 @@ export default function NeueRechnungPage() {
       const rate = num(fahrt.rate) || 0.29
       const price = round2(km * rate)
       const ort = addr.split(',')[0]
-      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: 'Fahrtkosten', desc: ort + ': ' + km.toLocaleString('de-DE') + ' km × ' + rate.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' € (Hin- und Rückfahrt)', qty: 1, unit_price: price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
+      const srcTitle = it.title || ('Fahrtkosten — ' + ort)
+      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: srcTitle, desc: 'Fahrtkosten: ' + km.toLocaleString('de-DE') + ' km × ' + rate.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' € (Hin- und Rückfahrt)', qty: 1, unit_price: price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
     } catch (e) { alert('Fahrtkosten-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }

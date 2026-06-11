@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.7.7 — Fahrtkosten-Titel + automatikus ár a szolgáltatásokból
+## 2026-06-11
+
+### Fahrtkosten sor a fotózás Titel-ével
+- A 🚗 most a forrás-tétel TITEL-jét adja a Fahrtkosten sornak (pl. "05.06.2026. - Fetter
+  - Hauptstraße 1"), a leírás pedig "Fahrtkosten: X km × 0,29 € (Hin- und Rückfahrt)".
+  Így egyértelmű, melyik fotózáshoz tartozik.
+
+### Automatikus ár az ügyfél ár-szolgáltatásaiból
+- Fotózás pipálásakor az ár a felismert szolgáltatás-típus szerint töltődik:
+  ügyfél service_prices[típus] → globális grundpreis → (végső esetben) kártya ára.
+- Felismert típusok: foto, foto+drohne, drohne, reel, reel mit makler, foto+reel,
+  foto+reel mit makler, aussen, ki-bildbearbeitung. "mit Makler" a leírásba is bekerül.
+- A /neu mostantól betölti a clients.service_prices-t és a globális service_prices-t.
+
+Érintett: app/rechnungen/neu/page.js. VER label: v4.7.7
