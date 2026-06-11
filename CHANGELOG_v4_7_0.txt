@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.7.0 — Full-oldalas számlaszerkesztő + PDF-javítások
+## 2026-06-11
+
+### KRITIKUS hiba javítva: árak
+- A "199,99" / "199.99" rosszul (19.999,00-ként) került mentésre, mert a pont ezres-
+  elválasztónak számított. Mostantól helyesen: vesszős német formátum ÉS pontos
+  decimális is jól értelmeződik.
+
+### Full-oldalas számlaszerkesztő (nem popup), ÚJ ABLAKBAN
+- "+ Neue Rechnung", a kártya "Eigene Rechnung", és a Billomat-modál "Im CRM-
+  Rechnungseditor öffnen" gombja mostantól egy KÜLÖN, FULL-OLDALAS szerkesztőt nyit
+  ÚJ ABLAKBAN (/rechnungen/neu) — Billomat-szerű elrendezéssel:
+  bal: Anschrift, Datum, Rechnungsnummer, Einleitungstext, Positionen (Pos szám,
+  Anzahl, Preis, Steuer, Rabatt, Titel + Beschreibung, sor mozgatás/törlés);
+  jobb sáv: Kunde (kereső), Kundendaten, Fälligkeit (In 14 Tagen = dátum).
+- Mentés: "Als Entwurf speichern" / "Festschreiben"; "PDF" gomb előnézethez.
+
+### PDF
+- Oszlopok IGAZÍTVA (Pos/Beschreibung/Anzahl/Preis/Rabatt/Steuer/Netto) — nem csúsznak.
+- LOGÓ a fejlécbe: az ImmoPixels logó automatikusan bekerül (public/ip-logo.png,
+  átlátszó háttérrel). Saját logó a Vorlage fül "Logo-URL" mezőjével felülírható.
+
+### Kunde kiválasztás
+- A Rechnungban az ügyfél a TELJES nevét mutatja (nem a Kürzelt).
+
+Érintett: app/rechnungen/neu/page.js (új), app/rechnungen/page.js, lib/invoice/zugferd.js,
+app/BoardApp.js, components/CardModal.js, public/ip-logo.png (új). VER label: v4.7.0

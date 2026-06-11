@@ -7,7 +7,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
-const num = v => { const s = String(v ?? '').trim().replace(/\./g, '').replace(',', '.').replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
+const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100
 const addDays = (d, n) => { const x = new Date(d + 'T00:00:00'); if (isNaN(x)) return ''; x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
 const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open: { label: 'Offen', c: '#9a6a12', bg: '#f6efe0' }, overdue: { label: 'Überfällig', c: '#b3402f', bg: '#fae7e2' }, paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' }, storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' } }
@@ -45,10 +45,6 @@ export default function RechnungenPage() {
     if (s2?.value) { try { setTemplate({ ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }) } catch {} }
     await reload()
     // előtöltés kártyáról
-    try {
-      const pf = JSON.parse(localStorage.getItem('ip-invoice-prefill') || 'null')
-      if (pf) { localStorage.removeItem('ip-invoice-prefill'); openEditorPrefill(pf, cls || []) }
-    } catch {}
     setLoading(false)
   }
   async function reload() {
@@ -68,21 +64,14 @@ export default function RechnungenPage() {
     if (!c) return {}
     return { company: c.name || '', contact: [c.contact_firstname, c.contact_lastname].filter(Boolean).join(' '), address: c.addr || '', email: c.contact_email || c.email || '', phone: c.contact_tel || c.tel || '', kundennr: c.kundennr || '' }
   }
-  function newInvoice() {
-    const d = new Date().toISOString().slice(0, 10)
-    setEditor({ items: [{ description: '', qty: 1, unit_price: '', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19 }], invoice_date: d, due_date: addDays(d, 14), client_name: '', client_id: null, buyer: {}, notes: '' })
-    setTab('rechnungen')
-  }
+  function newInvoice() { try { localStorage.removeItem('ip-invoice-prefill') } catch {} window.open('/rechnungen/neu', '_blank') }
   function openEditorPrefill(pf, cls) {
     const c = (cls || clients).find(x => x.id === pf.client_id || (x.short_name || x.name) === pf.client_name || x.name === pf.client_name)
     const d = pf.invoice_date || new Date().toISOString().slice(0, 10)
     setEditor({ items: pf.items && pf.items.length ? pf.items : [{ description: pf.description || '', qty: 1, unit_price: pf.price || '', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19 }], invoice_date: d, due_date: addDays(d, 14), client_name: pf.client_name || (c ? (c.short_name || c.name) : ''), client_id: c?.id || null, buyer: buyerFromClient(c), notes: '' })
     setTab('rechnungen')
   }
-  async function editInvoice(inv) {
-    const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
-    setEditor({ ...inv, buyer: inv.buyer || {}, items: (its && its.length) ? its.map(it => ({ ...it, discount: it.discount || '' })) : [{ description: '', qty: 1, unit_price: '', discount: '', vat_rate: 19 }] })
-  }
+  function editInvoice(inv) { window.open('/rechnungen/neu?id=' + inv.id, '_blank') }
 
   function calcTotals(items, klein) {
     let net = 0, vat = 0
@@ -203,7 +192,6 @@ export default function RechnungenPage() {
 
       {tab === 'import' && <ImportTab clients={clients} myId={myId} seller={seller} onDone={reload} />}
 
-      {editor && <InvoiceEditor ed={editor} setEd={setEditor} clients={clients} seller={seller} busy={busy} buyerFromClient={buyerFromClient} onClose={() => setEditor(null)} onDraft={() => persistInvoice(editor, false)} onFinalize={() => persistInvoice(editor, true)} />}
       {settingsModal && <SettingsModal seller={seller} setSeller={setSeller} template={template} setTemplate={setTemplate} onClose={() => setSettingsModal(false)} onSave={saveSettings} />}
     </Shell>
   )
