@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.7.2 — Számla a régi minta szerint (20-0720)
+## 2026-06-11
+
+### Fotózás → tétel (a Billomat-logikával 1:1)
+- Titel = "DD.MM.YYYY. - Kürzel - Adresse" (mint a régi számláknál).
+- Beschreibung automatikusan a kártya szolgáltatásaiból:
+  csak Foto → "Immobilienfotografie + Postproduktion"
+  Foto + Reel → "Immobilienfotografie + Reel + Postproduktion"
+  Foto + Drohne → "Immobilienfotografie + Drohne + Postproduktion" (stb.)
+- Ár a kártya price mezőjéből előtöltve (ha van).
+
+### PDF (a 20-0720 minta szerint)
+- A címzett ALATT Billomat-stílusú sáv: bal "Rechnung <Nr>", jobb "Kundennummer: KDxxx"
+  és "Datum: ..." — vízszintes vonalak között.
+- Címzettnél a kontakt-sor (Herr/Frau ...) is megjelenik.
+- Legalul "Seite X von Y" minden oldalon, többoldalasnál emelkedve.
+- Alul: "Vielen Dank für die Zusammenarbeit! / Bitte überweisen Sie ... bis zum <Fällig> /
+  Online buchen <link>" + a szerkeszthető footer (cég/bank). A Fällig +14 nap.
+
+### Pozíciók
+- Fel/le mozgatás (↑/↓) — javítva/megerősítve, ha rossz a sorrend.
+
+Érintett: app/rechnungen/neu/page.js, lib/invoice/zugferd.js. VER label: v4.7.2

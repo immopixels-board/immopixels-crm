@@ -73,11 +73,34 @@ export default function NeueRechnungPage() {
     const c = (cls || clients).find(x => x.id === clientId || x.name === clientName || x.short_name === clientName)
     const keys = [c?.short_name, c?.name, clientName].filter(Boolean)
     if (!keys.length) { setShoots(null); return }
-    const { data } = await supabase.from('cards').select('id,title,addr,description,card_date,card_type,client_name,billed_at').in('client_name', keys).not('card_date', 'is', null).order('card_date', { ascending: false })
+    const { data } = await supabase.from('cards').select('id,title,addr,description,card_date,card_type,client_name,booking_address,price,billed_at').in('client_name', keys).not('card_date', 'is', null).order('card_date', { ascending: false })
     const groups = {}
     ;(data || []).forEach(cd => { const mk = (cd.card_date || '').slice(0, 7); if (!mk) return; (groups[mk] = groups[mk] || []).push(cd) })
     setShoots(groups)
     const first = Object.keys(groups).sort().reverse()[0]; if (first) setShootsOpen({ [first]: true })
+  }
+  // Pontosan mint a Billomat-folyamatban (buildInvoiceItem): cím = "DD.MM.YYYY. - Kürzel - Adresse",
+  // Beschreibung = Immobilienfotografie [+ Drohne] [+ Reel] + Postproduktion
+  function buildFromCard(cd) {
+    const client = clients.find(x => x.id === inv?.client_id)
+    const clientShort = client?.short_name || (client?.name || '').trim().split(/\s+/)[0] || cd.client_name || ''
+    const dd = cd.card_date ? cd.card_date.split('-').reverse().join('.') + '.' : ''
+    let addr = (cd.booking_address || cd.title || '').trim()
+    for (const p of [clientShort, client?.name, cd.client_name].filter(Boolean)) {
+      const esc = String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const re = new RegExp('^' + esc + '\\s*[-–—]\\s*', 'i')
+      if (re.test(addr)) { addr = addr.replace(re, '').trim(); break }
+    }
+    addr = addr.replace(/\s*[-–—]?\s*(foto\s*\+\s*reel|foto-?reel|foto-?dron\w*|reel|drohne|drone)\s*$/i, '').trim()
+    if (!cd.booking_address && cd.addr && !addr.toLowerCase().includes(String(cd.addr).toLowerCase())) addr = [addr, cd.addr].filter(Boolean).join(', ')
+    const title = [dd, clientShort, addr].filter(Boolean).join(' - ')
+    const tt = ((cd.card_type || '') + ' ' + (cd.title || '')).toLowerCase()
+    const hasReel = /reel/.test(tt), hasDrohne = /drohne|drone|dron/.test(tt)
+    const isEditing = /edit|bearbeitung|postpro/.test(tt) && !/foto/.test(cd.card_type || '')
+    let parts
+    if (isEditing) parts = ['Postproduktion']
+    else { parts = ['Immobilienfotografie']; if (hasDrohne) parts.push('Drohne'); if (hasReel) parts.push('Reel'); parts.push('Postproduktion') }
+    return { title, desc: parts.join(' + '), price: cd.price || '' }
   }
 
   const set = patch => setInv(p => ({ ...p, ...patch }))
@@ -94,10 +117,9 @@ export default function NeueRechnungPage() {
   function toggleShoot(cd, on) {
     setInv(p => {
       if (on) {
-        const title = [fmt(cd.card_date), p.client_name, cd.addr].filter(Boolean).join(' - ')
-        const desc = cd.description || cd.card_type || 'Immobilienfotografie + Postproduktion'
+        const b = buildFromCard(cd)
         const items = p.items.filter(it => it.title || it.desc || num(it.unit_price) || it._card)
-        return { ...p, items: [...items, { title, desc, qty: 1, unit_price: '', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _card: cd.id }] }
+        return { ...p, items: [...items, { title: b.title, desc: b.desc, qty: 1, unit_price: b.price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _card: cd.id }] }
       }
       return { ...p, items: p.items.filter(it => it._card !== cd.id) }
     })
