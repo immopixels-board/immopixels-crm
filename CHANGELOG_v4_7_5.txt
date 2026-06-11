@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.7.5 — Fahrtkosten / km a számlán
+## 2026-06-11
+
+### Per-tétel Fahrtkosten gomb (🚗)
+- Minden tételnél egy 🚗 gomb: a tétel címe és a Startadresse (Zuhause/Büro) közti
+  távolságot Google Maps-szel kiszámolja (Hin- UND Rückfahrt = oda-vissza), és külön
+  "Fahrtkosten" tételként hozzáadja: "<Ort>: <km> km × <rate> € (Hin- und Rückfahrt)".
+- A cím automatikusan a tételből jön (a fotózásnál a kártya címe; kézi tételnél a
+  Titel "… - … - Adresse" részéből).
+- Jobb sávban "Fahrtkosten" panel: Startadresse + € / km (alap 0,29, szabadon módosítható).
+  Az alapértékek a ⚙ Vorlage-ban menthetők (Startadresse, € / km).
+
+### Számla alján össz-km
+- A szerkesztőben és a PDF-en is: "Gefahrene Strecke gesamt: X km" — az összes
+  Fahrtkosten-tétel kilométereiből (az oda-vissza utak benne vannak).
+
+Megjegyzés: a távolsághoz a meglévő /api/fahrtenbuch/distance fut (Google Maps),
+ugyanaz a kulcs, mint a Bartz Fahrtenbuchnál (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY).
+
+Érintett: app/rechnungen/neu/page.js, app/rechnungen/page.js, lib/invoice/zugferd.js.
+VER label: v4.7.5

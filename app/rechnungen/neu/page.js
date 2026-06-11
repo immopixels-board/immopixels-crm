@@ -13,7 +13,7 @@ const round2 = n => Math.round((Number(n) || 0) * 100) / 100
 const addDays = (d, n) => { const p = String(d || '').split('-').map(Number); if (p.length < 3 || !p[0]) return ''; return new Date(Date.UTC(p[0], p[1] - 1, p[2] + (parseInt(n) || 0))).toISOString().slice(0, 10) }
 const dueDays = (inv) => { const a = String(inv.invoice_date || '').split('-').map(Number), d = String(inv.due_date || '').split('-').map(Number); if (a.length < 3 || d.length < 3 || !a[0] || !d[0]) return 14; return Math.round((Date.UTC(d[0], d[1] - 1, d[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000) }
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
-const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: '', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [] }
+const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: '', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [], startAddress: 'Gartenstr. 2, 67310 Hettenleidelheim', kmRate: 0.29 }
 const SCHABLONEN = {
   rechnung: { label: 'Rechnung anbei', subject: 'Ihre Rechnung von ImmoPixels', body: 'anbei erhalten Sie Ihre Rechnung als PDF. Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nVielen Dank für die gute Zusammenarbeit!' },
   erinnerung: { label: 'Zahlungserinnerung', subject: 'Zahlungserinnerung — Ihre Rechnung', body: 'wir möchten Sie freundlich an die noch offene Rechnung (im Anhang) erinnern. Sollten Sie den Betrag bereits überwiesen haben, betrachten Sie diese Nachricht als gegenstandslos.' },
@@ -32,6 +32,7 @@ export default function NeueRechnungPage() {
   const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}
   const [shootsOpen, setShootsOpen] = useState({})
   const [emailModal, setEmailModal] = useState(false)
+  const [fahrt, setFahrt] = useState({ start: DEFAULT_TEMPLATE.startAddress, rate: DEFAULT_TEMPLATE.kmRate })
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -45,7 +46,7 @@ export default function NeueRechnungPage() {
     const { data: s1 } = await supabase.from('settings').select('value').eq('key', 'invoice_seller').maybeSingle(); let sl = DEFAULT_SELLER
     if (s1?.value) { try { sl = { ...DEFAULT_SELLER, ...JSON.parse(s1.value) }; setSeller(sl) } catch {} }
     const { data: s2 } = await supabase.from('settings').select('value').eq('key', 'invoice_template').maybeSingle()
-    if (s2?.value) { try { setTemplate({ ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }) } catch {} }
+    if (s2?.value) { try { const tpl = { ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }; setTemplate(tpl); setFahrt({ start: tpl.startAddress || DEFAULT_TEMPLATE.startAddress, rate: tpl.kmRate || DEFAULT_TEMPLATE.kmRate }) } catch {} }
 
     const id = new URLSearchParams(window.location.search).get('id')
     const today = new Date().toISOString().slice(0, 10)
@@ -100,7 +101,7 @@ export default function NeueRechnungPage() {
     let parts
     if (isEditing) parts = ['Postproduktion']
     else { parts = ['Immobilienfotografie']; if (hasDrohne) parts.push('Drohne'); if (hasReel) parts.push('Reel'); parts.push('Postproduktion') }
-    return { title, desc: parts.join(' + '), price: cd.price || '' }
+    return { title, desc: parts.join(' + '), price: cd.price || '', addr }
   }
 
   const set = patch => setInv(p => ({ ...p, ...patch }))
@@ -110,6 +111,26 @@ export default function NeueRechnungPage() {
   const dupItem = i => setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { ...a[i], _card: undefined }); return { ...p, items: a } })
   const delItem = i => setInv(p => ({ ...p, items: p.items.filter((_, j) => j !== i) }))
   const moveItem = (i, dir) => setInv(p => { const a = [...p.items]; const j = i + dir; if (j < 0 || j >= a.length) return p; const t = a[i]; a[i] = a[j]; a[j] = t; return { ...p, items: a } })
+  function addrOf(it) { if (it._addr) return it._addr; const parts = String(it.title || '').split(' - '); if (parts.length >= 3) return parts.slice(2).join(' - ').trim(); return (parts[parts.length - 1] || '').trim() }
+  async function addFahrt(i) {
+    const it = inv.items[i]; const addr = addrOf(it)
+    if (!fahrt.start) { alert('Startadresse fehlt (rechts im Fahrtkosten-Feld eintragen).'); return }
+    if (!addr) { alert('Keine Adresse in dieser Position erkannt. Bitte Titel als „… - … - Adresse" oder Adresse manuell.'); return }
+    setBusy(true)
+    try {
+      const r = await fetch('/api/fahrtenbuch/distance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stops: [fahrt.start, addr, fahrt.start] }) })
+      const j = await r.json()
+      if (!j.ok || !j.legs) throw new Error(j.reason || 'Distanz nicht verfügbar')
+      const meters = j.legs.reduce((s, l) => s + (l.distance || 0), 0)
+      if (!meters) throw new Error('Keine Strecke gefunden — Adresse prüfen')
+      const km = Math.round(meters / 1000 * 10) / 10
+      const rate = num(fahrt.rate) || 0.29
+      const price = round2(km * rate)
+      const ort = addr.split(',')[0]
+      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: 'Fahrtkosten', desc: ort + ': ' + km.toLocaleString('de-DE') + ' km × ' + rate.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' € (Hin- und Rückfahrt)', qty: 1, unit_price: price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
+    } catch (e) { alert('Fahrtkosten-Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
   const onDate = v => set({ invoice_date: v, due_date: addDays(v, 14) })
   const onClient = name => { const c = clients.find(x => x.name === name || x.short_name === name); set({ client_name: c?.name || name, client_id: c?.id || null, buyer: c ? buyerFromClient(c) : (inv.buyer || {}) }); if (c) loadShoots(c.id, c.name, clients); else setShoots(null) }
 
@@ -119,7 +140,7 @@ export default function NeueRechnungPage() {
       if (on) {
         const b = buildFromCard(cd)
         const items = p.items.filter(it => it.title || it.desc || num(it.unit_price) || it._card)
-        return { ...p, items: [...items, { title: b.title, desc: b.desc, qty: 1, unit_price: b.price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _card: cd.id }] }
+        return { ...p, items: [...items, { title: b.title, desc: b.desc, qty: 1, unit_price: b.price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _card: cd.id, _addr: b.addr }] }
       }
       return { ...p, items: p.items.filter(it => it._card !== cd.id) }
     })
@@ -172,6 +193,7 @@ export default function NeueRechnungPage() {
 
   if (loading || !inv) return <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'Arial', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUT }}>Lädt…</div>
   const t = totals()
+  const totalKm = Math.round((inv.items || []).reduce((s, it) => s + (it._km || parseKm(it.desc)), 0) * 10) / 10
   const finalized = inv.id && inv.status && inv.status !== 'draft'
   const monthKeys = shoots ? Object.keys(shoots).sort().reverse() : []
 
@@ -233,6 +255,7 @@ export default function NeueRechnungPage() {
                 <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', paddingTop: 4 }}>
+                <button title="Fahrtkosten berechnen (Hin- und Rückfahrt)" onClick={() => addFahrt(i)} disabled={busy} style={{ ...icon, color: GOLD }}>🚗</button>
                 <button title="Duplizieren" onClick={() => dupItem(i)} style={icon}>⎘</button>
                 <button onClick={() => moveItem(i, -1)} style={icon}>↑</button>
                 <button onClick={() => moveItem(i, 1)} style={icon}>↓</button>
@@ -243,6 +266,7 @@ export default function NeueRechnungPage() {
           <button onClick={addItem} style={ghost}>+ Position</button>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22, marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + LINE, fontSize: 13 }}>
+            {totalKm > 0 && <span style={{ color: MUT, marginRight: 'auto' }}>🚗 gefahren: <b style={{ color: DARK }}>{totalKm.toLocaleString('de-DE')} km</b></span>}
             <span style={{ color: MUT }}>Netto <b style={{ color: DARK }}>{eur(t.net)}</b></span>
             <span style={{ color: MUT }}>USt <b style={{ color: DARK }}>{eur(t.vat)}</b></span>
             <span style={{ color: MUT }}>Gesamt <b style={{ color: GOLD, fontSize: 15 }}>{eur(t.gross)}</b></span>
@@ -267,6 +291,13 @@ export default function NeueRechnungPage() {
           <Side title="Fälligkeit">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>In <input value={dueDays(inv)} onChange={e => set({ due_date: addDays(inv.invoice_date, e.target.value) })} style={{ ...box, width: 46, textAlign: 'center' }} /> Tagen =
               <input type="date" value={inv.due_date || ''} onChange={e => set({ due_date: e.target.value })} style={{ ...box, flex: 1 }} /></div>
+          </Side>
+          <Side title="Fahrtkosten">
+            <Lbl>Startadresse (Zuhause / Büro)</Lbl>
+            <input value={fahrt.start} onChange={e => setFahrt(f => ({ ...f, start: e.target.value }))} style={{ ...box, width: '100%', marginBottom: 8 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>€ / km <input value={fahrt.rate} onChange={e => setFahrt(f => ({ ...f, rate: e.target.value }))} style={{ ...box, width: 64, textAlign: 'right' }} /></div>
+            <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Pro Position auf 🚗 tippen → Hin- und Rückfahrt (Google Maps) als eigene Position.</div>
+            {totalKm > 0 && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700 }}>Gefahren gesamt: <span style={{ color: GOLD }}>{totalKm.toLocaleString('de-DE')} km</span></div>}
           </Side>
           <Side title="Kundendaten">
             <Field label="Firmenname" v={inv.buyer?.company} on={v => setBuyer({ company: v })} />
@@ -324,6 +355,7 @@ function EmailModal({ inv, seller, template, makePdfBytes, ensureSaved, onClose 
   )
 }
 
+function parseKm(desc) { const m = String(desc || '').match(/([\d.,]+)\s*km/i); if (!m) return 0; const n = parseFloat(m[1].replace(/\./g, '').replace(',', '.')); return isNaN(n) ? 0 : n }
 function fmt(d) { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}.${m[2]}.${m[1]}` : (d || '') }
 function Lbl({ children }) { return <div style={{ fontSize: 10, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>{children}</div> }
 function Side({ title, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: 'hidden' }}><div style={{ background: DARK, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.5px', padding: '8px 12px', textTransform: 'uppercase' }}>{title}</div><div style={{ padding: 12 }}>{children}</div></div> }

@@ -13,7 +13,7 @@ const addDays = (d, n) => { const p = String(d || '').split('-').map(Number); if
 const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open: { label: 'Offen', c: '#9a6a12', bg: '#f6efe0' }, overdue: { label: 'Überfällig', c: '#b3402f', bg: '#fae7e2' }, paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' }, storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' } }
 
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
-const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: 'Zufrieden? Wir freuen uns über Ihre Google-Bewertung!', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [] }
+const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: 'Zufrieden? Wir freuen uns über Ihre Google-Bewertung!', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [], startAddress: 'Gartenstr. 2, 67310 Hettenleidelheim', kmRate: 0.29 }
 
 export default function RechnungenPage() {
   const [loading, setLoading] = useState(true)
@@ -318,6 +318,7 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
             {tf('reviewText', 'Bewertungstext')}{tf('reviewUrl', 'Bewertungs-Link')}
             {tf('bookingUrl', 'Buchungs-Link')}{tf('qrUrl', 'QR-Code Ziel-URL')}
+            {tf('startAddress', 'Fahrtkosten: Startadresse')}{tf('kmRate', 'Fahrtkosten: € / km')}
           </div>
           <div style={{ marginTop: 14 }}>
             <label style={LBL}>Werbe-Links (Rechnungsende)</label>
