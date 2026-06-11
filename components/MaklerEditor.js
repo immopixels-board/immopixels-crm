@@ -8,9 +8,44 @@ var LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'upperc
 var MF_IS = { background:'var(--bg3)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px', fontSize:12, color:'var(--t1)', fontFamily:'Arial', outline:'none', width:'100%' }
 var MF_LS = { fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3, display:'block' }
 
-function MaklerForm({ form, setForm, onSave, onCancel }) {
+function MaklerForm({ form, setForm, onSave, onCancel, phonebook = [] }) {
+  const [pbQuery, setPbQuery] = useState('')
+  const q = pbQuery.trim().toLowerCase()
+  const matches = q ? phonebook.filter(c =>
+    (c.name || '').toLowerCase().includes(q) || (c.org || '').toLowerCase().includes(q)
+  ).slice(0, 6) : []
+  function pick(c) {
+    setForm(p => ({
+      ...p,
+      name: c.name || p.name,
+      email: (c.emails && c.emails[0]) || p.email,
+      tel: (c.phones && c.phones[0] && (c.phones[0].n || c.phones[0])) || p.tel,
+      position: p.position || (c.category === 'makler' ? 'Makler' : p.position),
+    }))
+    setPbQuery('')
+  }
   return (
     <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:12, marginTop:6 }}>
+      {phonebook.length > 0 && (
+        <div style={{ position:'relative', marginBottom:10 }}>
+          <label style={MF_LS}>Aus Telefonbuch übernehmen</label>
+          <div style={{ display:'flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 9px' }}>
+            <i className="ti ti-address-book" style={{ fontSize:13, color:'var(--t3)' }} />
+            <input value={pbQuery} onChange={e=>setPbQuery(e.target.value)} placeholder="Kontakt suchen…" style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12, color:'var(--t1)', fontFamily:'Arial' }} />
+          </div>
+          {matches.length > 0 && (
+            <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:50, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, marginTop:3, boxShadow:'var(--sh2)', overflow:'hidden' }}>
+              {matches.map(c => (
+                <div key={c.id} onClick={()=>pick(c)} style={{ padding:'7px 11px', cursor:'pointer', borderBottom:'0.5px solid var(--border)' }}
+                  onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{c.name}{c.org && <span style={{ fontWeight:400, color:'var(--t3)' }}> · {c.org}</span>}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)' }}>{[(c.phones&&c.phones[0]&&(c.phones[0].n||c.phones[0])), (c.emails&&c.emails[0])].filter(Boolean).join('  ·  ')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
         <div><label style={MF_LS}>Name *</label><input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Max Mustermann" style={MF_IS}/></div>
         <div><label style={MF_LS}>Position</label><input value={form.position} onChange={e=>setForm(p=>({...p,position:e.target.value}))} placeholder="Makler" style={MF_IS}/></div>
@@ -27,7 +62,7 @@ function MaklerForm({ form, setForm, onSave, onCancel }) {
   )
 }
 
-export default function MaklerEditor({ clientId, maklers, onReload }) {
+export default function MaklerEditor({ clientId, maklers, onReload, phonebook = [] }) {
   const list = (clientId && maklers[clientId]) || []
   const [editingId, setEditingId] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -77,7 +112,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
         <div key={m.id}>
           {editingId === m.id ? (
             <MaklerForm
-              form={form} setForm={setForm}
+              form={form} setForm={setForm} phonebook={phonebook}
               onSave={() => saveMakler(m.id)}
               onCancel={() => setEditingId(null)}
             />
@@ -97,7 +132,7 @@ export default function MaklerEditor({ clientId, maklers, onReload }) {
 
       {adding ? (
         <MaklerForm
-          form={form} setForm={setForm}
+          form={form} setForm={setForm} phonebook={phonebook}
           onSave={addMakler}
           onCancel={() => { setAdding(false); setForm({ name:'', email:'', tel:'', position:'' }) }}
         />

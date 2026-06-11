@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.6.1 — Makler aus Telefonbuch + automatische Büro-Erkennung
+## 2026-06-10
+
+### 1) Kunden-Karte: Makler aus Telefonbuch übernehmen
+A Kunden-szerkesztőben az "Makler hinzufügen" űrlap tetején új "Aus Telefonbuch
+übernehmen" kereső. Kontaktra kattintva automatikusan kitölti a Name / Email / Telefon
+(és makler kategóriánál a Position = "Makler") mezőket. Utána a szokásos módon menthető.
+
+### 2) Foglalás: automatikus Immobilienbüro-felismerés
+Ha a foglaló NEM ad meg Immobilienbüro nevet, de a megadott NÉV egy Kunde Mak  lereként
+szerepel (client_maklers), a rendszer felismeri, melyik Kunde irodája az, és azt használja:
+- a kártya client_name-je és címe,
+- a belső értesítés / GCal-cím / e-mail "Immobilienbüro" mezője.
+Pontos (kis/nagybetű-független) névegyezésre megy; ha nincs találat, marad a kontakt neve
+(mint eddig).
+
+Érintett: components/MaklerEditor.js, app/BoardApp.js (phonebook átadása),
+app/api/booking/create/route.js. Nincs új SQL. VER label: v4.6.1

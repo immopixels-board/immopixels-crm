@@ -88,9 +88,22 @@ export async function POST(req) {
     _drohne ? 'drohne' :
     _d360 ? '360' : 'foto'
 
+  // Iroda-felismerés: ha nincs megadva Immobilienbüro, de a kontakt neve egy Kunde
+  // Maklereként szerepel (client_maklers), akkor az adott Kunde lesz az iroda.
+  let resolvedOffice = (immoOffice || '').trim()
+  if (!resolvedOffice && customerName) {
+    try {
+      const { data: mk } = await supabase.from('client_maklers').select('client_id').ilike('name', customerName.trim()).limit(1)
+      if (mk && mk[0]?.client_id) {
+        const { data: cl } = await supabase.from('clients').select('name, short_name').eq('id', mk[0].client_id).maybeSingle()
+        if (cl) resolvedOffice = cl.name || cl.short_name || ''
+      }
+    } catch (e) { /* felismerés best-effort, hiba esetén marad a kontaktnév */ }
+  }
+
   const noteFull = [
     note || '',
-    immoOffice ? `Immobilienbüro: ${immoOffice}` : '',
+    resolvedOffice ? `Immobilienbüro: ${resolvedOffice}` : '',
     addons.length ? `Zusätzliche Leistungen: ${addons.join(', ')}` : '',
   ].filter(Boolean).join('\n')
 
@@ -102,12 +115,12 @@ export async function POST(req) {
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
   // Core mezők (ezek nélkül nincs használható foglalás-kártya)
   const baseCard = {
-    title: immoOffice ? `${immoOffice} — ${svc.name} — ${customerName}` : `${svc.name} — ${customerName}`,
+    title: resolvedOffice ? `${resolvedOffice} — ${svc.name} — ${customerName}` : `${svc.name} — ${customerName}`,
     card_type: cardType,
     card_date: date,
     card_time: time,
     column_id: col?.id ?? null,
-    client_name: immoOffice || customerName,
+    client_name: resolvedOffice || customerName,
     customer_email: customerEmail,
     customer_phone: customerPhone || null,
     description: noteFull || null,
@@ -151,7 +164,7 @@ export async function POST(req) {
       const startISO = `${date}T${time}:00`
       const endISO = `${date}T${endTime}:00`
       const desc = [
-        `Immobilienbüro: ${immoOffice || '—'}`,
+        `Immobilienbüro: ${resolvedOffice || '—'}`,
         `Name: ${customerName}`,
         `Email: ${customerEmail}`,
         `Telefon: ${customerPhone || '—'}`,
@@ -171,7 +184,7 @@ export async function POST(req) {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summary: `[AUSSTEHEND] ${immoOffice ? immoOffice + ' — ' : ''}${svc.name} — ${customerName}`,
+            summary: `[AUSSTEHEND] ${resolvedOffice ? resolvedOffice + ' — ' : ''}${svc.name} — ${customerName}`,
             location: address,
             description: desc,
             start: { dateTime: startISO, timeZone: 'Europe/Berlin' },
@@ -210,7 +223,7 @@ export async function POST(req) {
           <p>Hallo ${photographer},</p>
           <p>du hast einen neuen Termin für <strong>${svc.name}</strong>.</p>
           <p><strong>Datum:</strong> ${dateFmt} ${time}<br>
-          <strong>Immobilienbüro:</strong> ${immoOffice || '—'}<br>
+          <strong>Immobilienbüro:</strong> ${resolvedOffice || '—'}<br>
           <strong>Name:</strong> ${customerName}<br>
           <strong>Email:</strong> <a href="mailto:${customerEmail}">${customerEmail}</a><br>
           <strong>Telefon:</strong> ${customerPhone || '—'}<br>
