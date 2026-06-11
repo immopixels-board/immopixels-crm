@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.8.0 — Makler Google-Kalender → CRM-Karten import
+## 2026-06-11
+- Kunden fejléc: "🗓️ Makler-Termine" gomb (admin/subadmin).
+- Modal: válassz egy Google-Kalendert (a CRM-hez kötött Google-fiókból), évet,
+  cél-oszlopot és cél-Kundét → "Vorschau laden" (megnézed az adott évi terminek
+  listáját) → "Importieren" → valódi CRM-kártyák jönnek létre a kiválasztott
+  ügyfélhez (client_name = Kürzel), a megfelelő dátummal/idővel/címmel.
+- Duplikátum-védelem: meglévő kártya (ugyanaz a Kunde + dátum + Titel) kimarad.
+- card_type automatikusan tippelve (foto/reel/foto-dron/...) a cím alapján.
+- Backend: GET/POST /api/maklertermine (getGoogleToken — ugyanaz a Google-OAuth,
+  mint a booking rendszernél; cards insert service role-lal).
+
+Megjegyzés: a behozott kártyák utána a számlázóban a Kunde fotózás-listájában is
+megjelennek (havi bontás, pipálható), és a Fahrtkosten/árazás is működik rajtuk.
+
+Érintett: app/api/maklertermine/route.js (új), app/BoardApp.js. VER label: v4.8.0
