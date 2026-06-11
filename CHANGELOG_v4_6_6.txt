@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.6.6 — Saját számlázó: alaprész + hozzáférés-kezelés
+## 2026-06-11
+
+### Külön, kapuzott Abrechnungsbereich (/rechnungen)
+- Külön oldal a CRM alatt, "🔒 nur du" jelzéssel. CSAK az fér hozzá, akinek
+  role_level=admin VAGY can_invoice=true; másnak átirányít a főoldalra.
+- Belépés: a Kunden-eszköztárban új "🧾 Abrechnung" gomb (csak can_invoice).
+- 3 fül a látványterv szerint:
+  - UMSATZ (kész, működik): KPI-k (hónap / év / összes / nyitott-brutto), havi
+    oszlopdiagram évválasztóval (aktuális hónap satírozva), Mehrjahresvergleich,
+    "Umsatz nach Kunde" aránysávval, Netto/Brutto kapcsoló (minden KPI-ra/diagramra hat).
+  - RECHNUNGEN: számlalista státusz-badge-ekkel (Entwurf/Offen/Überfällig/Bezahlt/
+    Storniert), Netto/Brutto oszlop. (Erstellen/PDF/Storno: következő lépés.)
+  - IMPORT: Billomat-import helye (CSV vagy API — döntés után épül).
+- Az adatok a (most létrehozandó) invoices táblából jönnek; amíg üres, 0-t mutat.
+  Ha a tábla még nincs meg, figyelmeztet és a SQL futtatására kér.
+
+### Hozzáférés-kezelés (jelen + jövő)
+- Mitarbeiter-szerkesztőben (csak admin) új kapcsoló: "🧾 Zugriff auf Rechnungen &
+  Umsatz". Ezzel később a SUBADMINNAK és a KÖNYVELŐNEK is megadható a jog — addig csak te.
+
+Érintett: app/rechnungen/page.js (új), app/BoardApp.js (can_invoice kapcsoló + mentés +
+Abrechnung gomb). SQL külön (chatben). VER label: v4.6.6
