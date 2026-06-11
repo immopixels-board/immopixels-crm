@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.6.3 — Nyilvános ügyfél-naptár: havi naptár-nézet
+## 2026-06-11
+
+A nyilvános, csak-olvasható ügyfél-naptár (/cal/<Kürzel>) mostantól két nézetben:
+- "Liste" (mint eddig: kommende / vergangene agenda),
+- "Monat": havi naptárrács (hétfő-kezdés), a fotózásos napokon arany pont; a napra
+  koppintva alul megjelennek az aznapi fotózások (idő, cím, típus) cím-másolással és
+  Google Maps linkkel. Hónap előre/hátra léptethető.
+Továbbra is teljesen csak nézet — semmi nem szerkeszthető.
+
+Érintett: app/cal/[key]/CalClient.js. Nincs új SQL. VER label: v4.6.3
