@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.6.2 — Nyilvános, csak-olvasható ügyfél-naptár (külön link)
+## 2026-06-11
+
+### Új: kunden-specifikus nyilvános naptár
+Külön, bejelentkezés nélküli link, ami CSAK egy adott ügyfél (pl. Bartz) fotózásait
+mutatja. Csak nézet — semmi nem szerkeszthető.
+
+- Link formátum: https://<domain>/cal/<Kürzel>   (pl. .../cal/Bartz)
+- Tartalom: az adott ügyfél fotózásai (dátum, idő, cím, típus). Más ügyfél adata NEM
+  jelenik meg. A teljes naptárat nem osztja meg.
+- Funkciók a nézőnek: kommende / vergangene váltás, cím KOPIEREN (vágólap),
+  cím megnyitása Google Maps-ben. Szerkesztés, törlés, létrehozás: nincs.
+- Biztonság: dedikált, csak-olvasó API (app/api/public-cal/<kulcs>), service role a
+  szerveren, csak biztonságos mezők, csak az adott ügyfél kártyái. Semmilyen írási út.
+
+### Link másolása a CRM-ből
+A Kunden-szerkesztőben (meglévő, mentett ügyfélnél, akinek van Kürzelje) megjelenik az
+"Öffentlicher Kalender" mező a linkkel + "Kopieren" gombbal.
+
+### Bartz beállítása
+A Bartz ügyfélnek legyen Kürzel-je "Bartz" (Kunden -> Bartz -> Kürzel). A link ekkor:
+https://<domain>/cal/Bartz
+
+Érintett: app/api/public-cal/[key]/route.js (új), app/cal/[key]/page.js + CalClient.js (új),
+app/BoardApp.js (link a szerkesztőben). Nincs új SQL. VER label: v4.6.2
