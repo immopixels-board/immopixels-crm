@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.6.9 — Billomat-Entwurf → CRM-Editor link + mentés-hibák láthatóvá
+## 2026-06-11
+
+### Billomat "Entwurf erstellt" modál
+- Új gomb: "🧾 Im CRM-Rechnungseditor öffnen". Ugyanazokkal a tételekkel (Pozíció címe +
+  leírás 2 sorban, mennyiség, ár) és a kiválasztott Kundéval előtölti a CRM saját
+  számla-szerkesztőjét (/rechnungen). Ott "Als Entwurf speichern" vagy "Festschreiben".
+  => Így a Billomatban létrehozott Entwurf egy kattintással átvihető a CRM számlázóba.
+
+### CRM-számlázó: mentés
+- A mentés most MINDEN hibát láthatóvá tesz (update + tétel-beszúrás). Ha eddig csendben
+  elbukott (pl. hiányzó 'discount' oszlop vagy RLS), mostantól pontos hibaüzenet jön,
+  nem tűnik el szótlanul a számla.
+
+FONTOS: ha a CRM-számlázó még "nem ment el" számlát, szinte biztosan a SQL hiányzik.
+Futtasd (Supabase SQL editor): a v4.6.6 séma (invoices/invoice_items/next_invoice_number/RLS)
+ÉS a v4.6.8 oszlop:  alter table invoice_items add column if not exists discount numeric(5,2) default 0;
+
+Érintett: app/BoardApp.js (Billomat-modál gomb), app/rechnungen/page.js (hibakezelés).
+VER label: v4.6.9

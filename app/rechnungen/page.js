@@ -96,11 +96,11 @@ export default function RechnungenPage() {
       const t = calcTotals(items, seller.kleinunternehmer)
       const base = { client_id: ed.client_id || null, client_name: ed.client_name || '', invoice_date: ed.invoice_date, due_date: ed.due_date || null, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: ed.notes || null, seller, buyer: ed.buyer || {}, created_by: myId }
       let invId = ed.id
-      if (invId) { await supabase.from('invoices').update(base).eq('id', invId); await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
+      if (invId) { const { error: ue } = await supabase.from('invoices').update(base).eq('id', invId); if (ue) throw ue; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
       else { const { data, error } = await supabase.from('invoices').insert({ ...base, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id }
       const rate = it => seller.kleinunternehmer ? 0 : num(it.vat_rate)
       const itemRows = items.map((it, i) => { const ln = round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)); return { invoice_id: invId, position: i + 1, description: it.description || '', qty: num(it.qty), unit_price: num(it.unit_price), discount: num(it.discount), vat_rate: rate(it), line_net: ln, line_gross: round2(ln * (1 + rate(it) / 100)) } })
-      if (itemRows.length) await supabase.from('invoice_items').insert(itemRows)
+      if (itemRows.length) { const { error: ie } = await supabase.from('invoice_items').insert(itemRows); if (ie) throw ie }
       if (finalize) {
         const y = +(ed.invoice_date || '').slice(0, 4) || new Date().getFullYear()
         const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y })
