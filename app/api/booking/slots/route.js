@@ -42,7 +42,8 @@ export async function GET(req) {
     const slots = await getDaySlots(serviceId, date, addonMin, null, address)
     const times = slots.map(s => s.time)
     const warnTimes = slots.filter(s => s.warn).map(s => s.time) // útidő miatt szoros
-    return NextResponse.json({ date, times, warnTimes, slots_full: slots }, { headers: CORS })
+    const recoTimes = slots.filter(s => s.empfohlen && !s.warn).map(s => s.time) // fotós a közelben
+    return NextResponse.json({ date, times, warnTimes, recoTimes, slots_full: slots }, { headers: CORS })
   } catch (e) {
     console.error('slots error', e)
     return NextResponse.json({ error: e.message || 'szerver hiba' },

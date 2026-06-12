@@ -21,6 +21,7 @@ export default function BuchenClient() {
   const [slots, setSlots] = useState([])
   const [slotsFull, setSlotsFull] = useState([])
   const [warnTimes, setWarnTimes] = useState([])
+  const [recoTimes, setRecoTimes] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [addr, setAddr] = useState({ address:'', plz:'', lat:null, lng:null })
   const [contact, setContact] = useState({ vorname:'', nachname:'', email:'', phone:'', office:'', note:'' })
@@ -118,10 +119,36 @@ export default function BuchenClient() {
     const addrParam = addr.address ? `&address=${encodeURIComponent(addr.address)}` : ''
     fetch(`/api/booking/slots?serviceId=${service.id}&date=${date}&debug=1&addon360=${a360}&addonDrone=${aDrone}${addrParam}`)
       .then(r=>r.json())
-      .then(d=>{ setSlots(d.times||[]); setSlotsFull(d.slots_full||[]); setWarnTimes(d.warnTimes||[]) })
+      .then(d=>{ setSlots(d.times||[]); setSlotsFull(d.slots_full||[]); setWarnTimes(d.warnTimes||[]); setRecoTimes(d.recoTimes||[]) })
       .catch(()=>setSlots([]))
       .finally(()=>setLoadingSlots(false))
   }, [step, service, date, addon360, addonDrone])
+
+  // Wetter + Sonnenuntergang a választott napra (Open-Meteo, kulcs nélkül; max 16 nap előre)
+  const [wx, setWx] = useState(null)
+  useEffect(() => {
+    setWx(null)
+    if (!date || !addr.lat || !addr.lng) return
+    const diff = (new Date(date + 'T12:00') - new Date()) / 86400000
+    if (diff < -1 || diff > 15.5) return
+    let alive = true
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${addr.lat}&longitude=${addr.lng}&daily=weather_code,temperature_2m_max,precipitation_probability_max,wind_speed_10m_max,sunset&timezone=Europe%2FBerlin&start_date=${date}&end_date=${date}`)
+      .then(r => r.json())
+      .then(j => {
+        if (!alive || !j?.daily?.time?.length) return
+        const sunsetRaw = j.daily.sunset?.[0] || null
+        setWx({
+          code: j.daily.weather_code?.[0],
+          tmax: Math.round(j.daily.temperature_2m_max?.[0]),
+          rain: j.daily.precipitation_probability_max?.[0],
+          wind: Math.round(j.daily.wind_speed_10m_max?.[0]),
+          sunset: sunsetRaw ? sunsetRaw.slice(11, 16) : null,
+          golden: sunsetRaw ? (() => { const [h, m] = sunsetRaw.slice(11, 16).split(':').map(Number); const t = h * 60 + m - 60; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}` })() : null,
+        })
+      }).catch(() => {})
+    return () => { alive = false }
+  }, [date, addr.lat, addr.lng])
+  const wxIcon = c => c === 0 ? ['☀️', 'sonnig'] : c <= 2 ? ['🌤', 'heiter'] : c === 3 ? ['☁️', 'bewölkt'] : c <= 48 ? ['🌫', 'Nebel'] : c <= 57 ? ['🌦', 'Nieselregen'] : c <= 67 ? ['🌧', 'Regen'] : c <= 77 ? ['🌨', 'Schnee'] : c <= 82 ? ['🌦', 'Schauer'] : ['⛈', 'Gewitter']
 
   // Anfahrt-útvonal a Static Maps térképhez (Directions polyline)
   const [routeMap, setRouteMap] = useState(null)
@@ -286,6 +313,8 @@ export default function BuchenClient() {
         .ip-slot{padding:9px 0;font-size:13px;border:0.5px solid #e6ddc9;border-radius:7px;background:#fff;cursor:pointer;color:${DARK};text-align:center;transition:all .12s;position:relative}
         .ip-slot:hover{border-color:${GOLD};color:${GOLD}}
         .ip-slot.warn{border-color:#e0a82e;background:#fffbf0}
+        .ip-slot.reco{border-color:#9bc18c;background:#f3f9ef;color:#2f6e3f;font-weight:600}
+        .ip-slot.reco.sel{background:${GOLD};border-color:${GOLD};color:#fff}
         .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
         .ip-slot.warn.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
         .ip-slot.busy{background:#f9f9f9;color:#bbb;cursor:not-allowed;text-decoration:line-through}
@@ -449,6 +478,15 @@ export default function BuchenClient() {
                 </>
               )}
 
+              {wx && (
+                <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Wetter am Termintag</div>
+                  <div style={{color:DARK,fontWeight:700}}>{wxIcon(wx.code)[0]} {wx.tmax}°C, {wxIcon(wx.code)[1]}{wx.rain != null ? ` · ☔ ${wx.rain}%` : ''}</div>
+                  <div style={{color:'#888',marginTop:3}}>💨 Wind max {wx.wind} km/h{wx.sunset ? ` · 🌇 Sonnenuntergang ${wx.sunset}` : ''}</div>
+                  {wx.golden && <div style={{color:GOLD,marginTop:3,fontWeight:700}}>✨ Goldene Stunde ab ca. {wx.golden} Uhr</div>}
+                  {isDroneAvailable && addonDrone && wx.wind > 30 && <div style={{marginTop:5,color:'#8a6a1f',background:'#fdf6e3',border:'0.5px solid #ecd9a8',borderRadius:6,padding:'5px 8px'}}>⚠ Starker Wind erwartet — Drohnenaufnahmen evtl. eingeschränkt.</div>}
+                </div>
+              )}
               <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
                 <div style={{fontWeight:700,color:DARK}}>{service?.name}</div>
                 <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
@@ -473,14 +511,20 @@ export default function BuchenClient() {
                       const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
                       const isFree = slots.includes(t)
                       const isWarn = warnTimes.includes(t)
+                      const isReco = recoTimes.includes(t)
                       return (
-                        <button key={t} className={`ip-slot${time===t?' sel':''}${!isFree?' busy':''}${isFree&&isWarn?' warn':''}`}
-                          onClick={()=>{ if(isFree){ setTime(t); setProvider(null) } }} disabled={!isFree} title={isWarn?'Knapp wegen Anfahrt':''}>
-                          {t}{isFree&&isWarn?' ⚠':''}
+                        <button key={t} className={`ip-slot${time===t?' sel':''}${!isFree?' busy':''}${isFree&&isWarn?' warn':''}${isFree&&isReco&&!isWarn?' reco':''}`}
+                          onClick={()=>{ if(isFree){ setTime(t); setProvider(null) } }} disabled={!isFree} title={isWarn?'Knapp wegen Anfahrt':(isReco?'Empfohlen: Fotograf in der Nähe':'')}>
+                          {isFree&&isReco&&!isWarn?'✦ ':''}{t}{isFree&&isWarn?' ⚠':''}
                         </button>
                       )
                     })}
                   </div>
+                  {recoTimes.length>0 && (
+                    <div style={{marginTop:10,fontSize:11,color:'#2f6e3f',background:'#f3f9ef',border:'0.5px solid #cde3c6',borderRadius:8,padding:'8px 10px'}}>
+                      ✦ Empfohlene Zeiten: Ihr Fotograf ist dann bereits in Ihrer Nähe — kurze Anfahrt.
+                    </div>
+                  )}
                   {warnTimes.length>0 && (
                     <div style={{marginTop:10,fontSize:11,color:'#b8892a',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
                       ⚠ Markierte Zeiten: Ankunft kann sich wegen der Anfahrt um bis zu 15 Min verschieben.
@@ -580,6 +624,31 @@ export default function BuchenClient() {
           <p style={{fontSize:14,color:'#666',maxWidth:380,margin:'0 auto'}}>
             Wir prüfen Ihre Anfrage und melden uns in Kürze zur Bestätigung. Sie erhalten eine E-Mail mit allen Details.
           </p>
+          {date && time && (() => {
+            const durMin = (service?.duration_min || 60) + addonMin
+            const pad = n => String(n).padStart(2, '0')
+            const [hh, mm] = time.split(':').map(Number)
+            const d0 = date.replace(/-/g, '')
+            const endT = hh * 60 + mm + durMin
+            const dtStart = `${d0}T${pad(hh)}${pad(mm)}00`
+            const dtEnd = `${d0}T${pad(Math.floor(endT / 60))}${pad(endT % 60)}00`
+            const title = `ImmoPixels Fotoshooting — ${service?.name || ''}`
+            const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dtStart}/${dtEnd}&ctz=Europe/Berlin&location=${encodeURIComponent(addr.address || '')}&details=${encodeURIComponent('Gebucht über immopixels.de')}`
+            const downloadIcs = () => {
+              const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ImmoPixels//Buchung//DE','BEGIN:VEVENT',
+                `UID:${Date.now()}@immopixels.de`,`DTSTART;TZID=Europe/Berlin:${dtStart}`,`DTEND;TZID=Europe/Berlin:${dtEnd}`,
+                `SUMMARY:${title}`,`LOCATION:${(addr.address || '').replace(/,/g, '\\,')}`,'DESCRIPTION:Gebucht über immopixels.de','END:VEVENT','END:VCALENDAR'].join('\r\n')
+              const u = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
+              const a = document.createElement('a'); a.href = u; a.download = 'immopixels-termin.ics'; a.click()
+              setTimeout(() => URL.revokeObjectURL(u), 5000)
+            }
+            return (
+              <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginTop:22}}>
+                <button onClick={downloadIcs} style={{padding:'10px 18px',fontSize:13,fontWeight:700,background:'#fff',border:'1px solid '+GOLD,color:GOLD,borderRadius:9,cursor:'pointer'}}>📅 Termin speichern (.ics)</button>
+                <a href={gcal} target="_blank" rel="noreferrer" style={{padding:'10px 18px',fontSize:13,fontWeight:700,background:GOLD,border:'1px solid '+GOLD,color:'#fff',borderRadius:9,textDecoration:'none'}}>📆 Zu Google Kalender</a>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>

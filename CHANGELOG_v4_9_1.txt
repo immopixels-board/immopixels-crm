@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.9.1 — /buchen: Empfohlen-slotok, Wetter, Goldene Stunde, Kalender-gombok
+## 2026-06-12
+
+### ✦ Empfohlene Zeiten
+- A rács zölddel kiemeli azokat az időpontokat, ahol a fotós már a közelben van
+  (Anfahrt ≤ 20 perc, nincs csúszás-kockázat) → az ügyfélnek kényelmes, nekünk
+  km-t és időt spórol. Zöld jelmagyarázat-sáv, ha van ilyen.
+- Backend: slot.empfohlen flag + recoTimes a /api/booking/slots válaszban.
+
+### Wetter am Termintag (Open-Meteo, ingyenes, kulcs nélkül)
+- A bal oszlopban a Verfügbarkeit alatt: hőmérséklet + állapot (sonnig/Regen/...),
+  csapadék-valószínűség, max szél, Sonnenuntergang.
+- ✨ "Goldene Stunde ab ca. HH:MM" (napnyugta − 1 óra).
+- Drohnen-addon + 30 km/h fölötti szél esetén sárga figyelmeztetés
+  ("Drohnenaufnahmen evtl. eingeschränkt").
+- Az előrejelzés max 16 napra elérhető — távolabbi dátumnál a kártya nem jelenik
+  meg (nincs hamis adat). Forrás: api.open-meteo.com (DWD ICON modell, EU-szerver).
+
+### Termin a naptárba (sikeres foglalás után)
+- "📅 Termin speichern (.ics)" — letölthető naptárfájl (Apple/Outlook/egyéb)
+- "📆 Zu Google Kalender" — előre kitöltött Google Calendar link
+- Mindkettő Europe/Berlin idővel, a szolgáltatás tényleges hosszával.
+
+Érintett: app/buchen/BuchenClient.js, lib/booking/slots.js,
+app/api/booking/slots/route.js. VER label: v4.9.1
