@@ -633,11 +633,17 @@ export default function BuchenClient() {
                 const selP = init === acting
                 parts += `&path=${encodeURIComponent((selP ? 'weight:5|color:0xb8892aff' : 'weight:3|color:0x9a9387aa') + '|enc:' + rm.polyline)}`
               })
+              const mOrigin = typeof window !== 'undefined' && window.location.origin.indexOf('https://') === 0 ? window.location.origin : null
               inits.forEach(init => {
                 const io = infos[init]
                 if (!io?.originQuery) return
                 const selP = init === acting
-                parts += `&markers=${encodeURIComponent(`size:mid|color:${selP ? '0xb8892a' : '0x8d8478'}|label:${(init || '?')[0].toUpperCase()}|` + io.originQuery)}`
+                const prM = providers.find(p => p.init === init)
+                if (mOrigin && prM?.avatar_url) {
+                  parts += `&markers=${encodeURIComponent(`anchor:center|icon:${mOrigin}/api/booking/avatarmarker?init=${encodeURIComponent(init)}&sel=${selP ? 1 : 0}|` + io.originQuery)}`
+                } else {
+                  parts += `&markers=${encodeURIComponent(`size:mid|color:${selP ? '0xb8892a' : '0x8d8478'}|label:${(init || '?')[0].toUpperCase()}|` + io.originQuery)}`
+                }
               })
               parts += `&markers=${encodeURIComponent('color:0xb8892a|' + addr.address)}`
               mapSrc = `https://maps.googleapis.com/maps/api/staticmap?size=640x240&scale=2&language=de${MAP_STYLE}${parts}&key=${key}`

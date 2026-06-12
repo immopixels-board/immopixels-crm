@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.9.6 — /buchen: profilkép-markerek a térképen
+## 2026-06-12
+- A térképen a fotósok kiindulási pontját a C/D betűk helyett a PROFILKÉPÜK
+  jelöli: kör alakú mini-marker, a kiválasztott fotósnál ARANY, a többinél
+  szürkésbarna körkerettel.
+- Új endpoint: GET /api/booking/avatarmarker?init=XX&sel=1 — a staff.avatar_url
+  képből szerveroldalon (sharp) 76×76 kör alakú, keretes PNG-t rajzol a Static
+  Maps "icon:" paraméteréhez; 1 napos CDN-cache. Avatar nélküli fotósnál betűs
+  kör; ha bármi hibázik, a térkép a régi betűs markerre esik vissza.
+- ÚJ DEPENDENCY: "sharp" (^0.33.4) a package.json-ban — a Vercel build
+  automatikusan telepíti, teendő nincs. (Node engines változatlan.)
+- Megjegyzés: az ikon csak https-en érhető el a Google számára — éles Vercel
+  domainen működik, localhost-on automatikusan a betűs marker marad.
+
+Érintett: app/api/booking/avatarmarker/route.js (új), app/buchen/BuchenClient.js,
+package.json. VER label: v4.9.6
