@@ -26,8 +26,28 @@ export async function GET() {
 export async function POST(req) {
   let body; try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }) }
   const { calendarId, year, clientName, columnId, create } = body || {}
-  if (!calendarId) return NextResponse.json({ ok: false, error: 'calendarId fehlt' }, { status: 400 })
+  if (!calendarId && !Array.isArray(body?.events)) return NextResponse.json({ ok: false, error: 'calendarId fehlt' }, { status: 400 })
   const y = parseInt(year) || new Date().getFullYear()
+
+  // create + kijelölt események a kliensről → nem kell újra lekérni a naptárat
+  if (create && Array.isArray(body.events)) {
+    if (!clientName || !columnId) return NextResponse.json({ ok: false, error: 'clientName/columnId fehlt' }, { status: 400 })
+    const evs = body.events.filter(e => e && e.date && e.summary).slice(0, 1000)
+    const sb = await svc()
+    const { data: existing } = await sb.from('cards').select('card_date,title').eq('client_name', clientName).gte('card_date', y + '-01-01').lte('card_date', y + '-12-31').is('deleted_at', null)
+    const seen = new Set((existing || []).map(c => (c.card_date || '') + '|' + (c.title || '')))
+    let skipped = 0
+    const rows = []
+    for (const e of evs) {
+      const key = e.date + '|' + e.summary
+      if (seen.has(key)) { skipped++; continue }
+      seen.add(key)
+      rows.push({ column_id: columnId, client_name: clientName, title: e.summary, addr: e.location || '', booking_address: e.location || '', description: (e.description || '').slice(0, 500), card_date: e.date, card_time: e.time || null, card_type: guessType(e.summary + ' ' + (e.description || '')), position: 999 })
+    }
+    if (rows.length) { const { error } = await sb.from('cards').insert(rows); if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 }) }
+    return NextResponse.json({ ok: true, created: rows.length, skipped, total: evs.length })
+  }
+
   const { getGoogleToken } = await import('@/lib/booking/slots')
   const token = await getGoogleToken()
   if (!token) return NextResponse.json({ ok: false, error: 'Google nicht verbunden' }, { status: 500 })
@@ -49,7 +69,7 @@ export async function POST(req) {
     return { gid: ev.id, date: dt ? dt.slice(0, 10) : ev.start.date, time: dt ? dt.slice(11, 16) : null, summary: ev.summary || '(ohne Titel)', location: ev.location || '', description: (ev.description || '').slice(0, 500) }
   })
 
-  if (!create) return NextResponse.json({ ok: true, count: events.length, events: events.slice(0, 200) })
+  if (!create) return NextResponse.json({ ok: true, count: events.length, events: events.slice(0, 1000) })
 
   if (!clientName || !columnId) return NextResponse.json({ ok: false, error: 'clientName/columnId fehlt' }, { status: 400 })
   const sb = await svc()

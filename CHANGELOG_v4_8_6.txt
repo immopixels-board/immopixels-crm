@@ -1,0 +1,15 @@
+# ImmoPixels CRM v4.8.6 — Makler-Termine import: szűrő + egyenkénti kijelölés
+## 2026-06-12
+- Probléma: a főnaptárban MINDEN termin benne van (több makler vegyesen), az import
+  pedig mindet a kiválasztott Kundéhoz tette volna (342 kártya!).
+- Vorschau után mostantól:
+  - szűrőmező (alapból a beírt Kunde nevével előtöltve, pl. "Fetter"),
+  - minden termin egyenként pipálható; alapból csak a Kunde nevére illeszkedők
+    vannak kijelölve,
+  - "Gefilterte wählen" / "Keine" gyorsgombok,
+  - az Importieren gomb mutatja a kijelöltek számát, és CSAK a kijelölt
+    termineket importálja (a szerver a kliensről kapott listát szúrja be).
+- Vorschau limit 200 → 1000 esemény.
+- Duplikátum-védelem változatlan (Kunde + dátum + Titel).
+
+Érintett: app/BoardApp.js, app/api/maklertermine/route.js. VER label: v4.8.6
