@@ -8,12 +8,16 @@ function guessType(s) { const t = String(s || '').toLowerCase(); const foto = /f
 
 // GET → naptárak listája
 export async function GET() {
-  const { getGoogleToken } = await import('@/lib/booking/slots')
+  const { getGoogleToken, GCAL_IDS } = await import('@/lib/booking/slots')
   const token = await getGoogleToken()
   if (!token) return NextResponse.json({ ok: false, error: 'Google nicht verbunden (kein Token)' }, { status: 500 })
   const r = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250&minAccessRole=reader', { headers: { Authorization: 'Bearer ' + token } })
   const j = await r.json()
-  if (j.error) return NextResponse.json({ ok: false, error: j.error?.message || 'Calendar API Fehler' }, { status: 502 })
+  if (j.error) {
+    // Insufficient scope (régi token) → fallback: ismert naptárak + kézi ID
+    const fallback = Object.entries(GCAL_IDS || {}).map(([k, id]) => ({ id, summary: k + ' (' + id.slice(0, 28) + (id.length > 28 ? '…' : '') + ')', primary: k === 'CD' }))
+    return NextResponse.json({ ok: true, calendars: fallback, fallback: true, warn: j.error?.message || 'Calendar API Fehler' })
+  }
   const calendars = (j.items || []).map(c => ({ id: c.id, summary: c.summary, primary: !!c.primary })).sort((a, b) => (b.primary ? 1 : 0) - (a.primary ? 1 : 0) || a.summary.localeCompare(b.summary))
   return NextResponse.json({ ok: true, calendars })
 }

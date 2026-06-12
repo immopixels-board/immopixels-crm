@@ -1,0 +1,14 @@
+# ImmoPixels CRM v4.8.2 — Google scope-fix a Makler-Termine importhoz
+## 2026-06-11
+- Hiba: "Request had insufficient authentication scopes" — a tárolt Google-token csak
+  calendar.events scope-pal készült, a naptárLISTA lekéréséhez calendar.readonly kell.
+- OAuth scope bővítve: + https://www.googleapis.com/auth/calendar.readonly
+  → a Kalender-tabon "Mit Google verbinden" gombbal ÚJRA össze kell kötni a Google-t
+  (egyszer), utána a teljes naptárlista megjelenik.
+- Fallback (újrakötés nélkül is működik): ha a scope kevés, a modal a CRM-ben ismert
+  naptárakat (CD, DB) ajánlja fel + kézi Kalender-ID mező (pl. makler@gmail.com).
+  Az esemény-lekérés és az import a régi tokennel is működik konkrét naptár-ID-vel.
+- Figyelmeztető sáv a modalban, ha a régi token miatt csak a fallback lista látszik.
+
+Érintett: app/api/gcal/oauth/route.js, app/api/maklertermine/route.js, app/BoardApp.js.
+VER label: v4.8.2
