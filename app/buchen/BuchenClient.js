@@ -468,9 +468,37 @@ export default function BuchenClient() {
                   </div>
                   {warnTimes.length>0 && (
                     <div style={{marginTop:10,fontSize:11,color:'#b8892a',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
-                      ⚠ Markierte Zeiten sind wegen der Anfahrt zwischen Terminen knapp. Buchung möglich — wir bestätigen die Machbarkeit.
+                      ⚠ Markierte Zeiten: Ankunft kann sich wegen der Anfahrt um bis zu 15 Min verschieben.
                     </div>
                   )}
+                  {time && (() => {
+                    const sf = slotsFull.find(s => s.time === time)
+                    const inf = sf?.info
+                    if (!inf || !addr.address) return null
+                    const isW = warnTimes.includes(time)
+                    const delay = inf.delayMin || 0
+                    const warnState = delay > 0 || isW
+                    const headTxt = inf.home
+                      ? `Ihr Fotograf startet von zu Hause — pünktliche Ankunft um ${time} Uhr.`
+                      : delay > 0
+                        ? `Vorheriger Termin in ${inf.from} bis ${inf.prevEnd} Uhr — Ankunft evtl. bis zu ${delay} Min später.`
+                        : `Ihr Fotograf kommt von einem Termin in ${inf.from} — pünktliche Ankunft um ${time} Uhr.`
+                    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+                    const mapSrc = key && inf.originQuery ? `https://www.google.com/maps/embed/v1/directions?key=${key}&origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}&mode=driving&language=de` : null
+                    return (
+                      <div style={{marginTop:12,border:'0.5px solid #e6ddc9',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:7,padding:'9px 12px',fontSize:12.5,fontWeight:600,background:warnState?'#fffbf0':'#f0f7ee',borderBottom:'0.5px solid '+(warnState?'#f0d9a8':'#cde3c6'),color:warnState?'#8a6a1f':'#2f7a4f'}}>
+                          <span>{warnState?'⚠':'✓'}</span><span>{headTxt}</span>
+                        </div>
+                        {mapSrc && <iframe src={mapSrc} style={{width:'100%',height:200,border:0,display:'block'}} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen title="Anfahrt" />}
+                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',alignItems:'center',padding:'8px 12px',fontSize:11.5,color:'#6b6459'}}>
+                          <span>📍 {inf.home ? `Start: Zuhause (${inf.from})` : `${inf.from}${inf.prevEnd ? ' · Termin bis ' + inf.prevEnd : ''}`}</span>
+                          <span>🚗 ca. {inf.travelMin} Min Fahrt</span>
+                          <span>🏠 Ankunft ca. {delay > 0 ? `${inf.eta} (+${delay} Min)` : time}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                   {time && freeInitsAtTime && freeInitsAtTime.length>0 && (
                     <div style={{marginTop:14}}>
                       <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Fotograf (optional)</div>

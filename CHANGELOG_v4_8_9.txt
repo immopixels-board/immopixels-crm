@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.8.9 — Booking: aszimmetrikus útidő-szabály + Anfahrt-térkép panel
+## 2026-06-12
+
+### Útidő-szabály (a v4.8.8 finomítása)
+- KÖVETKEZŐ fix termin: ha az új foglalás után nem érnénk oda időben a meglévő
+  fix terminre → a slot NEM foglalható (nulla tolerancia, a fix terminről nem késünk).
+- ELŐZŐ fix termin: ha az ÚJ terminre érkeznénk késve, max +15 percig
+  figyelmeztetéssel ("Ankunft evtl. bis zu X Min später") foglalható; +15 perc
+  fölött az a slot is tiltva.
+- A "knapp" jelzés megmarad, ha pontos az érkezés, de 15 percnél kevesebb a tartalék.
+
+### Anfahrt-térkép panel a /buchen oldalon
+- Időpont kiválasztásakor lenyíló kártya az időpont-rács alatt:
+  - állapot-fejléc (zöld: pünktlich / sárga: bis zu +X Min)
+  - VALÓDI Google Maps útvonal-térkép (Embed API, directions): kiindulás = az előző
+    termin VÁROSA (adatvédelem: cím soha!) vagy a fotós lakhelye ("Zuhause"),
+    cél = az ügyfél címe
+  - alul: kiindulás · ca. X Min Fahrt · Ankunft ca. HH:MM (+X Min)
+- A szerver minden slothoz "info"-t ad (honnan, meddig tart az előző termin,
+  útidő, várható érkezés, késés) az automatikusan választott fotósra.
+- FONTOS: a Google Maps Embed API-t engedélyezni kell a meglévő
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY kulcson (Google Cloud Console → Maps Embed API
+  → Enable; a kulcs-korlátozásnál a booking domain engedélyezve legyen).
+  Ha a kulcs nem engedi, a panel térkép nélkül, csak szöveggel jelenik meg.
+
+Érintett: lib/booking/slots.js, app/buchen/BuchenClient.js,
+app/api/booking/create/route.js. VER label: v4.8.9
