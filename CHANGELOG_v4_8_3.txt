@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.8.3 — Demo: Dirk Fellhauer elrejtése
+## 2026-06-12
+- Demo felhasználó (role_level='demo') számára Dirk Fellhauer sehol nem látható:
+  - staff-lista betöltéskor kiszűrve (email: d.fellhauer@immopixels.de vagy név
+    "Dirk Fel(l)hauer") → Mitarbeiter, Team-avatarok, dropdownok, widgetek
+  - Telefonbuch-bejegyzés is kiszűrve (név/email egyezés)
+  - login után automatikus újraszűrés (useEffect a currentUser-re)
+- Minden más felhasználó (admin, subadmin, mitarbeiter) mindent változatlanul lát.
+- Ha Dirk hozzá van rendelve egy kártyához, demo nézetben az avatar helyén "?" áll,
+  név nélkül.
+
+Érintett: app/BoardApp.js. VER label: v4.8.3
