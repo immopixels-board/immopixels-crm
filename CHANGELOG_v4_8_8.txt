@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.8.8 — Booking: útidő miatt nem tartható slotok tiltása
+## 2026-06-12
+- Eddig: ha a meglévő (fix) termin és az új foglalás közti szünetbe nem fért bele
+  az útidő, a rendszer csak "knapp" figyelmeztetést adott, de ENGEDTE a foglalást
+  (pl. másfél órás út egy korábbi fix terminről → garantált késés).
+- Mostantól: ha az útidő NEM fér bele a résbe (meglévő termin → új helyszín, VAGY
+  az új termin vége → következő meglévő termin), a fotós arra a slotra nem számít
+  elérhetőnek. Ha egyik szabad fotósnak sem tartható, a slot fel sem ajánlódik,
+  és foglaláskor is elutasítja (409 "slot unavailable" — az élő újraellenőrzés
+  ugyanazt a logikát futtatja).
+- A "knapp" figyelmeztetés megmarad a határeseteknek: ha az út befér, de 15 percnél
+  kevesebb tartalék marad az útidőn felül (TRAVEL_BUFFER_MIN=15).
+- Útidő: Google Maps (lib/booking/travel.js), mint eddig; ha az útidő nem
+  lekérdezhető (API-hiba), a viselkedés a korábbi marad (nincs tiltás).
+
+Érintett: lib/booking/slots.js. VER label: v4.8.8
