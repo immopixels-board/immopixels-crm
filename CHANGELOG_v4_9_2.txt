@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.9.2 — /buchen javítások + naptár hover-időjárás
+## 2026-06-12
+
+### Hibajavítások
+- Kijelölt nap a naptárban: a kiválasztott dátum 12:00-s, a cellák 0:00-s idővel
+  hasonlítódtak össze → SOSEM egyeztek, ezért nem látszott az arany kijelölés.
+  Javítva (óra-nullázás) — a "Gewählt" nap mostantól arany.
+- Térkép nem töltődött (routemap 502): a szerveroldali Directions-hívást a
+  (vélhetően referrer-korlátos) kulcs elutasította. Mostantól az útvonalat
+  ELSŐKÉNT a böngészőből kérjük le (Google Maps JS DirectionsService — az oldal
+  már betölti, és ott a kulcs engedélyezett); a szerver-route csak fallback.
+- A Static Maps képhez továbbra is kell: Google Cloud → "Maps Static API" Enable
+  (a kép a böngészőből, referrerrel kéri le — referrer-korlátos kulccsal is megy).
+
+### Naptár hover-időjárás
+- A naptár napjaira egeret vive kis időjárás-ikon jelenik meg a cella sarkában
+  (☀/🌤/🌧/⛈ …) — egyetlen 16 napos Open-Meteo lekérésből, a megadott cím
+  koordinátáira. 16 napon túli napokon nincs ikon (nincs előrejelzés).
+
+Érintett: app/buchen/BuchenClient.js. VER label: v4.9.2

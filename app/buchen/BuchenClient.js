@@ -124,6 +124,20 @@ export default function BuchenClient() {
       .finally(()=>setLoadingSlots(false))
   }, [step, service, date, addon360, addonDrone])
 
+  // 16 napos előrejelzés a naptár-napok hover-ikonjaihoz
+  const [wxDays, setWxDays] = useState({})
+  useEffect(() => {
+    if (!addr.lat || !addr.lng) return
+    const start = new Date().toISOString().slice(0, 10)
+    const end = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10)
+    let alive = true
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${addr.lat}&longitude=${addr.lng}&daily=weather_code&timezone=Europe%2FBerlin&start_date=${start}&end_date=${end}`)
+      .then(r => r.json())
+      .then(j => { if (!alive || !j?.daily?.time) return; const m = {}; j.daily.time.forEach((d, i) => { m[d] = j.daily.weather_code[i] }); setWxDays(m) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [addr.lat, addr.lng])
+
   // Wetter + Sonnenuntergang a választott napra (Open-Meteo, kulcs nélkül; max 16 nap előre)
   const [wx, setWx] = useState(null)
   useEffect(() => {
@@ -158,8 +172,24 @@ export default function BuchenClient() {
     const inf = sf?.info
     if (!time || !inf?.originQuery || !addr.address) return
     let alive = true
-    fetch(`/api/booking/routemap?origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}`)
+    const viaServer = () => fetch(`/api/booking/routemap?origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}`)
       .then(r => r.json()).then(j => { if (alive && j.ok) setRouteMap(j) }).catch(() => {})
+    if (typeof window !== 'undefined' && window.google?.maps?.DirectionsService) {
+      try {
+        new window.google.maps.DirectionsService().route(
+          { origin: inf.originQuery, destination: addr.address, travelMode: 'DRIVING' },
+          (res, status) => {
+            if (!alive) return
+            const rt = status === 'OK' ? res?.routes?.[0] : null
+            const poly = rt ? (typeof rt.overview_polyline === 'string' ? rt.overview_polyline : rt.overview_polyline?.points) : null
+            if (poly) {
+              const leg = rt.legs?.[0]
+              setRouteMap({ ok: true, polyline: poly, km: leg ? Math.round((leg.distance?.value || 0) / 100) / 10 : null, min: leg ? Math.round((leg.duration?.value || 0) / 60) : null })
+            } else viaServer()
+          }
+        )
+      } catch { viaServer() }
+    } else viaServer()
     return () => { alive = false }
   }, [time, slotsFull, addr.address])
 
@@ -229,6 +259,7 @@ export default function BuchenClient() {
     const today = new Date(); today.setHours(0,0,0,0)
     const minD = min ? new Date(min+'T12:00') : null; if (minD) minD.setHours(0,0,0,0)
     const sel = value ? new Date(value+'T12:00') : null
+    if (sel) sel.setHours(0,0,0,0)
     const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
     const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So']
     const year = view.getFullYear(), month = view.getMonth()
@@ -272,23 +303,25 @@ export default function BuchenClient() {
                 const isToday = dt.getTime()===today.getTime()
                 const isDisabled = minD && dt<minD
                 const isWeekend = i%7>=5
+                const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+                const wxc = !isDisabled ? wxDays[iso] : undefined
                 return (
-                  <button key={i} type="button" disabled={isDisabled}
+                  <button key={i} type="button" disabled={isDisabled} className="ip-dpd"
                     onClick={()=>{
-                      const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
                       onChange(iso); setOpen(false)
                     }}
                     style={{
-                      padding:'8px 0',fontSize:12,border:'none',borderRadius:6,cursor:isDisabled?'not-allowed':'pointer',
+                      position:'relative',padding:'8px 0',fontSize:12,border:'none',borderRadius:6,cursor:isDisabled?'not-allowed':'pointer',
                       background: isSel?GOLD:'transparent',
                       color: isSel?'#fff':(isDisabled?'#ddd':(isWeekend?'#bbb':DARK)),
                       fontWeight: isSel?700:400,
                       outline: isToday&&!isSel?`1px solid ${GOLD}`:'none',
                       transition:'background .12s',
                     }}
-                    onMouseEnter={e=>{ if(!isSel&&!isDisabled) e.target.style.background='#f0ece4' }}
-                    onMouseLeave={e=>{ if(!isSel) e.target.style.background='transparent' }}>
+                    onMouseEnter={e=>{ if(!isSel&&!isDisabled) e.currentTarget.style.background='#f0ece4' }}
+                    onMouseLeave={e=>{ if(!isSel) e.currentTarget.style.background='transparent' }}>
                     {d}
+                    {wxc != null && <span className="ip-dpd-wx">{wxIcon(wxc)[0]}</span>}
                   </button>
                 )
               })}
@@ -314,6 +347,8 @@ export default function BuchenClient() {
         .ip-slot:hover{border-color:${GOLD};color:${GOLD}}
         .ip-slot.warn{border-color:#e0a82e;background:#fffbf0}
         .ip-slot.reco{border-color:#9bc18c;background:#f3f9ef;color:#2f6e3f;font-weight:600}
+        .ip-dpd .ip-dpd-wx{position:absolute;top:0px;right:1px;font-size:9px;opacity:0;pointer-events:none;transition:opacity .12s}
+        .ip-dpd:hover .ip-dpd-wx{opacity:1}
         .ip-slot.reco.sel{background:${GOLD};border-color:${GOLD};color:#fff}
         .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
         .ip-slot.warn.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
