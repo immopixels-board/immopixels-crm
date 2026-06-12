@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.8.4 — Demo írásvédelem-audit
+## 2026-06-12
+- Audit: a demo user (role_level='demo') minden mutációnál blokkolva van-e.
+- Befoltozva (hiányzott a demoBlock):
+  - deleteClientFn (egy ügyfél törlése)
+  - deleteClientsBulk (csoportos ügyfél-törlés, v4.7.4-ben jött)
+  - saveServicePrices (globális árlista mentés)
+- Már korábban is védve: kártya/oszlop műveletek, saveClient, saveStaffFn stb.
+  (demoBlock() → "Demo-Modus: Keine Änderungen möglich.")
+- Rechnungen oldalak: demo nem fér hozzá (admin VAGY can_invoice kell).
+- Makler-Termine import: csak admin/subadmin látja a gombot.
+
+Érintett: app/BoardApp.js. VER label: v4.8.4

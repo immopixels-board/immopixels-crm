@@ -1,0 +1,14 @@
+# ImmoPixels CRM v4.8.5 — Demo-rejtés fix (render-szintű szűrés)
+## 2026-06-12
+- Hiba: v4.8.3-ban a Dirk-rejtés betöltéskor szűrt, de a kezdeti staff-betöltés
+  (amikor a currentUser még nem volt beállítva) versenyhelyzetben felülírhatta a
+  szűrt listát → demo user mégis látta Dirköt a Mitarbeiter nézetben.
+- Megoldás: a szűrés mostantól RENDER-szinten történik (staffRaw/phonebookRaw
+  state + származtatott staff/phonebook), így a betöltési sorrendtől függetlenül
+  mindig érvényesül. Realtime-frissítésnél is.
+- A név-regexben lévő dupla backslash is javítva (a név-alapú felismerés a
+  "Dirk Fellhauer"/"Dirk Felhauer" írásmódra is működik; az email-egyezés
+  d.fellhauer@immopixels.de továbbra is az elsődleges azonosító).
+- A v4.8.4 demo-írásvédelmi foltok változatlanul benne vannak.
+
+Érintett: app/BoardApp.js. VER label: v4.8.5
