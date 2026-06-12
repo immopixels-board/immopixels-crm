@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.9.0 — /buchen: új Datum & Uhrzeit layout + stílusozott Static térkép
+## 2026-06-12
+
+### Új elrendezés (a jóváhagyott látványterv szerint)
+- Bal oszlop: a naptár FIXEN NYITVA (nem lenyíló), alatta a Verfügbarkeit kártyák
+  és a foglalás-összefoglaló.
+- Jobb oszlop: Uhrzeit-rács + figyelmeztetés.
+- A térkép-kártya TELJES SZÉLESSÉGBEN mindkét oszlop alatt; alatta a
+  Fotograf (optional) választó, majd a Verbindlich buchen gomb.
+
+### Térkép: Embed → Static Maps (popup nélkül, oldal-színvilágban)
+- A zavaró Google-popup eltűnt: a térkép mostantól stílusozott Static Maps kép
+  (krém szárazföld, bézs utak, halvány városnevek, ARANY útvonal-vonal).
+- Az útvonalat az új GET /api/booking/routemap adja (Directions API, szerveroldal,
+  memóriacache-sel) — km is megjelenik az info-sorban.
+- Amíg töltődik / ha hibázik: "Karte wird geladen…" sáv, a szöveges adatok így is
+  látszanak. Marker: kiindulás (szürke), cél (arany).
+
+### GOOGLE CLOUD TEENDŐ (egyszeri):
+- Engedélyezd a kulcson: "Maps Static API" és "Directions API"
+  (a Maps Embed API már nem kell). Opcionális: külön szerver-kulcs a
+  GOOGLE_MAPS_SERVER_KEY env-ben (ha nincs, a NEXT_PUBLIC kulcsot használja).
+
+Érintett: app/buchen/BuchenClient.js, app/api/booking/routemap/route.js (új).
+VER label: v4.9.0

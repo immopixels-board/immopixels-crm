@@ -123,6 +123,19 @@ export default function BuchenClient() {
       .finally(()=>setLoadingSlots(false))
   }, [step, service, date, addon360, addonDrone])
 
+  // Anfahrt-útvonal a Static Maps térképhez (Directions polyline)
+  const [routeMap, setRouteMap] = useState(null)
+  useEffect(() => {
+    setRouteMap(null)
+    const sf = slotsFull.find(s => s.time === time)
+    const inf = sf?.info
+    if (!time || !inf?.originQuery || !addr.address) return
+    let alive = true
+    fetch(`/api/booking/routemap?origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}`)
+      .then(r => r.json()).then(j => { if (alive && j.ok) setRouteMap(j) }).catch(() => {})
+    return () => { alive = false }
+  }, [time, slotsFull, addr.address])
+
   async function submit() {
     setSubmitting(true)
     try {
@@ -183,7 +196,7 @@ export default function BuchenClient() {
   )
 
   // Custom ImmoPixels date picker
-  const DatePicker = ({ value, min, onChange }) => {
+  const DatePicker = ({ value, min, onChange, inline = false }) => {
     const [open, setOpen] = useState(false)
     const [view, setView] = useState(() => value ? new Date(value+'T12:00') : new Date())
     const today = new Date(); today.setHours(0,0,0,0)
@@ -202,18 +215,20 @@ export default function BuchenClient() {
     const fmtDisplay = sel ? sel.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) : 'Datum wählen'
     return (
       <div style={{position:'relative',marginBottom:12}}>
-        <button type="button" onClick={()=>setOpen(o=>!o)} style={{
+        {!inline && <button type="button" onClick={()=>setOpen(o=>!o)} style={{
           width:'100%',padding:'11px 14px',fontSize:14,border:'0.5px solid #e6ddc9',borderRadius:8,
           background:'#fff',color:sel?DARK:'#999',cursor:'pointer',textAlign:'left',
           display:'flex',alignItems:'center',justifyContent:'space-between',fontFamily:'inherit',
         }}>
           <span>{fmtDisplay}</span>
           <span style={{color:GOLD,fontSize:16}}>📅</span>
-        </button>
-        {open && (
-          <div className="ip-datepicker-pop" style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',
-            border:'0.5px solid #e6ddc9',borderRadius:12,padding:14,width:286,
-            boxShadow:'0 8px 28px rgba(0,0,0,.12)'}}>
+        </button>}
+        {(inline || open) && (
+          <div className="ip-datepicker-pop" style={inline
+            ? {background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:12,padding:14}
+            : {position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:100,background:'#fff',
+               border:'0.5px solid #e6ddc9',borderRadius:12,padding:14,width:286,
+               boxShadow:'0 8px 28px rgba(0,0,0,.12)'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
               <button type="button" onClick={()=>setView(new Date(year,month-1,1))} style={{background:'none',border:'none',color:GOLD,fontSize:18,cursor:'pointer',padding:'2px 8px',borderRadius:6}}>‹</button>
               <span style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:600}}>{monthNames[month]} {year}</span>
@@ -254,7 +269,7 @@ export default function BuchenClient() {
             <div style={{marginTop:10,paddingTop:8,borderTop:'0.5px solid #e6ddc9',display:'flex',justifyContent:'space-between',fontSize:10,color:'#888'}}>
               <span><span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:GOLD,verticalAlign:'middle',marginRight:4}} />Gewählt</span>
               <span><span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',border:'1px solid '+GOLD,verticalAlign:'middle',marginRight:4}} />Heute</span>
-              <button type="button" onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:GOLD,fontSize:10,fontWeight:700,cursor:'pointer'}}>Schließen</button>
+              {!inline && <button type="button" onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:GOLD,fontSize:10,fontWeight:700,cursor:'pointer'}}>Schließen</button>}
             </div>
           </div>
         )}
@@ -413,7 +428,7 @@ export default function BuchenClient() {
           <div className="ip-mob-grid-3step" style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:20}}>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Datum</div>
-              <DatePicker value={date} min={minDate} onChange={setDate} />
+              <DatePicker value={date} min={minDate} onChange={setDate} inline />
 
               {date && (
                 <>
@@ -471,35 +486,61 @@ export default function BuchenClient() {
                       ⚠ Markierte Zeiten: Ankunft kann sich wegen der Anfahrt um bis zu 15 Min verschieben.
                     </div>
                   )}
-                  {time && (() => {
-                    const sf = slotsFull.find(s => s.time === time)
-                    const inf = sf?.info
-                    if (!inf || !addr.address) return null
-                    const isW = warnTimes.includes(time)
-                    const delay = inf.delayMin || 0
-                    const warnState = delay > 0 || isW
-                    const headTxt = inf.home
-                      ? `Ihr Fotograf startet von zu Hause — pünktliche Ankunft um ${time} Uhr.`
-                      : delay > 0
-                        ? `Vorheriger Termin in ${inf.from} bis ${inf.prevEnd} Uhr — Ankunft evtl. bis zu ${delay} Min später.`
-                        : `Ihr Fotograf kommt von einem Termin in ${inf.from} — pünktliche Ankunft um ${time} Uhr.`
-                    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-                    const mapSrc = key && inf.originQuery ? `https://www.google.com/maps/embed/v1/directions?key=${key}&origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}&mode=driving&language=de` : null
-                    return (
-                      <div style={{marginTop:12,border:'0.5px solid #e6ddc9',borderRadius:12,overflow:'hidden',background:'#fff'}}>
-                        <div style={{display:'flex',alignItems:'flex-start',gap:7,padding:'9px 12px',fontSize:12.5,fontWeight:600,background:warnState?'#fffbf0':'#f0f7ee',borderBottom:'0.5px solid '+(warnState?'#f0d9a8':'#cde3c6'),color:warnState?'#8a6a1f':'#2f7a4f'}}>
-                          <span>{warnState?'⚠':'✓'}</span><span>{headTxt}</span>
-                        </div>
-                        {mapSrc && <iframe src={mapSrc} style={{width:'100%',height:200,border:0,display:'block'}} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen title="Anfahrt" />}
-                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',alignItems:'center',padding:'8px 12px',fontSize:11.5,color:'#6b6459'}}>
-                          <span>📍 {inf.home ? `Start: Zuhause (${inf.from})` : `${inf.from}${inf.prevEnd ? ' · Termin bis ' + inf.prevEnd : ''}`}</span>
-                          <span>🚗 ca. {inf.travelMin} Min Fahrt</span>
-                          <span>🏠 Ankunft ca. {delay > 0 ? `${inf.eta} (+${delay} Min)` : time}</span>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                  {time && freeInitsAtTime && freeInitsAtTime.length>0 && (
+                </>
+              )}
+            </div>
+          </div>
+
+          {time && (() => {
+            const sf = slotsFull.find(s => s.time === time)
+            const inf = sf?.info
+            if (!inf || !addr.address) return null
+            const isW = warnTimes.includes(time)
+            const delay = inf.delayMin || 0
+            const warnState = delay > 0 || isW
+            const headTxt = inf.home
+              ? `Ihr Fotograf startet von zu Hause — pünktliche Ankunft um ${time} Uhr.`
+              : delay > 0
+                ? `Vorheriger Termin in ${inf.from} bis ${inf.prevEnd} Uhr — Ankunft evtl. bis zu ${delay} Min später.`
+                : `Ihr Fotograf kommt von einem Termin in ${inf.from} — pünktliche Ankunft um ${time} Uhr.`
+            const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+            const MAP_STYLE = [
+              'feature:landscape|color:0xf3ecdc',
+              'feature:landscape.natural|element:geometry|color:0xeae6d2',
+              'feature:water|color:0xdde7d8',
+              'feature:poi|visibility:off',
+              'feature:transit|visibility:off',
+              'feature:road|element:geometry|color:0xe4dac2',
+              'feature:road.highway|element:geometry|color:0xdccfae',
+              'feature:road|element:labels|visibility:off',
+              'feature:administrative|element:geometry|visibility:off',
+              'feature:administrative.locality|element:labels.text.fill|color:0x8a8278',
+              'feature:administrative.locality|element:labels.text.stroke|color:0xf3ecdc',
+            ].map(st => '&style=' + encodeURIComponent(st)).join('')
+            const mapSrc = key && routeMap?.polyline
+              ? `https://maps.googleapis.com/maps/api/staticmap?size=640x240&scale=2&language=de${MAP_STYLE}` +
+                `&path=${encodeURIComponent('weight:4|color:0xb8892aff|enc:' + routeMap.polyline)}` +
+                `&markers=${encodeURIComponent('size:mid|color:0x5f5e5a|' + inf.originQuery)}` +
+                `&markers=${encodeURIComponent('color:0xb8892a|' + addr.address)}&key=${key}`
+              : null
+            return (
+              <div style={{marginTop:16,border:'0.5px solid #e6ddc9',borderRadius:14,overflow:'hidden',background:'#fff'}}>
+                <div style={{display:'flex',alignItems:'flex-start',gap:7,padding:'10px 16px',fontSize:13,fontWeight:600,background:warnState?'#fdf6e3':'#eef5ea',borderBottom:'0.5px solid '+(warnState?'#ecd9a8':'#cde3c6'),color:warnState?'#8a6a1f':'#27500a'}}>
+                  <span>{warnState?'⚠':'✓'}</span><span>{headTxt}</span>
+                </div>
+                {mapSrc
+                  ? <img src={mapSrc} alt="Anfahrt" style={{width:'100%',height:'auto',display:'block'}} />
+                  : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#a39b89',background:'#f6f0e4'}}>Karte wird geladen…</div>}
+                <div style={{display:'flex',flexWrap:'wrap',gap:'4px 18px',alignItems:'center',padding:'9px 16px',borderTop:'0.5px solid #e6ddc9',fontSize:12,color:'#6b6459'}}>
+                  <span>📍 {inf.home ? `Start: Zuhause (${inf.from})` : `${inf.from}${inf.prevEnd ? ' · Termin bis ' + inf.prevEnd : ''}`}</span>
+                  <span>🚗 ca. {inf.travelMin} Min Fahrt{routeMap?.km ? ` · ${routeMap.km} km` : ''}</span>
+                  <span>🏠 Ankunft ca. {delay > 0 ? `${inf.eta} (+${delay} Min)` : time}</span>
+                </div>
+              </div>
+            )
+          })()}
+
+          {time && freeInitsAtTime && freeInitsAtTime.length>0 && (
                     <div style={{marginTop:14}}>
                       <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Fotograf (optional)</div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
@@ -527,10 +568,6 @@ export default function BuchenClient() {
                       )}
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
 
           <Nav onBack={()=>setStep(2)} onNext={submit} canNext={can.submit&&!submitting} nextLabel={submitting?'Wird gebucht…':'Verbindlich buchen'} />
         </div>
