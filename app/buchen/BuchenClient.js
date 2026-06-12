@@ -165,31 +165,32 @@ export default function BuchenClient() {
   const wxIcon = c => c === 0 ? ['☀️', 'sonnig'] : c <= 2 ? ['🌤', 'heiter'] : c === 3 ? ['☁️', 'bewölkt'] : c <= 48 ? ['🌫', 'Nebel'] : c <= 57 ? ['🌦', 'Nieselregen'] : c <= 67 ? ['🌧', 'Regen'] : c <= 77 ? ['🌨', 'Schnee'] : c <= 82 ? ['🌦', 'Schauer'] : ['⛈', 'Gewitter']
 
   // Anfahrt-útvonal a Static Maps térképhez (Directions polyline)
-  const [routeMap, setRouteMap] = useState(null)
+  const [routeMaps, setRouteMaps] = useState({})
   useEffect(() => {
-    setRouteMap(null)
+    setRouteMaps({})
     const sf = slotsFull.find(s => s.time === time)
-    const inf = sf?.info
-    if (!time || !inf?.originQuery || !addr.address) return
+    const infos = sf?.infos && Object.keys(sf.infos).length ? sf.infos : (sf?.info && sf?.auto ? { [sf.auto]: sf.info } : null)
+    if (!time || !infos || !addr.address) return
     let alive = true
-    const viaServer = () => fetch(`/api/booking/routemap?origin=${encodeURIComponent(inf.originQuery)}&destination=${encodeURIComponent(addr.address)}`)
-      .then(r => r.json()).then(j => { if (alive && j.ok) setRouteMap(j) }).catch(() => {})
-    if (typeof window !== 'undefined' && window.google?.maps?.DirectionsService) {
-      try {
-        new window.google.maps.DirectionsService().route(
-          { origin: inf.originQuery, destination: addr.address, travelMode: 'DRIVING' },
-          (res, status) => {
-            if (!alive) return
-            const rt = status === 'OK' ? res?.routes?.[0] : null
-            const poly = rt ? (typeof rt.overview_polyline === 'string' ? rt.overview_polyline : rt.overview_polyline?.points) : null
-            if (poly) {
-              const leg = rt.legs?.[0]
-              setRouteMap({ ok: true, polyline: poly, km: leg ? Math.round((leg.distance?.value || 0) / 100) / 10 : null, min: leg ? Math.round((leg.duration?.value || 0) / 60) : null })
-            } else viaServer()
-          }
-        )
-      } catch { viaServer() }
-    } else viaServer()
+    const fetchOne = (init, originQuery) => {
+      const apply = (poly, km, min) => { if (alive && poly) setRouteMaps(prev => ({ ...prev, [init]: { polyline: poly, km, min } })) }
+      const viaServer = () => fetch(`/api/booking/routemap?origin=${encodeURIComponent(originQuery)}&destination=${encodeURIComponent(addr.address)}`)
+        .then(r => r.json()).then(j => { if (j.ok) apply(j.polyline, j.km, j.min) }).catch(() => {})
+      if (typeof window !== 'undefined' && window.google?.maps?.DirectionsService) {
+        try {
+          new window.google.maps.DirectionsService().route(
+            { origin: originQuery, destination: addr.address, travelMode: 'DRIVING' },
+            (res, status) => {
+              const rt = status === 'OK' ? res?.routes?.[0] : null
+              const poly = rt ? (typeof rt.overview_polyline === 'string' ? rt.overview_polyline : rt.overview_polyline?.points) : null
+              if (poly) { const leg = rt.legs?.[0]; apply(poly, leg ? Math.round((leg.distance?.value || 0) / 100) / 10 : null, leg ? Math.round((leg.duration?.value || 0) / 60) : null) }
+              else viaServer()
+            }
+          )
+        } catch { viaServer() }
+      } else viaServer()
+    }
+    Object.entries(infos).forEach(([init, inf]) => { if (inf?.originQuery) fetchOne(init, inf.originQuery) })
     return () => { alive = false }
   }, [time, slotsFull, addr.address])
 
@@ -572,16 +573,20 @@ export default function BuchenClient() {
 
           {time && (() => {
             const sf = slotsFull.find(s => s.time === time)
-            const inf = sf?.info
-            if (!inf || !addr.address) return null
+            const infos = sf?.infos && Object.keys(sf.infos).length ? sf.infos : (sf?.info && sf?.auto ? { [sf.auto]: sf.info } : null)
+            if (!infos || !addr.address) return null
+            const inits = Object.keys(infos)
+            const acting = (provider && infos[provider]) ? provider : (sf.auto && infos[sf.auto] ? sf.auto : inits[0])
+            const inf = infos[acting]
             const isW = warnTimes.includes(time)
-            const delay = inf.delayMin || 0
+            const delay = inf?.delayMin || 0
             const warnState = delay > 0 || isW
-            const headTxt = inf.home
-              ? `Ihr Fotograf startet von zu Hause — pünktliche Ankunft um ${time} Uhr.`
+            const actName = (providers.find(p => p.init === acting)?.name || acting).split(' ')[0]
+            const headTxt = !inf ? '' : inf.home
+              ? `${actName} startet von zu Hause — pünktliche Ankunft um ${time} Uhr.`
               : delay > 0
-                ? `Vorheriger Termin in ${inf.from} bis ${inf.prevEnd} Uhr — Ankunft evtl. bis zu ${delay} Min später.`
-                : `Ihr Fotograf kommt von einem Termin in ${inf.from} — pünktliche Ankunft um ${time} Uhr.`
+                ? `${actName} kommt von einem Termin in ${inf.from} (bis ${inf.prevEnd} Uhr) — Ankunft evtl. bis zu ${delay} Min später.`
+                : `${actName} kommt von einem Termin in ${inf.from} — pünktliche Ankunft um ${time} Uhr.`
             const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
             const MAP_STYLE = [
               'feature:landscape|color:0xf3ecdc',
@@ -596,12 +601,25 @@ export default function BuchenClient() {
               'feature:administrative.locality|element:labels.text.fill|color:0x8a8278',
               'feature:administrative.locality|element:labels.text.stroke|color:0xf3ecdc',
             ].map(st => '&style=' + encodeURIComponent(st)).join('')
-            const mapSrc = key && routeMap?.polyline
-              ? `https://maps.googleapis.com/maps/api/staticmap?size=640x240&scale=2&language=de${MAP_STYLE}` +
-                `&path=${encodeURIComponent('weight:4|color:0xb8892aff|enc:' + routeMap.polyline)}` +
-                `&markers=${encodeURIComponent('size:mid|color:0x5f5e5a|' + inf.originQuery)}` +
-                `&markers=${encodeURIComponent('color:0xb8892a|' + addr.address)}&key=${key}`
-              : null
+            let mapSrc = null
+            if (key && routeMaps[acting]?.polyline) {
+              let parts = ''
+              inits.forEach(init => {
+                const rm = routeMaps[init]
+                if (!rm?.polyline) return
+                const selP = init === acting
+                parts += `&path=${encodeURIComponent((selP ? 'weight:5|color:0xb8892aff' : 'weight:3|color:0x9a9387aa') + '|enc:' + rm.polyline)}`
+              })
+              inits.forEach(init => {
+                const io = infos[init]
+                if (!io?.originQuery) return
+                const selP = init === acting
+                parts += `&markers=${encodeURIComponent(`size:mid|color:${selP ? '0xb8892a' : '0x8d8478'}|label:${(init || '?')[0].toUpperCase()}|` + io.originQuery)}`
+              })
+              parts += `&markers=${encodeURIComponent('color:0xb8892a|' + addr.address)}`
+              mapSrc = `https://maps.googleapis.com/maps/api/staticmap?size=640x240&scale=2&language=de${MAP_STYLE}${parts}&key=${key}`
+            }
+            const minKm = Math.min(...inits.map(i => routeMaps[i]?.km ?? infos[i]?.travelMin ?? Infinity))
             return (
               <div style={{marginTop:16,border:'0.5px solid #e6ddc9',borderRadius:14,overflow:'hidden',background:'#fff'}}>
                 <div style={{display:'flex',alignItems:'flex-start',gap:7,padding:'10px 16px',fontSize:13,fontWeight:600,background:warnState?'#fdf6e3':'#eef5ea',borderBottom:'0.5px solid '+(warnState?'#ecd9a8':'#cde3c6'),color:warnState?'#8a6a1f':'#27500a'}}>
@@ -610,10 +628,29 @@ export default function BuchenClient() {
                 {mapSrc
                   ? <img src={mapSrc} alt="Anfahrt" style={{width:'100%',height:'auto',display:'block'}} />
                   : <div style={{height:120,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#a39b89',background:'#f6f0e4'}}>Karte wird geladen…</div>}
-                <div style={{display:'flex',flexWrap:'wrap',gap:'4px 18px',alignItems:'center',padding:'9px 16px',borderTop:'0.5px solid #e6ddc9',fontSize:12,color:'#6b6459'}}>
-                  <span>📍 {inf.home ? `Start: Zuhause (${inf.from})` : `${inf.from}${inf.prevEnd ? ' · Termin bis ' + inf.prevEnd : ''}`}</span>
-                  <span>🚗 ca. {inf.travelMin} Min Fahrt{routeMap?.km ? ` · ${routeMap.km} km` : ''}</span>
-                  <span>🏠 Ankunft ca. {delay > 0 ? `${inf.eta} (+${delay} Min)` : time}</span>
+                <div style={{borderTop:'0.5px solid #e6ddc9'}}>
+                  {inits.map(init => {
+                    const io = infos[init]
+                    const pr = providers.find(p => p.init === init)
+                    const rm = routeMaps[init]
+                    const selP = init === acting
+                    const km = rm?.km
+                    const best = inits.length > 1 && ((km ?? io?.travelMin ?? Infinity) === minKm) && isFinite(minKm)
+                    return (
+                      <div key={init} onClick={() => setProvider(init)} title="Diesen Fotografen wählen"
+                        style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',cursor:'pointer',background:selP?'#fdf6e3':'transparent',borderBottom:'0.5px solid #efe9dc'}}>
+                        {pr ? <Avatar p={pr} size={28} /> : <span style={{width:28,height:28,borderRadius:'50%',background:'#f0ece4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#8a8278'}}>{(init||'?')[0]}</span>}
+                        <div style={{flex:1,minWidth:0}}>
+                          <span style={{fontSize:12.5,fontWeight:700,color:DARK}}>{pr?.name || init}</span>
+                          <span style={{fontSize:11.5,color:'#8a8278',marginLeft:8}}>{io?.home ? `startet von Zuhause (${io.from})` : `kommt aus ${io?.from || '?'}${io?.prevEnd ? ' · Termin bis ' + io.prevEnd : ''}`}</span>
+                        </div>
+                        {best && <span style={{fontSize:10.5,fontWeight:700,color:'#2f6e3f',background:'#f3f9ef',border:'0.5px solid #cde3c6',borderRadius:20,padding:'2px 9px',whiteSpace:'nowrap'}}>🌱 Kürzeste Anfahrt</span>}
+                        <span style={{fontSize:12,color:'#6b6459',whiteSpace:'nowrap'}}>🚗 ca. {rm?.min ?? io?.travelMin} Min{km ? ` · ${km} km` : ''}</span>
+                        <span style={{fontSize:14,color:selP?GOLD:'#d8d2c4'}}>{selP?'●':'○'}</span>
+                      </div>
+                    )
+                  })}
+                  <div style={{padding:'7px 14px',fontSize:11,color:'#a39b89'}}>🏠 Ankunft ca. {delay > 0 ? `${inf?.eta} (+${delay} Min)` : time} · Tippen Sie auf einen Fotografen, um ihn auszuwählen.</div>
                 </div>
               </div>
             )

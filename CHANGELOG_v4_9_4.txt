@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.4 — /buchen: mindkét szabad fotós a térképen, kattintható választás
+## 2026-06-12
+- A slot-válasz mostantól MINDEN szabad fotóshoz adja az Anfahrt-infót (infos),
+  nem csak az automatikusan választotthoz.
+- Térkép: az összes szabad fotós útvonala egyszerre — a kiválasztotté vastag
+  ARANY, a többié halvány szürkésbarna; kiindulási markerek a fotós
+  kezdőbetűjével (kiválasztott: arany, többi: szürke), cél: arany pin.
+- A térkép alatt fotósonként egy KATTINTHATÓ sor: profilkép + név + honnan jön
+  (város, Termin bis HH:MM / Zuhause) + ca. perc · km. A sorra kattintva az
+  ügyfél azt a fotóst választja (összekötve a Fotograf-választóval), és a térkép
+  átszínezi az ő útvonalát aranyra.
+- 🌱 "Kürzeste Anfahrt" zöld jelvény a legrövidebb útnál — finoman a kevesebb
+  km-es választás felé tereli az ügyfelet.
+- A fejléc-szöveg a kiválasztott fotós nevével személyre szabott
+  ("Daniel kommt von einem Termin in ... — pünktliche Ankunft ...").
+
+Érintett: lib/booking/slots.js, app/buchen/BuchenClient.js. VER label: v4.9.4
