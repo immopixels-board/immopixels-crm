@@ -1,0 +1,15 @@
+# ImmoPixels CRM v4.9.3 — /buchen: időjárás-popup a naptárban + layout-igazítás
+## 2026-06-12
+- Naptár hover-időjárás: a pici sarok-ikon helyett rendes POPUP-BUBORÉK jelenik
+  meg a nap fölött — nagyobb ikon + hőmérséklet (°C) + állapot szövegesen
+  (pl. "🌤 24°C / heiter"), finom felúszó animációval.
+- A 16 napos lekérés mostantól a napi max hőmérsékletet is hozza.
+- Layout: a "Wetter am Termintag" kártya a JOBB oszlopba került az Uhrzeit-rács
+  alá (nem üres többé a jobb oldal), a "Foto: Haus/Wohnung" összefoglaló a bal
+  oszlopban maradt — így a kettő egymás mellett van.
+
+A térképhez (ha még "Karte wird geladen..."): Google Cloud Console-ban a kulcson
+engedélyezni kell a Directions API-t és a Maps Static API-t, és a kulcs
+"API restrictions" listájába is fel kell venni őket. Kód-oldalon minden kész.
+
+Érintett: app/buchen/BuchenClient.js. VER label: v4.9.3

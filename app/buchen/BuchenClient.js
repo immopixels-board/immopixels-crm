@@ -131,9 +131,9 @@ export default function BuchenClient() {
     const start = new Date().toISOString().slice(0, 10)
     const end = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10)
     let alive = true
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${addr.lat}&longitude=${addr.lng}&daily=weather_code&timezone=Europe%2FBerlin&start_date=${start}&end_date=${end}`)
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${addr.lat}&longitude=${addr.lng}&daily=weather_code,temperature_2m_max&timezone=Europe%2FBerlin&start_date=${start}&end_date=${end}`)
       .then(r => r.json())
-      .then(j => { if (!alive || !j?.daily?.time) return; const m = {}; j.daily.time.forEach((d, i) => { m[d] = j.daily.weather_code[i] }); setWxDays(m) })
+      .then(j => { if (!alive || !j?.daily?.time) return; const m = {}; j.daily.time.forEach((d, i) => { m[d] = { c: j.daily.weather_code[i], t: Math.round(j.daily.temperature_2m_max?.[i]) } }); setWxDays(m) })
       .catch(() => {})
     return () => { alive = false }
   }, [addr.lat, addr.lng])
@@ -321,7 +321,7 @@ export default function BuchenClient() {
                     onMouseEnter={e=>{ if(!isSel&&!isDisabled) e.currentTarget.style.background='#f0ece4' }}
                     onMouseLeave={e=>{ if(!isSel) e.currentTarget.style.background='transparent' }}>
                     {d}
-                    {wxc != null && <span className="ip-dpd-wx">{wxIcon(wxc)[0]}</span>}
+                    {wxc != null && <span className="ip-dpd-wx">{wxIcon(wxc.c)[0]} {wxc.t}°C<br/><span style={{fontWeight:400,color:'#8a8278'}}>{wxIcon(wxc.c)[1]}</span></span>}
                   </button>
                 )
               })}
@@ -347,8 +347,8 @@ export default function BuchenClient() {
         .ip-slot:hover{border-color:${GOLD};color:${GOLD}}
         .ip-slot.warn{border-color:#e0a82e;background:#fffbf0}
         .ip-slot.reco{border-color:#9bc18c;background:#f3f9ef;color:#2f6e3f;font-weight:600}
-        .ip-dpd .ip-dpd-wx{position:absolute;top:0px;right:1px;font-size:9px;opacity:0;pointer-events:none;transition:opacity .12s}
-        .ip-dpd:hover .ip-dpd-wx{opacity:1}
+        .ip-dpd .ip-dpd-wx{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%) translateY(3px);background:#fff;border:0.5px solid #e6ddc9;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:#3a352c;line-height:1.45;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;box-shadow:0 6px 18px rgba(0,0,0,.14);z-index:60;text-decoration:none}
+        .ip-dpd:hover .ip-dpd-wx{opacity:1;transform:translateX(-50%) translateY(0)}
         .ip-slot.reco.sel{background:${GOLD};border-color:${GOLD};color:#fff}
         .ip-slot.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
         .ip-slot.warn.sel{background:${GOLD};border-color:${GOLD};color:#fff;font-weight:700}
@@ -513,15 +513,6 @@ export default function BuchenClient() {
                 </>
               )}
 
-              {wx && (
-                <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Wetter am Termintag</div>
-                  <div style={{color:DARK,fontWeight:700}}>{wxIcon(wx.code)[0]} {wx.tmax}°C, {wxIcon(wx.code)[1]}{wx.rain != null ? ` · ☔ ${wx.rain}%` : ''}</div>
-                  <div style={{color:'#888',marginTop:3}}>💨 Wind max {wx.wind} km/h{wx.sunset ? ` · 🌇 Sonnenuntergang ${wx.sunset}` : ''}</div>
-                  {wx.golden && <div style={{color:GOLD,marginTop:3,fontWeight:700}}>✨ Goldene Stunde ab ca. {wx.golden} Uhr</div>}
-                  {isDroneAvailable && addonDrone && wx.wind > 30 && <div style={{marginTop:5,color:'#8a6a1f',background:'#fdf6e3',border:'0.5px solid #ecd9a8',borderRadius:6,padding:'5px 8px'}}>⚠ Starker Wind erwartet — Drohnenaufnahmen evtl. eingeschränkt.</div>}
-                </div>
-              )}
               <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
                 <div style={{fontWeight:700,color:DARK}}>{service?.name}</div>
                 <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
@@ -566,6 +557,15 @@ export default function BuchenClient() {
                     </div>
                   )}
                 </>
+              )}
+              {wx && (
+                <div style={{marginTop:14,padding:'12px 14px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,fontSize:12.5}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Wetter am Termintag</div>
+                  <div style={{color:DARK,fontWeight:700}}>{wxIcon(wx.code)[0]} {wx.tmax}°C, {wxIcon(wx.code)[1]}{wx.rain != null ? ` · ☔ ${wx.rain}%` : ''}</div>
+                  <div style={{color:'#888',marginTop:3}}>💨 Wind max {wx.wind} km/h{wx.sunset ? ` · 🌇 Sonnenuntergang ${wx.sunset}` : ''}</div>
+                  {wx.golden && <div style={{color:GOLD,marginTop:3,fontWeight:700}}>✨ Goldene Stunde ab ca. {wx.golden} Uhr</div>}
+                  {isDroneAvailable && addonDrone && wx.wind > 30 && <div style={{marginTop:5,color:'#8a6a1f',background:'#fdf6e3',border:'0.5px solid #ecd9a8',borderRadius:6,padding:'5px 8px'}}>⚠ Starker Wind erwartet — Drohnenaufnahmen evtl. eingeschränkt.</div>}
+                </div>
               )}
             </div>
           </div>
