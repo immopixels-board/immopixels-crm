@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
+function autoChecklist(ct) { const b = ['Fotografiert', 'Für Bearbeitung gesendet', 'In Bearbeitung', 'Reel in Bearbeitung']; return String(ct || '').includes('reel') ? [...b, 'Reel Fertig'] : b }
+async function insCl(supabase, cardId, ct) { const rows = autoChecklist(ct).map(text => ({ card_id: cardId, text, done: false })); await supabase.from('checklist_items').insert(rows) }
 export const dynamic = 'force-dynamic'
 
 const STAFF_CAL_MAP = {
@@ -163,6 +165,7 @@ export async function GET(req) {
         }).select().single()
 
         if (newCard?.id) {
+          await insCl(supabase, newCard.id, newCard.card_type)
           const staffMember = (staffList || []).find(s => s.init === cal.init)
           if (staffMember) await supabase.from('card_team').insert({ card_id: newCard.id, staff_id: staffMember.id })
           existingIds.add(ev.id)

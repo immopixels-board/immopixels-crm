@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.8.7 — Checkliste vissza + UI (Team hover, Speichern gomb)
+## 2026-06-12
+
+### Checkliste minden új kártyán (a hiba oka megtalálva)
+- Az új kártyák azért jöttek checklist nélkül, mert a szerveroldali kártya-létrehozók
+  (gcal sync, booking, Makler-Termine import) nem hozták létre az elemeket.
+- Mostantól MINDEN út checklistet készít: gcal/route, gcal/sync, booking/create,
+  maklertermine (mindkét ág), AI-kártya, kézi létrehozás.
+- Új alaplista: Fotografiert, Für Bearbeitung gesendet, In Bearbeitung,
+  Reel in Bearbeitung (a Rausgeschickt HELYETT). Reel-típusnál továbbra is +Reel Fertig.
+- A meglévő kártyák checklistjéhez nem nyúlunk. A Fertig-oszlopba húzásnál az új
+  "Reel in Bearbeitung" is automatikusan kipipálódik (a régi Rausgeschickt is).
+
+### CardModal UI
+- Team: csak a profilképek látszanak (22px, méret változatlan); hoverre a chip
+  kinyílik, megjelenik a név (tagnál ×, nem tagnál "+ Név"), a többi avatar finoman
+  arrébb csúszik. A tagokat vékony arany keret jelzi. A modal szélessége változatlan.
+- Gombsor: a Speichern lett a nagy zöld főgomb felirattal; a Fertig visszafogott
+  szürke outline lett (ti-flag-check ikonnal), hogy ne tűnjön mentés gombnak.
+
+Érintett: app/BoardApp.js, components/CardModal.js, app/api/gcal/route.js,
+app/api/gcal/sync/route.js, app/api/booking/create/route.js,
+app/api/maklertermine/route.js. VER label: v4.8.7

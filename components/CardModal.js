@@ -450,6 +450,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   const [commentMentions, setCommentMentions] = useState([])
   const [commentMentionIdx, setCommentMentionIdx] = useState(0)
   const [dragOver, setDragOver] = useState(false)
+  const [avHover, setAvHover] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(null) // null | 0-100
   const [uploadError, setUploadError] = useState(null)
   const [zipDragOver, setZipDragOver] = useState(false)
@@ -970,23 +971,27 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7 }}>Team</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              {teamMembers.map(s => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#f4f2ef', border: '0.5px solid #ddd9d2', borderRadius: 20, padding: '4px 10px 4px 5px', fontSize: 12, fontWeight: 600 }}>
+              {teamMembers.map(s => { const h = avHover === 't' + s.id; return (
+                <div key={s.id} onMouseEnter={() => setAvHover('t' + s.id)} onMouseLeave={() => setAvHover(null)}
+                  style={{ display: 'flex', alignItems: 'center', background: '#f4f2ef', border: '0.5px solid #c9a05a', borderRadius: 20, padding: 3, paddingRight: h ? 10 : 3, maxWidth: h ? 200 : 30, overflow: 'hidden', transition: 'max-width .25s cubic-bezier(.34,1.2,.64,1), padding .25s', cursor: 'default' }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.color + '22', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
                     {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
                   </div>
-                  {s.name.split(' ')[0]}
-                  <span onClick={() => removeTeam(s.id)} style={{ color: '#ccc8c0', cursor: 'pointer', fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</span>
+                  <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 600, marginLeft: 6, opacity: h ? 1 : 0, transform: h ? 'none' : 'translateX(-6px)', transition: 'opacity .18s ease .05s, transform .18s ease .05s' }}>
+                    {s.name.split(' ')[0]}
+                    <span onClick={() => removeTeam(s.id)} style={{ color: '#ccc8c0', cursor: 'pointer', fontSize: 14, lineHeight: 1, marginLeft: 6 }}>×</span>
+                  </span>
                 </div>
-              ))}
-              {nonTeam.map(s => (
-                <div key={s.id} onClick={() => addTeam(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, border: '0.5px dashed #ccc8c0', borderRadius: 20, padding: '4px 10px 4px 5px', fontSize: 12, color: '#8a8278', cursor: 'pointer', background: 'none' }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.color + '11', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+              ) })}
+              {nonTeam.map(s => { const h = avHover === 'n' + s.id; return (
+                <div key={s.id} onClick={() => addTeam(s.id)} onMouseEnter={() => setAvHover('n' + s.id)} onMouseLeave={() => setAvHover(null)}
+                  style={{ display: 'flex', alignItems: 'center', border: '0.5px dashed #ccc8c0', borderRadius: 20, padding: 3, paddingRight: h ? 10 : 3, maxWidth: h ? 200 : 30, overflow: 'hidden', transition: 'max-width .25s cubic-bezier(.34,1.2,.64,1), padding .25s', cursor: 'pointer', background: 'none' }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.color + '11', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0, opacity: .8 }}>
                     {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
                   </div>
-                  + {s.name.split(' ')[0]}
+                  <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: '#8a8278', marginLeft: 6, opacity: h ? 1 : 0, transform: h ? 'none' : 'translateX(-6px)', transition: 'opacity .18s ease .05s, transform .18s ease .05s' }}>+ {s.name.split(' ')[0]}</span>
                 </div>
-              ))}
+              ) })}
             </div>
           </div>
 
@@ -1167,19 +1172,17 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             if (!fertigCol) { alert('Kein Fertig-Ordner gefunden'); return }
             await supabase.from('cards').update({ column_id: fertigCol.id, updated_at: new Date().toISOString() }).eq('id', card.id)
             onUpdate(); onClose()
-          }} style={{ background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <i className="ti ti-check" style={{ fontSize: 13 }} /> Fertig
+          }} style={{ background: 'none', color: '#6b6459', border: '0.5px solid #ccc8c0', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <i className="ti ti-flag-check" style={{ fontSize: 13 }} /> Fertig
           </button>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: saved ? '#15803d' : '#aaa8a0', gap: 4, transition: 'color .3s' }}>
             <i className={'ti ' + (saved ? 'ti-check' : 'ti-cloud')} style={{ fontSize: 12 }} />
             {saved ? 'Gespeichert' : 'Wird gespeichert...'}
           </div>
           <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }}
-            title="Manuell speichern"
-            style={{ background: 'none', border: '0.5px solid #ddd9d2', borderRadius: 8, padding: '8px 10px', color: '#8a8278', cursor: 'pointer', display: 'flex', alignItems: 'center', transition:'color .15s,border-color .15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='#b8892a'; e.currentTarget.style.color='#b8892a' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor='#ddd9d2'; e.currentTarget.style.color='#8a8278' }}>
-            <i className="ti ti-device-floppy" style={{ fontSize: 14 }} />
+            title="Speichern"
+            style={{ background: '#15803d', border: 'none', borderRadius: 8, padding: '9px 18px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <i className="ti ti-device-floppy" style={{ fontSize: 15 }} /> Speichern
           </button>
           <button onClick={async () => { if (!confirm('Karte wirklich löschen?')) return; await supabase.from('card_team').delete().eq('card_id', card.id); await supabase.from('checklist_items').delete().eq('card_id', card.id); await supabase.from('cards').delete().eq('id', card.id); onUpdate(); onClose() }}
             style={{ background: 'none', border: '0.5px solid #f5c4c4', borderRadius: 8, padding: '8px 10px', color: '#b91c1c', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>

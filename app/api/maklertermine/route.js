@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 async function svc() { const { createClient } = await import('@supabase/supabase-js'); return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY) }
+function autoChecklist(ct) { const b = ['Fotografiert', 'Für Bearbeitung gesendet', 'In Bearbeitung', 'Reel in Bearbeitung']; return String(ct || '').includes('reel') ? [...b, 'Reel Fertig'] : b }
 function guessType(s) { const t = String(s || '').toLowerCase(); const foto = /foto/.test(t), reel = /reel/.test(t), dron = /drohne|drone|dron/.test(t); if (foto && reel) return 'foto-reel'; if (foto && dron) return 'foto-dron'; if (reel) return 'reel'; if (dron) return 'dron'; return 'foto' }
 
 // GET → naptárak listája
@@ -44,7 +45,13 @@ export async function POST(req) {
       seen.add(key)
       rows.push({ column_id: columnId, client_name: clientName, title: e.summary, addr: e.location || '', booking_address: e.location || '', description: (e.description || '').slice(0, 500), card_date: e.date, card_time: e.time || null, card_type: guessType(e.summary + ' ' + (e.description || '')), position: 999 })
     }
-    if (rows.length) { const { error } = await sb.from('cards').insert(rows); if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 }) }
+    if (rows.length) {
+      const { data: inserted, error } = await sb.from('cards').insert(rows).select('id,card_type')
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+      const clRows = []
+      for (const c of (inserted || [])) for (const text of autoChecklist(c.card_type)) clRows.push({ card_id: c.id, text, done: false })
+      if (clRows.length) await sb.from('checklist_items').insert(clRows)
+    }
     return NextResponse.json({ ok: true, created: rows.length, skipped, total: evs.length })
   }
 
@@ -85,6 +92,13 @@ export async function POST(req) {
     seen.add(key)
     rows.push({ column_id: columnId, client_name: clientName, title, addr: e.location || '', booking_address: e.location || '', description: e.description || '', card_date: e.date, card_time: e.time, card_type: guessType(title + ' ' + e.description), position: 999 })
   }
-  if (rows.length) { const { error } = await sb.from('cards').insert(rows); if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 }); created = rows.length }
+  if (rows.length) {
+    const { data: inserted, error } = await sb.from('cards').insert(rows).select('id,card_type')
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    created = rows.length
+    const clRows = []
+    for (const c of (inserted || [])) for (const text of autoChecklist(c.card_type)) clRows.push({ card_id: c.id, text, done: false })
+    if (clRows.length) await sb.from('checklist_items').insert(clRows)
+  }
   return NextResponse.json({ ok: true, created, skipped, total: events.length })
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 export const runtime = 'nodejs'
+function autoChecklist(ct) { const b = ['Fotografiert', 'Für Bearbeitung gesendet', 'In Bearbeitung', 'Reel in Bearbeitung']; return String(ct || '').includes('reel') ? [...b, 'Reel Fertig'] : b }
+async function insCl(supabase, cardId, ct) { const rows = autoChecklist(ct).map(text => ({ card_id: cardId, text, done: false })); await supabase.from('checklist_items').insert(rows) }
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
@@ -191,6 +193,7 @@ async function doSync(opts = {}) {
           is_gcal: true, is_todo: false, price: 0, position: 9999, note: '', gcal_id,
         }).select('id').single()
         if (ins.data && ins.data.id) {
+          await insCl(supabase, ins.data.id, '')
           await supabase.from('card_team').insert({ card_id: ins.data.id, staff_id: staffMember.id })
           created++
         }
