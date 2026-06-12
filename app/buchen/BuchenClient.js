@@ -393,7 +393,7 @@ export default function BuchenClient() {
         <div style={{display:'flex',alignItems:'center',marginBottom:24,background:'#f0ece4',borderRadius:10,padding:'10px 14px',gap:4}}>
           {[['Leistung',1],['Daten',2],['Termin',3]].map(([label,n],i,arr)=>(
             <div key={n} style={{display:'contents'}}>
-              <div style={{display:'flex',alignItems:'center',gap:5,flex:1}}>
+              <div onClick={()=>{ if(n<step) setStep(n) }} style={{display:'flex',alignItems:'center',gap:5,flex:1,cursor:n<step?'pointer':'default'}} title={n<step?'Zurück zu '+label:''}>
                 <div style={{width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0,
                   background: step>=n?GOLD:'transparent', color: step>=n?'#fff':'#aaa', border: step>=n?'none':`1.5px solid #ccc`}}>
                   {step>n?'✓':n}
@@ -435,18 +435,18 @@ export default function BuchenClient() {
           {service && (is360Available || isDroneAvailable) && (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Optionale Zusätze</div>
-              {is360Available && (
-                <label className={`ip-addon${addon360?' on':''}`}>
-                  <input type="checkbox" checked={addon360} onChange={e=>setAddon360(e.target.checked)} />
-                  <span style={{flex:1,fontSize:13,fontWeight:700}}>360°-Tour</span>
-                  <span style={{fontSize:12,color:GOLD,fontWeight:700}}>+30 Min.</span>
-                </label>
-              )}
               {isDroneAvailable && (
                 <label className={`ip-addon${addonDrone?' on':''}`}>
                   <input type="checkbox" checked={addonDrone} onChange={e=>setAddonDrone(e.target.checked)} />
                   <span style={{flex:1,fontSize:13,fontWeight:700}}>Drohnenaufnahmen</span>
                   <span style={{fontSize:12,color:GOLD,fontWeight:700}}>+15 Min.</span>
+                </label>
+              )}
+              {is360Available && (
+                <label className={`ip-addon${addon360?' on':''}`}>
+                  <input type="checkbox" checked={addon360} onChange={e=>setAddon360(e.target.checked)} />
+                  <span style={{flex:1,fontSize:13,fontWeight:700}}>360°-Tour</span>
+                  <span style={{fontSize:12,color:GOLD,fontWeight:700}}>+30 Min.</span>
                 </label>
               )}
             </div>
@@ -514,14 +514,6 @@ export default function BuchenClient() {
                 </>
               )}
 
-              <div style={{marginTop:12,padding:'10px 12px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:8,fontSize:12}}>
-                <div style={{fontWeight:700,color:DARK}}>{service?.name}</div>
-                <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
-                <div style={{color:'#888',marginTop:2}}>📍 {addr.address}</div>
-                {time && (
-                  <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
-                )}
-              </div>
             </div>
 
             <div>
@@ -531,7 +523,7 @@ export default function BuchenClient() {
               : slots.length===0 ? <div style={{fontSize:12,color:'#b91c1c',padding:16,textAlign:'center',background:'#fef2f2',borderRadius:8}}>Keine freien Termine</div>
               : (
                 <>
-                  <div className="ip-mob-grid-slots" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,maxHeight:330,overflowY:'auto',paddingRight:2}}>
+                  <div className="ip-mob-grid-slots" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
                     {Array.from({length:33},(_,i)=>{
                       const h = Math.floor(i/4)+9, m = (i%4)*15
                       if(h>17||(h===17&&m>0)) return null
@@ -559,16 +551,47 @@ export default function BuchenClient() {
                   )}
                 </>
               )}
-              {wx && (
-                <div style={{marginTop:14,padding:'12px 14px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,fontSize:12.5}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Wetter am Termintag</div>
-                  <div style={{color:DARK,fontWeight:700}}>{wxIcon(wx.code)[0]} {wx.tmax}°C, {wxIcon(wx.code)[1]}{wx.rain != null ? ` · ☔ ${wx.rain}%` : ''}</div>
-                  <div style={{color:'#888',marginTop:3}}>💨 Wind max {wx.wind} km/h{wx.sunset ? ` · 🌇 Sonnenuntergang ${wx.sunset}` : ''}</div>
-                  {wx.golden && <div style={{color:GOLD,marginTop:3,fontWeight:700}}>✨ Goldene Stunde ab ca. {wx.golden} Uhr</div>}
-                  {isDroneAvailable && addonDrone && wx.wind > 30 && <div style={{marginTop:5,color:'#8a6a1f',background:'#fdf6e3',border:'0.5px solid #ecd9a8',borderRadius:6,padding:'5px 8px'}}>⚠ Starker Wind erwartet — Drohnenaufnahmen evtl. eingeschränkt.</div>}
+            </div>
+          </div>
+
+          <div className="ip-mob-grid-3step" style={{display:'grid',gridTemplateColumns:wx?'1fr 1fr':'1fr',gap:14,marginTop:14,alignItems:'stretch'}}>
+            <div style={{padding:'12px 14px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,fontSize:12.5}}>
+              <div style={{fontWeight:700,color:DARK}}>{service?.name}</div>
+              <div style={{color:'#888',marginTop:2}}>ca. {(service?.duration_min||0) + addonMin} Min.{addonMin?' (inkl. Zusätze)':''}</div>
+              <div style={{color:'#888',marginTop:2}}>📍 {addr.address}</div>
+              {time && (
+                <div style={{color:GOLD,fontWeight:700,marginTop:4}}>✓ {fmtDate(date,{weekday:'short',day:'2-digit',month:'short'})} · {time} Uhr</div>
+              )}
+              {(isDroneAvailable || is360Available) && (
+                <div style={{marginTop:9,paddingTop:9,borderTop:'0.5px solid #efe9dc'}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'#aaa',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Zusätze (auch nachträglich wählbar)</div>
+                  {isDroneAvailable && (
+                    <label style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',padding:'3px 0'}}>
+                      <input type="checkbox" checked={addonDrone} onChange={e=>setAddonDrone(e.target.checked)} style={{accentColor:GOLD,width:15,height:15}} />
+                      <span style={{flex:1,fontSize:12.5,fontWeight:addonDrone?700:400,color:addonDrone?GOLD:DARK}}>Drohnenaufnahmen <span style={{color:'#aaa',fontWeight:400}}>+15 Min.</span></span>
+                      {addonDrone && <span style={{color:GOLD,fontWeight:700}}>✓ gewählt</span>}
+                    </label>
+                  )}
+                  {is360Available && (
+                    <label style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',padding:'3px 0'}}>
+                      <input type="checkbox" checked={addon360} onChange={e=>setAddon360(e.target.checked)} style={{accentColor:GOLD,width:15,height:15}} />
+                      <span style={{flex:1,fontSize:12.5,fontWeight:addon360?700:400,color:addon360?GOLD:DARK}}>360°-Tour <span style={{color:'#aaa',fontWeight:400}}>+30 Min.</span></span>
+                      {addon360 && <span style={{color:GOLD,fontWeight:700}}>✓ gewählt</span>}
+                    </label>
+                  )}
+                  <div style={{fontSize:10.5,color:'#a39b89',marginTop:3}}>Bei Änderung werden die freien Zeiten neu berechnet.</div>
                 </div>
               )}
             </div>
+            {wx && (
+              <div style={{padding:'12px 14px',background:'#fff',border:'0.5px solid #e6ddc9',borderRadius:10,fontSize:12.5}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Wetter am Termintag</div>
+                <div style={{color:DARK,fontWeight:700}}>{wxIcon(wx.code)[0]} {wx.tmax}°C, {wxIcon(wx.code)[1]}{wx.rain != null ? ` · ☔ ${wx.rain}%` : ''}</div>
+                <div style={{color:'#888',marginTop:3}}>💨 Wind max {wx.wind} km/h{wx.sunset ? ` · 🌇 Sonnenuntergang ${wx.sunset}` : ''}</div>
+                {wx.golden && <div style={{color:GOLD,marginTop:3,fontWeight:700}}>✨ Goldene Stunde ab ca. {wx.golden} Uhr</div>}
+                {isDroneAvailable && addonDrone && wx.wind > 30 && <div style={{marginTop:5,color:'#8a6a1f',background:'#fdf6e3',border:'0.5px solid #ecd9a8',borderRadius:6,padding:'5px 8px'}}>⚠ Starker Wind erwartet — Drohnenaufnahmen evtl. eingeschränkt.</div>}
+              </div>
+            )}
           </div>
 
           {time && (() => {

@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.9.5 — /buchen finomítások
+## 2026-06-12
+- Uhrzeit-rács: nincs többé belső scroll — az összes időpont egyben látszik.
+- A "Foto: ..." összefoglaló és a "Wetter am Termintag" kártya FIXEN egy sorban,
+  egymás mellett (Foto balra, Wetter jobbra), a Datum/Uhrzeit oszlopok alatt.
+- Zusätze utólag is: a Foto-kártyában pipálható a Drohnenaufnahmen (+15) és a
+  360°-Tour (+30) — látszik, ha már ki van választva ("✓ gewählt"), és
+  változtatáskor a szabad időpontok automatikusan újraszámolódnak.
+- A felső lépéssávon (Leistung / Daten) kattintva vissza lehet lépni a korábbi
+  lépésekre (kurzor + tooltip jelzi).
+- Leistung lépés: a Drohnenaufnahmen került előre, a 360°-Tour utána.
+
+Érintett: app/buchen/BuchenClient.js. VER label: v4.9.5
