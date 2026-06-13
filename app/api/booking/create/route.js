@@ -185,13 +185,14 @@ export async function POST(req) {
       ].filter(x => x !== undefined).join('\n')
 
       const targetCal = GCAL_IDS[staffInit] || MAIN_CAL
+      const addonSuffix = [_drohne ? 'Drohne' : null, _d360 ? '360°' : null].filter(Boolean).join(' + ')
       const r = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCal)}/events`,
         {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summary: `[AUSSTEHEND] ${resolvedOffice ? resolvedOffice + ' — ' : ''}${svc.name} — ${customerName}`,
+            summary: `[AUSSTEHEND] ${resolvedOffice ? resolvedOffice + ' — ' : ''}${svc.name}${addonSuffix ? ' + ' + addonSuffix : ''} — ${customerName}`,
             location: address,
             description: desc,
             start: { dateTime: startISO, timeZone: 'Europe/Berlin' },

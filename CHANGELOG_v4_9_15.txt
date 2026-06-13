@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.15 — Booking: Drohne/360 a Google-naptár esemény CÍMÉBEN is
+## 2026-06-13
+- Hiba: online foglalásnál a Google Calendar esemény címe csak a szolgáltatás
+  nevét tartalmazta (pl. "[AUSSTEHEND] ... Foto: Haus / Wohnung — ..."), a Drohne /
+  360°-Tour addon csak a leírás "Zusätzliche Leistungen" sorában szerepelt — a
+  naptárban a típus nem látszott.
+- Javítás: a foglalási GCal-esemény címébe mostantól bekerül az addon-suffix:
+  "... Foto: Haus / Wohnung + Drohne — ...", illetve "+ 360°" vagy "+ Drohne + 360°".
+- A megerősítés ([AUSSTEHEND]→[BESTÄTIGT]) a meglévő címet megtartja, így a
+  megerősített eseményben is benne marad az addon.
+- A CRM-kártya típusa (fotodrohne stb.) a v4.9.13 óta már helyes volt; ez a fix a
+  Google-naptárban megjelenő SZÖVEGET javítja.
+
+Megjegyzés: csak az EZUTÁN létrejövő foglalásokra hat — a korábban létrehozott
+naptáreseményeket nem írja át.
+
+Érintett: app/api/booking/create/route.js. VER label: v4.9.15

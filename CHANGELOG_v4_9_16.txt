@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.9.16 — Demo-üzemmód (jelszókapu + DEMO jelvény)
+## 2026-06-13
+- Új: közös jelszókapu az egész oldal elé, a middleware-ben. CSAK akkor aktív,
+  ha a DEMO_GATE_PASSWORD env be van állítva → az ÉLES deployon semmi nem
+  változik, a DEMO deployon viszont mindenkit egy jelszó-oldal fogad.
+  - Publikus útvonalak (a nyilvános foglaláshoz) kimaradnak: /buchen, /buchung,
+    /termin-bestaetigen, /api/booking.
+  - /demo-gate oldal + /api/demo-gate ellenőrző (httpOnly cookie, 30 nap).
+- Új: "DEMO" jelvény a board fejlécében, ha NEXT_PUBLIC_IS_DEMO=1.
+- A demo külön Supabase + külön Google-fiók env-változókkal fut (kód nem változik):
+  csak a Vercel env-ek mások a demo-deployon. Lásd: DEMO_SETUP.md.
+- Seed: DEMO_SEED.sql — board-oszlopok, 2 Joe-Doe staff, 2 demo-Kunde, pár
+  demo-kártya + checklist. CSAK a demo-DB-n futtatandó.
+
+Érintett: middleware.js, app/demo-gate/page.js (új), app/api/demo-gate/route.js (új),
+app/BoardApp.js. VER label: v4.9.16
