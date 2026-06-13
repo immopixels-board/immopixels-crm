@@ -1,0 +1,14 @@
+# ImmoPixels CRM v4.9.20 — Chat-ablak újradizájn (lebegő, tálca felett, AI mellé)
+## 2026-06-13
+- A Team/Privat chat-ablak (TeamChat) modernebb, lebegő kártya lett:
+  • elhúzva a jobb széltől (16px) és a tálca/képernyő-alj fölött (16px) lebeg,
+    nem tapad a sarokhoz;
+  • minden sarka lekerekített (16px), finomabb, melegebb árnyék;
+  • header az ImmoPixels arany árnyalatban, letisztult bezáró ikon;
+  • lágyabb, kerekebb üzenet-buborékok (saját = arany, fogadott = semleges).
+- Ha az AI-chat (Claude panel) IS nyitva van, a chat-ablak automatikusan
+  balra csúszik az AI-panel mellé (right: 396px), így MINDKETTŐ látszik
+  egyszerre, nem fedik egymást. Animált átmenet.
+- Mobilon a szélesség korlátozva (maxWidth: 100vw-32px), nem lóg ki.
+
+Érintett: components/TeamChat.js, app/BoardApp.js. VER label: v4.9.20

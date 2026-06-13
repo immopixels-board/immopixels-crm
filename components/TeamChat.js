@@ -43,7 +43,7 @@ function formatSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB'
 }
 
-export default function TeamChat({ supabase, currentUser, staff, onClose }) {
+export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen }) {
   const [activeChannel, setActiveChannel] = useState('team')
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -216,15 +216,15 @@ export default function TeamChat({ supabase, currentUser, staff, onClose }) {
   const BTN = { background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }
 
   return (
-    <div style={{ position: 'fixed', bottom: 0, right: 0, width: 560, height: '70vh', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '12px 0 0 0', boxShadow: '0 -4px 24px rgba(0,0,0,.10)', zIndex: 300, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', bottom: 16, right: aiOpen ? 396 : 16, width: 560, maxWidth: 'calc(100vw - 32px)', height: '70vh', maxHeight: 'calc(100vh - 80px)', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 16, boxShadow: '0 12px 40px rgba(120,90,30,.16)', zIndex: 300, display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'right .22s cubic-bezier(.4,0,.2,1)' }}>
 
       {/* Header */}
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg3)', flexShrink: 0 }}>
+      <div style={{ padding: '11px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gdbg)', flexShrink: 0 }}>
         <img src={CLAUDE_SVG} style={{ width:18, height:18, objectFit:'contain' }} alt='Claude' />
-        <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, flex: 1, color: 'var(--t1)' }}>
           {activeChannel === 'team' ? 'Team-Chat' : (privatePartner?.name + ' · Privat')}
         </span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 16 }}>✕</button>
+        <button onClick={onClose} title="Schließen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', padding: '2px 4px', borderRadius: 6 }}><i className="ti ti-x" /></button>
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -299,7 +299,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose }) {
                         <strong>{msg.reply_to_sender}</strong>: {msg.reply_to_text}
                       </div>
                     )}
-                    <div style={{ background: isMe ? '#c9a05a' : 'var(--bg3)', color: isMe ? '#fff' : 'var(--t1)', borderRadius: isMe ? '10px 3px 10px 10px' : '3px 10px 10px 10px', padding: '7px 10px', fontSize: 12, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <div style={{ background: isMe ? '#b8892a' : 'var(--bg3)', color: isMe ? '#fff' : 'var(--t1)', borderRadius: isMe ? '13px 13px 4px 13px' : '13px 13px 13px 4px', padding: '8px 12px', fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {msg.text && msg.text !== msg.attachment_name && <div>{msg.text}</div>}
                       {msg.attachment_url && (
                         <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: msg.text && msg.text !== msg.attachment_name ? 6 : 0, textDecoration: 'none', background: isMe ? 'rgba(255,255,255,.15)' : 'var(--bg2)', borderRadius: 7, padding: '6px 8px', border: '0.5px solid ' + (isMe ? 'rgba(255,255,255,.2)' : 'var(--border)') }}>
