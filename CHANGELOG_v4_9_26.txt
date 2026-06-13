@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.9.26 — Demo: első login (jelszókapu) eltávolítva
+## 2026-06-13
+- A demo jelszókapu teljesen eltávolítva a kódból:
+  • middleware.js → no-op (mindent átenged), nincs /demo-gate átirányítás;
+  • törölve: app/demo-gate/page.js és app/api/demo-gate/route.js.
+- A demón már nincs külön "első login" — csak a sima CRM-login (email/jelszó)
+  marad. A DEMO_GATE_PASSWORD env innentől nem csinál semmit (törölhető a
+  Vercel projektből).
+- Élesre semmi hatása (a gate amúgy is csak env-vel aktiválódott).
+
+MEGJEGYZÉS: a látogatónak meg kell adni a demo-login adatait
+(demo@immopixels.de / Demo2026!), amíg a tervezett név+email auto-login
+lead-űrlap el nem készül.
+
+Érintett: middleware.js, app/demo-gate/ (törölve), app/api/demo-gate/
+(törölve), app/BoardApp.js. VER: v4.9.26
