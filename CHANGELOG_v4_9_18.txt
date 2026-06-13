@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.9.18 — Fix: profil "Gespeichert" jelző beragadás
+## 2026-06-13
+- Hiba: a Profil oldalon szín/háttér választása után a "Gespeichert" (mentve)
+  jelző beragadt vagy villogott, és csak többszöri kattintásra tűnt el.
+- Ok: minden mentés egy ÚJ setTimeout-ot indított a jelző elrejtésére, az előzőt
+  nem törölte → több párhuzamos timer egymásra hatott.
+- Javítás: egyetlen, ref-ben tárolt timer (flashSaved), ami minden mentéskor
+  törli az előzőt és pontosan 2 mp után rejti el a jelzőt. A beállítás mentése
+  maga eddig is működött; ez csak a vizuális jelző viselkedését javítja.
+
+Érintett: app/profil/page.js. VER label: v4.9.18

@@ -92,6 +92,8 @@ export default function ProfilPage() {
   const [fahrten, setFahrten] = useState([])
   const [userSettings, setUserSettings] = useState({ bg_color:'linen', font_size:'md', card_size:'standard' })
   const [saved, setSaved] = useState(false)
+  const savedTimerRef = useRef(null)
+  const flashSaved = () => { setSaved(true); if (savedTimerRef.current) clearTimeout(savedTimerRef.current); savedTimerRef.current = setTimeout(() => setSaved(false), 2000) }
   const [servicePrices, setServicePrices] = useState([])
   const [clients, setClients] = useState([])
   const [priceData, setPriceData] = useState({})
@@ -255,7 +257,7 @@ export default function ProfilPage() {
     setUserSettings(next)
     await supabase.from('user_settings').upsert({ staff_id: sid, ...next }, { onConflict: 'staff_id' })
     applySettings(next)
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
+    flashSaved()
   }
 
   function applySettings(s) {
@@ -271,7 +273,7 @@ export default function ProfilPage() {
     e.preventDefault()
     const fd = new FormData(e.target)
     await supabase.from('staff').update({ name: fd.get('name'), email: fd.get('email'), tel: fd.get('tel'), role: fd.get('role'), address: fd.get('address')||null, init: fd.get('init')||null }).eq('id', me.id)
-    loadMe(); setSaved(true); setTimeout(() => setSaved(false), 2000)
+    loadMe(); flashSaved()
   }
 
   async function addFahrt(e) {
