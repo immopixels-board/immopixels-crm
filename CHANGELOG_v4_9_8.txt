@@ -1,0 +1,7 @@
+# ImmoPixels CRM v4.9.8 — Rechnung-Editor: drag csak a fogantyún
+## 2026-06-13
+- Javítás: a pozíció-húzás (drag) eddig az egész soron aktív volt, ezért nem
+  lehetett szöveget kijelölni a mezőkben. Mostantól CSAK a bal oldali fogantyú
+  (⠿) húzható — a mezőkben a szöveg normálisan jelölhető, másolható.
+
+Érintett: app/rechnungen/neu/page.js. VER label: v4.9.8

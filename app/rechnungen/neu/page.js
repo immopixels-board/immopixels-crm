@@ -301,13 +301,14 @@ export default function NeueRechnungPage() {
           </div>
           {inv.items.map((it, i) => (
             <div key={i}
-              draggable
-              onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
-              onDragOver={e => { e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
-              onDrop={e => { e.preventDefault(); dropItem(i) }}
-              onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
+              onDragOver={e => { if (dragIdx === null) return; e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
+              onDrop={e => { if (dragIdx === null) return; e.preventDefault(); dropItem(i) }}
               style={{ display: 'grid', gridTemplateColumns: '20px 56px 84px 56px 64px 52px 1fr 40px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + (dragOver === i && dragIdx !== null && dragIdx !== i ? GOLD : LINE), borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.4 : 1 }}>
-              <div title="Zum Verschieben ziehen" style={{ cursor: 'grab', color: '#c9c2b2', textAlign: 'center', paddingTop: 7, fontSize: 15, lineHeight: 1, userSelect: 'none' }}>⠿</div>
+              <div
+                draggable
+                onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
+                onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
+                title="Zum Verschieben ziehen" style={{ cursor: 'grab', color: '#c9c2b2', textAlign: 'center', paddingTop: 7, fontSize: 15, lineHeight: 1, userSelect: 'none' }}>⠿</div>
               <input value={it.qty} onChange={e => setItem(i, { qty: e.target.value })} style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit_price} onChange={e => setItem(i, { unit_price: e.target.value })} placeholder="0,00" style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit || ''} onChange={e => setItem(i, { unit: e.target.value })} list="unitopts" placeholder="—" style={{ ...box, textAlign: 'center' }} />
