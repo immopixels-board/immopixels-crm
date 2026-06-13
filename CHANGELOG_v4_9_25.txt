@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.9.25 — Tutorial: személyes köszöntő + 24h reset-info
+## 2026-06-13
+- Köszöntő: "Willkommen im ImmoPixels CRM" → "Willkommen in deinem CRM"
+  ("sieh dich um, als wäre es schon deins") — hogy a látogató sajátjának
+  érezze.
+- Záró lépéshez hozzáadva: a demo 24 óránként automatikusan visszaáll,
+  a változtatások törlődnek.
+- MEGJEGYZÉS: a napi auto-reset Cron még NINCS megépítve — a szöveg ezt
+  ígéri, a háttér-funkció pótlása külön feladat.
+
+Érintett: components/TutorialOverlay.js, app/BoardApp.js. VER: v4.9.25

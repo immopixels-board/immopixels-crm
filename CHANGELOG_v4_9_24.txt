@@ -1,0 +1,8 @@
+# ImmoPixels CRM v4.9.24 — Tutorial: demo-nevek (éles ügyfélnevek eltávolítva)
+## 2026-06-13
+- A tutorial illusztrációiból és példáiból eltávolítva minden éles
+  ügyfélnév (Bartz, Müller) → helyettük demo-nevek (Muster, Beispiel),
+  összhangban a demo-seed adataival. Városnevek (Mannheim/Speyer)
+  meghagyva, mert nem érzékenyek.
+
+Érintett: components/TutorialOverlay.js, app/BoardApp.js. VER: v4.9.24

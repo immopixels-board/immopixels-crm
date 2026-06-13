@@ -34,13 +34,13 @@ const ILLUS = {
   ),
   status: (
     <div style={{ display:'flex', gap:10, justifyContent:'center', padding:'4px 0' }}>
-      <Card title="FOTO" sub="Bartz · Mannheim" warn badge="⚠ Noch nicht gesendet" />
-      <Card title="FOTO" accent="#15803d" sub="Müller · Speyer" badge="✓ Geliefert" />
+      <Card title="FOTO" sub="Muster · Mannheim" warn badge="⚠ Noch nicht gesendet" />
+      <Card title="FOTO" accent="#15803d" sub="Beispiel · Speyer" badge="✓ Geliefert" />
     </div>
   ),
   move: (
     <div style={{ display:'flex', alignItems:'center', gap:10, justifyContent:'center', padding:'4px 0' }}>
-      <Card title="FOTO" sub="Bartz" />
+      <Card title="FOTO" sub="Muster" />
       <div style={{ fontSize:22, color:G }}>→</div>
       <div style={{ width:120, height:60, border:'1.5px dashed '+G, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', color:G, fontSize:11, fontWeight:600 }}>Fertig</div>
     </div>
@@ -149,8 +149,8 @@ const ILLUS = {
   ),
   claude: (
     <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', padding:'4px 0' }}>
-      <div style={{ alignSelf:'flex-start', maxWidth:'80%', background:'#f1ede4', borderRadius:'12px 12px 12px 3px', padding:'7px 11px', fontSize:10, color:'#4a4540' }}>„Erstelle Karte für Bartz, morgen 10 Uhr"</div>
-      <div style={{ alignSelf:'flex-end', maxWidth:'80%', background:'#1a1a1a', borderRadius:'12px 12px 3px 12px', padding:'7px 11px', fontSize:10, color:'#fff' }}>✓ Karte erstellt für Bartz, 14.06. 10:00</div>
+      <div style={{ alignSelf:'flex-start', maxWidth:'80%', background:'#f1ede4', borderRadius:'12px 12px 12px 3px', padding:'7px 11px', fontSize:10, color:'#4a4540' }}>„Erstelle Karte für Muster, morgen 10 Uhr"</div>
+      <div style={{ alignSelf:'flex-end', maxWidth:'80%', background:'#1a1a1a', borderRadius:'12px 12px 3px 12px', padding:'7px 11px', fontSize:10, color:'#fff' }}>✓ Karte erstellt für Muster, 14.06. 10:00</div>
     </div>
   ),
   done: (
@@ -161,7 +161,7 @@ const ILLUS = {
 }
 
 const STEPS = [
-  { illus:'welcome', title:'👋 Willkommen im ImmoPixels CRM!', content:'Diese kurze Tour zeigt dir alle wichtigen Funktionen: Karten, Kalender, Kunden, Fahrtenbuch, Rechnungen, Mitarbeiter und mehr. Du kannst sie jederzeit oben rechts über das ?-Symbol erneut öffnen.' },
+  { illus:'welcome', title:'👋 Willkommen in deinem CRM!', content:'Schön, dass du da bist — sieh dich um, als wäre es schon deins. Diese kurze Tour zeigt dir alle wichtigen Funktionen: Karten, Kalender, Kunden, Fahrtenbuch, Rechnungen, Mitarbeiter und mehr. Du kannst sie jederzeit oben rechts über das ?-Symbol erneut öffnen.' },
   { illus:'board', title:'🗂 Das Board — dein Arbeitsbereich', content:'Jede Karte ist ein Auftrag. Die Spalten bilden deinen Workflow ab: Shootings → Beim Bearbeiter → In Bearbeitung → Fertig. Eine Karte zeigt Kategorie, Datum, Kunde, Adresse und Status auf einen Blick.' },
   { illus:'status', title:'🟠 Status-Markierungen', content:'Orangefarbener Rahmen + „Noch nicht gesendet" = die Fotos sind noch nicht ausgeliefert. Sobald ein Drive-/Dropbox-Link auf der Karte ist, gilt der Auftrag als geliefert und der Hinweis verschwindet. Überfällige Termine werden rot markiert.' },
   { illus:'move', title:'↔ Karten verschieben & sortieren', content:'Halte das ⠿ Grip-Symbol links vom Titel gedrückt und ziehe die Karte in eine andere Spalte. Über das ↕-Symbol im Spaltenkopf wählst du die Sortierung: nach Termin, Neueste zuerst oder manuell.' },
@@ -173,8 +173,8 @@ const STEPS = [
   { illus:'fahrtkosten', title:'🛣 Fahrtkosten in die Rechnung', content:'Fahrtkosten als Position: Kilometer in die Menge, Satz pro km in den Preis (Einheit „km"). Die Summe wird automatisch berechnet und erscheint sauber auf der PDF-Rechnung.' },
   { illus:'mitarbeiter', title:'🧑‍💼 Mitarbeiter, Arbeitszeit & Gehaltszettel', content:'Im Tab „Mitarbeiter" verwaltest du das Team: Rollen, Farben, Board-Zugriff. Die Arbeitszeit wird per Check-in/Check-out erfasst (Stunden, Pausen). Gehaltszettel werden pro Monat hochgeladen und bereitgestellt.' },
   { illus:'widgets', title:'🧩 Widgets', content:'Auf dem Board nutzt du Widgets: To-Do, Wetter, nächster Termin, Statistik. Sie lassen sich frei verschieben und einklappen — dein eigenes Dashboard.' },
-  { illus:'claude', title:'🤖 Claude AI — dein Assistent', content:'Im Chat gibst du natürliche Befehle ein: „Erstelle eine Karte für Bartz, morgen 10 Uhr", „Zeige alle überfälligen Karten", „Was steht heute an?". Claude kennt deine Karten, Kunden und Statistiken.' },
-  { illus:'done', title:'✅ Du bist startklar!', content:'Das waren die wichtigsten Funktionen. Probiere alles in Ruhe aus — in dieser Demo kannst du nichts kaputt machen. Bei Fragen hilft dir Claude AI jederzeit im Chat. Viel Spaß!' },
+  { illus:'claude', title:'🤖 Claude AI — dein Assistent', content:'Im Chat gibst du natürliche Befehle ein: „Erstelle eine Karte für Muster, morgen 10 Uhr", „Zeige alle überfälligen Karten", „Was steht heute an?". Claude kennt deine Karten, Kunden und Statistiken.' },
+  { illus:'done', title:'✅ Du bist startklar!', content:'Das waren die wichtigsten Funktionen. Probiere alles in Ruhe aus — du kannst hier nichts kaputt machen. Bei Fragen hilft dir Claude AI jederzeit im Chat.\n\nℹ️ Hinweis: Diese Demo wird alle 24 Stunden automatisch zurückgesetzt — deine Änderungen werden also wieder gelöscht. Viel Spaß beim Ausprobieren!' },
 ]
 
 export default function TutorialOverlay({ onClose }) {
