@@ -578,8 +578,18 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     setUploadProgress(0)
     setUploadError(null)
     try {
-      // Get GCal/Drive token from localStorage
-      const token = localStorage.getItem('gcal_token')
+      // Immer FRISCHEN Token holen (Refresh-Token serverseitig) — vermeidet abgelaufene Tokens.
+      let token = null
+      if (currentStaff?.id) {
+        try {
+          const tr = await fetch('/api/gcal/fresh-token?staff_id=' + encodeURIComponent(currentStaff.id))
+          const tj = await tr.json()
+          if (tj.ok && tj.access_token) { token = tj.access_token; try { localStorage.setItem('gcal_token', token) } catch {} }
+          else if (tj.reason === 'not_connected') { setUploadError('Bitte zuerst Google verbinden (Kalender-Tab)'); setUploadProgress(null); return }
+        } catch {}
+      }
+      // Fallback: localStorage-Token (falls fresh-token nicht verfügbar)
+      if (!token) token = localStorage.getItem('gcal_token')
       if (!token) {
         setUploadError('Bitte zuerst Google verbinden (Kalender-Tab)')
         setUploadProgress(null)
@@ -606,7 +616,8 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
         }
       )
       if (!initRes.ok) {
-        const err = await initRes.json()
+        const err = await initRes.json().catch(() => ({}))
+        if (initRes.status === 401) throw new Error('Google-Sitzung abgelaufen — bitte im Kalender-Tab neu verbinden.')
         throw new Error(err.error?.message || 'Upload init fehlgeschlagen')
       }
       const uploadUrl = initRes.headers.get('Location')

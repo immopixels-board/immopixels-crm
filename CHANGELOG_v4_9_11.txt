@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.9.11 — Fix: ZIP→Google Drive feltöltés lejárt token
+## 2026-06-13
+- Hiba: a ZIP→Drive feltöltés a localStorage-ben tárolt, ~1 órás access tokent
+  küldte frissítés nélkül → lejáratkor "invalid authentication credentials /
+  Expected OAuth 2 access token" hiba.
+- Javítás: minden feltöltés ELŐTT friss access tokent kérünk a refresh-token
+  alapján (új végpont: GET /api/gcal/fresh-token?staff_id=...), és azzal töltünk
+  fel. Így a feltöltés nem fut többé lejárt tokenbe.
+- Ha nincs összekötve a Google ("not_connected"): érthető üzenet a Kalender-Tab
+  felé. 401 esetén: "Google-Sitzung abgelaufen — bitte neu verbinden."
+- Az OAuth-scope már tartalmazza a drive.file-t (jogosultság rendben volt) —
+  csak a token-frissítés hiányzott.
+- Megjegyzés: ha valaki RÉGEBBEN kötötte össze a Google-t, és akkor még nem volt
+  drive.file scope, egyszer újra kell csatlakoznia a Kalender-Tabon, hogy a
+  refresh_token Drive-jogot is kapjon.
+
+Érintett: app/api/gcal/fresh-token/route.js (új), components/CardModal.js.
+VER label: v4.9.11
