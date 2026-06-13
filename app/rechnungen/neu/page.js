@@ -96,14 +96,13 @@ export default function NeueRechnungPage() {
       } else newBlank(today, sl)
     }
     setLoading(false)
-    // Rechnungsnummer: immer vorab generieren (editierbar, wie in Billomat).
-    // Echte Eindeutigkeit wird beim Festschreiben geprüft.
+    // Rechnungsnummer: Vorschau per peek (zählt NICHT hoch), editierbar wie in Billomat.
+    // Die Nummer wird beim Speichern des Entwurfs mitgespeichert (übernommen) und
+    // erst beim Festschreiben/Übernehmen real reserviert (commit).
     try {
-      const y = new Date().getFullYear()
-      const { data: nd } = await supabase.rpc('next_invoice_number', { p_year: y })
+      const { data: nd } = await supabase.rpc('peek_invoice_number')
       if (nd) {
         setNumberPreview(nd)
-        // nur vorbelegen, wenn noch keine Nummer existiert (neue/Entwurf ohne Nr.)
         setInv(p => (p && !p.invoice_number && p.status !== 'open') ? { ...p, invoice_number: nd } : p)
       }
     } catch {}
@@ -216,19 +215,26 @@ export default function NeueRechnungPage() {
     try {
       const t = totals()
       const base = { client_id: inv.client_id || null, client_name: inv.client_name || '', invoice_date: inv.invoice_date, due_date: inv.due_date || null, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes || null, seller, buyer: inv.buyer || {}, created_by: myId }
+      // Duplikat-Warnung (falls die Nummer bereits auf einer anderen Rechnung existiert)
+      if (inv.invoice_number) {
+        const { data: dup } = await supabase.from('invoices').select('id').eq('invoice_number', inv.invoice_number).neq('id', inv.id || '00000000-0000-0000-0000-000000000000').maybeSingle()
+        if (dup) {
+          const ok = confirm('⚠ Achtung: Die Rechnungsnummer ' + inv.invoice_number + ' existiert bereits!\n\nTrotzdem mit dieser Nummer speichern? (Doppelte Nummern können bei der Buchhaltung Probleme verursachen.)')
+          if (!ok) { setBusy(false); return false }
+        }
+      }
       let invId = inv.id
-      if (invId) { const { error } = await supabase.from('invoices').update({ ...base, invoice_number: finalize ? (inv.invoice_number || null) : null }).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
-      else { const { data, error } = await supabase.from('invoices').insert({ ...base, invoice_number: null, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
+      // Entwurf BEHÄLT die (übernommene) Nummer — wird nicht mehr auf null gesetzt
+      if (invId) { const { error } = await supabase.from('invoices').update({ ...base, invoice_number: inv.invoice_number || null }).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
+      else { const { data, error } = await supabase.from('invoices').insert({ ...base, invoice_number: inv.invoice_number || null, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
       const rows = itemsForDb(invId)
       if (rows.length) { const { error: ie } = await supabase.from('invoice_items').insert(rows); if (ie) throw ie }
       if (finalize) {
         let numberStr = inv.invoice_number
-        const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear()
-        // Eindeutigkeit prüfen; falls belegt (anderer Datensatz), neue Nummer ziehen
-        if (numberStr) {
-          const { data: ex } = await supabase.from('invoices').select('id').eq('invoice_number', numberStr).neq('id', invId).maybeSingle()
-          if (ex) { const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd; setInv(p => ({ ...p, invoice_number: nd })) }
-        } else { const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd }
+        // Falls noch keine Nummer übernommen wurde, jetzt real reservieren (commit)
+        if (!numberStr) {
+          const { data: nd, error: nerr } = await supabase.rpc('commit_invoice_number'); if (nerr) throw nerr; numberStr = nd; setInv(p => ({ ...p, invoice_number: nd }))
+        }
         const { error: ferr } = await supabase.from('invoices').update({ invoice_number: numberStr, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
         if (ferr) throw ferr
       }
@@ -281,7 +287,13 @@ export default function NeueRechnungPage() {
             <div><Lbl>Rechnungsnummer (änderbar)</Lbl><input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder={numberPreview ? 'Vorschau: ' + numberPreview : 'automatisch beim Festschreiben'} disabled={finalized} style={{ ...box, width: '100%' }} />{!finalized && numberPreview && !inv.invoice_number && <div style={{ fontSize: 10, color: MUT, marginTop: 2 }}>Nächste freie Nr.: <b>{numberPreview}</b> — wird beim Festschreiben vergeben</div>}</div>
             <div><Lbl>Datum</Lbl><input type="date" value={inv.invoice_date} onChange={e => onDate(e.target.value)} style={{ ...box, width: '100%' }} /></div>
           </div>
-          <div style={{ marginTop: 12 }}><Lbl>Anschrift</Lbl><textarea value={[inv.buyer?.company, inv.buyer?.contact, inv.buyer?.address].filter(Boolean).join('\n')} readOnly rows={3} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial', color: MUT, background: '#f9f7f2' }} placeholder="(Kunde rechts wählen)" /></div>
+          <div style={{ marginTop: 12 }}>
+            <Lbl>Anschrift (auf dieser Rechnung änderbar)</Lbl>
+            <input value={inv.buyer?.company || ''} onChange={e => setBuyer({ company: e.target.value })} placeholder="Firma" style={{ ...box, width: '100%', marginBottom: 6 }} />
+            <input value={inv.buyer?.contact || ''} onChange={e => setBuyer({ contact: e.target.value })} placeholder="Ansprechpartner (optional)" style={{ ...box, width: '100%', marginBottom: 6 }} />
+            <textarea value={inv.buyer?.address || ''} onChange={e => setBuyer({ address: e.target.value })} rows={2} placeholder="Straße, PLZ Ort" style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
+            <div style={{ fontSize: 11, color: MUT, marginTop: 4 }}>Änderungen gelten nur für diese Rechnung — die Kundendaten bleiben unverändert.</div>
+          </div>
           <div style={{ marginTop: 12 }}><Lbl>Einleitungstext</Lbl><textarea value={inv.intro ?? template.intro} onChange={e => set({ intro: e.target.value })} rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} /></div>
 
           {/* HAVI FOTÓZÁSOK — pipálással pozícióvá */}

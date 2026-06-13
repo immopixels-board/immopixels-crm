@@ -1,0 +1,26 @@
+# ImmoPixels CRM v4.9.29 — Számlaszám (20- prefix, Billomat-stílusú átvétel) + Anschrift szerkeszthető
+## 2026-06-13
+SZÁMLASZÁM (Billomat-logika, ahogy kérted):
+- A számla megírásánál (Entwurf) a rendszer ELŐRE felajánlja a következő
+  számot, ami a vázlatba kerül és MEGMARAD (eddig mentéskor null-ra állt).
+- Fix "20-" prefix, FOLYTATÓLAGOS, évváltáskor NEM nullázódik.
+- Két új SQL-függvény (külön fájl: INVOICE_NUMBER_20PREFIX.sql):
+  • peek_invoice_number() — megnézi a köv. számot, NEM növel (előnézet);
+  • commit_invoice_number() — ténylegesen lefoglalja (növel), véglegesítéskor.
+- Duplikátum-FIGYELMEZTETÉS: ha a megadott szám már létezik másik számlán,
+  mentéskor rákérdez ("Trotzdem speichern?").
+- MEGJEGYZÉS (GoBD): mivel a szám már a vázlatnál foglalódhat, eldobott
+  vázlatnál lyuk keletkezhet a számsorban — ez tudatos választás volt.
+
+ANSCHRIFT/KUNDE A SZÁMLÁN SZERKESZTHETŐ:
+- A számla Anschrift mezője eddig readOnly volt → most szerkeszthető
+  (Firma, Ansprechpartner, Adresse külön mezők). A változtatás CSAK az
+  adott számlára vonatkozik, a Kunde törzsadata változatlan marad.
+- A PDF a címet most sortörés ÉS vessző mentén is tördeli.
+
+KÜLÖN SQL — FUTTASD AZ ÉLES SUPABASE-BEN: INVOICE_NUMBER_20PREFIX.sql
+(last_no=721 → következő 20-0722; ha más az utolsó számod, írd át).
+
+Érintett: app/rechnungen/neu/page.js, app/rechnungen/page.js,
+lib/invoice/zugferd.js, lib/invoice/mahnung.js, app/BoardApp.js (VER).
++ INVOICE_NUMBER_20PREFIX.sql. VER: v4.9.29

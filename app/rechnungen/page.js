@@ -95,7 +95,7 @@ export default function RechnungenPage() {
       if (itemRows.length) { const { error: ie } = await supabase.from('invoice_items').insert(itemRows); if (ie) throw ie }
       if (finalize) {
         const y = +(ed.invoice_date || '').slice(0, 4) || new Date().getFullYear()
-        const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y })
+        const { data: numData, error: nerr } = await supabase.rpc('commit_invoice_number')
         if (nerr) throw nerr
         await supabase.from('invoices').update({ invoice_number: numData, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
       }
@@ -109,7 +109,7 @@ export default function RechnungenPage() {
     try {
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
       const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear()
-      const { data: numData, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr
+      const { data: numData, error: nerr } = await supabase.rpc('commit_invoice_number'); if (nerr) throw nerr
       const { data: sRow, error } = await supabase.from('invoices').insert({ invoice_number: numData, client_id: inv.client_id, client_name: inv.client_name, invoice_date: new Date().toISOString().slice(0, 10), status: 'storno', storno_of: inv.id, total_net: -inv.total_net, vat_amount: -inv.vat_amount, total_gross: -inv.total_gross, notes: 'Storno zu ' + inv.invoice_number, seller, buyer: inv.buyer || {}, created_by: myId, finalized_at: new Date().toISOString() }).select('id').single()
       if (error) throw error
       if (its?.length) await supabase.from('invoice_items').insert(its.map((it, i) => ({ invoice_id: sRow.id, position: i + 1, description: it.description, qty: it.qty, unit_price: it.unit_price, discount: it.discount || 0, vat_rate: it.vat_rate, line_net: -it.line_net, line_gross: -it.line_gross })))
