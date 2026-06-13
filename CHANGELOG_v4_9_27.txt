@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.9.27 — Demo: Smartlook session-recording (csak demón)
+## 2026-06-13
+- Beépítve a Smartlook (session recording / activity tracking) az
+  app/layout.js-be a next/script komponenssel.
+- CSAK demo módban tölt be (NEXT_PUBLIC_IS_DEMO=1). Élesen SOHA nem fut —
+  fontos, mert élesen valódi ügyféladatok vannak (GDPR).
+- Smartlook EU-régió, projekt-kulcs beágyazva.
+
+MEGJEGYZÉS: a demón is rögzít látogatókat (EU) → ajánlott egy rövid
+cookie/adatvédelmi utalás a demóra (külön feladat).
+
+Érintett: app/layout.js, app/BoardApp.js. VER: v4.9.27
