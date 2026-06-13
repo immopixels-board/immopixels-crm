@@ -96,15 +96,12 @@ export default function NeueRechnungPage() {
       } else newBlank(today, sl)
     }
     setLoading(false)
-    // Rechnungsnummer: Vorschau per peek (zählt NICHT hoch), editierbar wie in Billomat.
-    // Die Nummer wird beim Speichern des Entwurfs mitgespeichert (übernommen) und
-    // erst beim Festschreiben/Übernehmen real reserviert (commit).
+    // Rechnungsnummer: Vorschau per peek (zählt NICHT hoch). Die Nummer wird
+    // NICHT automatisch ins Feld gesetzt — der Nutzer übernimmt sie per Button
+    // (wie in Billomat). So bleibt sie vorläufig, bis sie übernommen wird.
     try {
       const { data: nd } = await supabase.rpc('peek_invoice_number')
-      if (nd) {
-        setNumberPreview(nd)
-        setInv(p => (p && !p.invoice_number && p.status !== 'open') ? { ...p, invoice_number: nd } : p)
-      }
+      if (nd) setNumberPreview(nd)
     } catch {}
   }
   function splitItem(it) { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: (it.unit_price === 0 || it.unit_price) ? it.unit_price : '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19, unit: it.unit || '', _card: it._card } }
@@ -284,7 +281,14 @@ export default function NeueRechnungPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, maxWidth: 1200, margin: '0 auto', padding: 18, alignItems: 'start' }}>
         <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 18 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><Lbl>Rechnungsnummer (änderbar)</Lbl><input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder={numberPreview ? 'Vorschau: ' + numberPreview : 'automatisch beim Festschreiben'} disabled={finalized} style={{ ...box, width: '100%' }} />{!finalized && numberPreview && !inv.invoice_number && <div style={{ fontSize: 10, color: MUT, marginTop: 2 }}>Nächste freie Nr.: <b>{numberPreview}</b> — wird beim Festschreiben vergeben</div>}</div>
+            <div><Lbl>Rechnungsnummer (änderbar)</Lbl>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder={numberPreview ? ('vorläufig: ' + numberPreview) : 'Nr. wird vorbereitet…'} disabled={finalized} style={{ ...box, flex: 1 }} />
+                {!finalized && !inv.invoice_number && numberPreview && <button onClick={() => set({ invoice_number: numberPreview })} style={{ ...ghost, whiteSpace: 'nowrap' }}>Übernehmen</button>}
+              </div>
+              {!finalized && !inv.invoice_number && numberPreview && <div style={{ fontSize: 10, color: MUT, marginTop: 2 }}>Nächste freie Nr.: <b>{numberPreview}</b> — „Übernehmen" reserviert sie für diesen Entwurf. Wird der Entwurf gelöscht, ist die Nr. wieder frei.</div>}
+              {!finalized && inv.invoice_number && <div style={{ fontSize: 10, color: '#2f7a4f', marginTop: 2 }}>✓ Nr. {inv.invoice_number} für diesen Entwurf reserviert.</div>}
+            </div>
             <div><Lbl>Datum</Lbl><input type="date" value={inv.invoice_date} onChange={e => onDate(e.target.value)} style={{ ...box, width: '100%' }} /></div>
           </div>
           <div style={{ marginTop: 12 }}>
@@ -318,19 +322,24 @@ export default function NeueRechnungPage() {
           )}
 
           <div style={{ marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 800 }}>Positionen</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '20px 56px 84px 56px 64px 52px 1fr 40px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
-            <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span><span></span>
+          <div style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
+            <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span>
           </div>
           {inv.items.map((it, i) => (
             <div key={i}
               onDragOver={e => { if (dragIdx === null) return; e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
               onDrop={e => { if (dragIdx === null) return; e.preventDefault(); dropItem(i) }}
-              style={{ display: 'grid', gridTemplateColumns: '20px 56px 84px 56px 64px 52px 1fr 40px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + (dragOver === i && dragIdx !== null && dragIdx !== i ? GOLD : LINE), borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.4 : 1 }}>
-              <div
-                draggable
-                onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
-                onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
-                title="Zum Verschieben ziehen" style={{ cursor: 'grab', color: '#c9c2b2', textAlign: 'center', paddingTop: 7, fontSize: 15, lineHeight: 1, userSelect: 'none' }}>⠿</div>
+              style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + (dragOver === i && dragIdx !== null && dragIdx !== i ? GOLD : LINE), borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.4 : 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+                <div
+                  draggable
+                  onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
+                  onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
+                  title="Zum Verschieben ziehen" style={{ cursor: 'grab', color: '#c9c2b2', textAlign: 'center', paddingTop: 5, fontSize: 15, lineHeight: 1, userSelect: 'none' }}>⠿</div>
+                <button title="Fahrtkosten berechnen (Hin- und Rückfahrt)" onClick={() => addFahrt(i)} disabled={busy} style={{ ...icon, color: GOLD }}>🚗</button>
+                <button title="Duplizieren" onClick={() => dupItem(i)} style={icon}>⎘</button>
+                <button title="Löschen" onClick={() => delItem(i)} style={{ ...icon, color: '#b3402f' }}>✕</button>
+              </div>
               <input value={it.qty} onChange={e => setItem(i, { qty: e.target.value })} style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit_price} onChange={e => setItem(i, { unit_price: e.target.value })} placeholder="0,00" style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit || ''} onChange={e => setItem(i, { unit: e.target.value })} list="unitopts" placeholder="—" style={{ ...box, textAlign: 'center' }} />
@@ -339,11 +348,6 @@ export default function NeueRechnungPage() {
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
                 <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'center', paddingTop: 4 }}>
-                <button title="Fahrtkosten berechnen (Hin- und Rückfahrt)" onClick={() => addFahrt(i)} disabled={busy} style={{ ...icon, color: GOLD }}>🚗</button>
-                <button title="Duplizieren" onClick={() => dupItem(i)} style={icon}>⎘</button>
-                <button title="Löschen" onClick={() => delItem(i)} style={{ ...icon, color: '#b3402f' }}>✕</button>
               </div>
             </div>
           ))}

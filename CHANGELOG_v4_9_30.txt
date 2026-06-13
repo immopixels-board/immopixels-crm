@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.9.30 — Számlaszám Übernehmen-logika + pozíció-sor elrendezés
+## 2026-06-13
+SZÁMLASZÁM (a helyes Billomat-modell, ahogy kérted):
+- A szám a mezőben "vorläufig" (ideiglenes) előnézetként látszik, mellette
+  egy "Übernehmen" gomb. Ha rányomsz, a szám a vázlatra reserválódik.
+- Ha a (vázlat) számlát később TÖRLÖD, a szám automatikusan újra
+  felszabadul és a következő számla használja → NINCS lyuk.
+- Ezt az teszi lehetővé, hogy a következő szám a TÉNYLEGES adatból
+  számolódik (legnagyobb kiadott 20-XXXX + 1), nem merev számlálóból.
+- ÚJ SQL (cseréli a korábbit): INVOICE_NUMBER_20PREFIX.sql —
+  peek_invoice_number() + commit_invoice_number() + _max_invoice_no(),
+  base_no=721 (köv. 20-0722). FUTTASD az éles Supabase-ben.
+
+POZÍCIÓ-SOR ELRENDEZÉS:
+- A jobb oldali ikonok (🚗 Fahrtkosten, ⎘ Duplizieren, ✕ Löschen) átkerültek
+  a BAL oldali drag-fogantyú (⠿) ALÁ, egy oszlopba.
+- Így megszűnt a jobb 40px-es ikon-oszlop → a mezők (főleg a
+  Titel/Beschreibung) SZÉLESEBBEK lettek.
+
+Érintett: app/rechnungen/neu/page.js, app/BoardApp.js (VER).
++ INVOICE_NUMBER_20PREFIX.sql (frissítve). VER: v4.9.30
