@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { generateZugferdPdf } from '../../lib/invoice/zugferd'
+import { generateMahnungPdf, defaultMahnungText } from '../../lib/invoice/mahnung'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
@@ -28,6 +29,7 @@ export default function RechnungenPage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [editor, setEditor] = useState(null)
   const [settingsModal, setSettingsModal] = useState(false)
+  const [mahnModal, setMahnModal] = useState(null)
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
 
@@ -148,7 +150,29 @@ export default function RechnungenPage() {
     setBusy(false)
   }
 
-  if (loading) return <Shell><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></Shell>
+  function openMahnung(inv) {
+    const stufe = 1
+    const gebuehr = 5
+    const iso = addDays(new Date().toISOString().slice(0, 10), 14)
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/)
+    const frist = m ? `${m[3]}.${m[2]}.${m[1]}` : iso
+    setMahnModal({ inv, stufe, gebuehr, frist, text: defaultMahnungText({ inv, stufe, gebuehr, frist }) })
+  }
+  async function downloadMahnung() {
+    if (!mahnModal) return
+    setBusy(true)
+    try {
+      const { inv, text, gebuehr, stufe } = mahnModal
+      const bytes = await generateMahnungPdf({ inv, seller, template, text, gebuehr, stufe })
+      const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a')
+      const cl = (clients || []).find(x => x.id === inv.client_id)
+      const abk = (cl?.short_name || '').trim().replace(/[\/:*?"<>|]+/g, '').replace(/\s+/g, '-')
+      const stLabel = stufe === 1 ? 'Zahlungserinnerung' : (stufe + '. Mahnung')
+      a.href = u; a.download = stLabel + ' ' + (inv.invoice_number || '') + (abk ? '_' + abk : '') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000)
+      setMahnModal(null)
+    } catch (e) { alert('Mahnung-PDF-Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
 
   const val = i => brutto ? (i.total_gross || 0) : (i.total_net || 0)
   const issued = invoices.filter(i => i.status !== 'draft')
@@ -212,7 +236,7 @@ export default function RechnungenPage() {
               <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
               <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
               <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
-              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
+              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#9a6a12' }}>Mahnung</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
             </tr> })}</tbody></table></div>}
         </Card>
       )}
@@ -220,6 +244,7 @@ export default function RechnungenPage() {
       {tab === 'import' && <ImportTab clients={clients} myId={myId} seller={seller} onDone={reload} />}
 
       {settingsModal && <SettingsModal seller={seller} setSeller={setSeller} template={template} setTemplate={setTemplate} onClose={() => setSettingsModal(false)} onSave={saveSettings} />}
+      {mahnModal && <MahnungModal m={mahnModal} setM={setMahnModal} busy={busy} onDownload={downloadMahnung} />}
     </Shell>
   )
 }
@@ -404,6 +429,44 @@ function Shell({ children }) { return <div style={{ minHeight: '100dvh', backgro
 function Kpi({ label, value, sub, accent }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#9a6a12' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div> }
 function Card({ title, right, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>{right}</div>{children}</div> }
 function Modal({ children, onClose, wide }) { return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 100, overflowY: 'auto' }}><div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: wide ? 660 : 460, fontFamily: 'Arial' }}>{children}</div></div> }
+
+function MahnungModal({ m, setM, busy, onDownload }) {
+  const { inv } = m
+  function regen(stufe, gebuehr, frist) {
+    setM({ ...m, stufe, gebuehr, frist, text: defaultMahnungText({ inv, stufe, gebuehr, frist }) })
+  }
+  return (
+    <Modal onClose={() => setM(null)} wide>
+      <div style={{ fontSize: 16, fontWeight: 800, color: DARK, marginBottom: 4 }}>Mahnung / Zahlungserinnerung</div>
+      <div style={{ fontSize: 12, color: MUT, marginBottom: 16 }}>Rechnung {inv.invoice_number} · {inv.client_name} · offen: {eur(inv.total_gross)}</div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+        <div style={{ flex: 1 }}>
+          <label style={LBL}>Stufe</label>
+          <select value={m.stufe} onChange={e => regen(Number(e.target.value), m.gebuehr, m.frist)} style={inp}>
+            <option value={1}>Zahlungserinnerung (freundlich)</option>
+            <option value={2}>1. Mahnung</option>
+            <option value={3}>2. Mahnung</option>
+          </select>
+        </div>
+        <div style={{ width: 130 }}>
+          <label style={LBL}>Mahngebühr (€)</label>
+          <input type="number" step="0.5" min="0" value={m.gebuehr} onChange={e => regen(m.stufe, e.target.value === '' ? 0 : Number(e.target.value), m.frist)} style={inp} />
+        </div>
+        <div style={{ width: 130 }}>
+          <label style={LBL}>Frist</label>
+          <input type="text" value={m.frist} onChange={e => regen(m.stufe, m.gebuehr, e.target.value)} style={inp} />
+        </div>
+      </div>
+      <label style={LBL}>Text (frei bearbeitbar)</label>
+      <textarea value={m.text} onChange={e => setM({ ...m, text: e.target.value })} style={{ ...inp, minHeight: 220, lineHeight: 1.5, fontFamily: 'Arial', resize: 'vertical' }} />
+      <div style={{ fontSize: 11, color: MUT, marginTop: 6 }}>Tipp: Stufe oder Gebühr ändern setzt den Text neu auf die Vorlage. Eigene Änderungen danach bleiben erhalten, bis du wieder Stufe/Gebühr wechselst.</div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button onClick={() => setM(null)} style={ghost}>Abbrechen</button>
+        <button onClick={onDownload} disabled={busy} style={primary}>{busy ? '…' : 'Mahnung als PDF'}</button>
+      </div>
+    </Modal>
+  )
+}
 const tabBtn = a => ({ padding: '8px 14px', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid ' + (a ? GOLD : LINE), background: a ? GOLD : '#fff', color: a ? '#fff' : MUT })
 const toggle = a => ({ padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: a ? GOLD : '#fff', color: a ? '#fff' : MUT })
 const selS = { border: '1px solid ' + LINE, borderRadius: 7, padding: '5px 8px', fontSize: 12, background: '#fff', color: DARK, fontWeight: 700 }

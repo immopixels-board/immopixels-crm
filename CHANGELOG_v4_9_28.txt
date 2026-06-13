@@ -1,0 +1,23 @@
+# ImmoPixels CRM v4.9.28 — Rechnungen menüpont + Mahnung (kézi, sablonnal)
+## 2026-06-13
+RECHNUNGEN MENÜPONT:
+- A felső menübe (desktop + mobil drawer) bekerült egy külön "Rechnungen"
+  menüpont, ami közvetlenül a /rechnungen oldalra visz — nem kell előbb a
+  Kunden-tabhoz menni. Csak a számlázásra jogosultaknak (can_invoice).
+
+MAHNUNG (fizetési felszólítás, kézi):
+- A számla-listában a kiküldött, nem fizetett számláknál (Offen/Überfällig)
+  új "Mahnung" gomb.
+- Megnyit egy modalt:
+  • Stufe választó: Zahlungserinnerung (freundlich) / 1. Mahnung / 2. Mahnung
+    — a stufe váltása újragenerálja az előre kitöltött sablon-szöveget;
+  • Mahngebühr mező, alapból 5 €, kézzel szerkeszthető;
+  • Frist (fizetési határidő) mező, alapból +14 nap;
+  • szabadon szerkeszthető szöveg (textarea), sablonnal előtöltve.
+- Letöltés: Mahnung-PDF az ImmoPixels számla-stílusában (logó, eladó-adatok,
+  összeg-blokk: offener Betrag + Mahngebühr = zu zahlender Betrag, banki
+  lábléc). Új: lib/invoice/mahnung.js (pdf-lib).
+- Minden kézi — nincs automatikus küldés/Cron.
+
+Érintett: app/BoardApp.js (menü + VER), app/rechnungen/page.js (gomb+modal),
+lib/invoice/mahnung.js (új). VER: v4.9.28
