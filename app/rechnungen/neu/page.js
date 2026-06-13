@@ -240,7 +240,26 @@ export default function NeueRechnungPage() {
     } catch (e) { alert('Fehler beim Speichern: ' + (e.message || e) + (String(e.message || '').includes('duplicate') ? '\n→ Diese Rechnungsnummer existiert bereits.' : '')); setBusy(false); return false }
   }
 
-  async function makePdfBytes() { return await generateZugferdPdf({ inv: toInvoiceObj(), items: itemsForDb('x'), seller, template }) }
+  async function fahrtenbuchKmForClient() {
+    // Összes (te + Dani + bárki) megtett km, ahol a Zweck illeszkedik az ügyfélre.
+    const c = clients.find(x => x.id === inv.client_id)
+    const keys = [c?.short_name, c?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim())
+    if (!keys.length) return 0
+    try {
+      const { data } = await supabase.from('fahrtenbuch').select('km, zweck, nach')
+      if (!data) return 0
+      let sum = 0
+      for (const r of data) {
+        const hay = ((r.zweck || '') + ' ' + (r.nach || '')).toLowerCase()
+        if (keys.some(k => k.length >= 2 && hay.includes(k))) sum += (parseInt(r.km) || 0)
+      }
+      return sum
+    } catch { return 0 }
+  }
+  async function makePdfBytes() {
+    const clientKmTotal = await fahrtenbuchKmForClient()
+    return await generateZugferdPdf({ inv: toInvoiceObj(), items: itemsForDb('x'), seller, template, clientKmTotal })
+  }
   async function delInvoice() {
     if (!inv.id) { window.location.href = '/rechnungen'; return }
     if (!confirm('Diese Rechnung endgültig löschen?' + (finalized ? '\n(Festgeschrieben — Löschen evtl. blockiert, ggf. stornieren.)' : ''))) return

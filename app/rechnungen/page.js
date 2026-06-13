@@ -137,11 +137,24 @@ export default function RechnungenPage() {
   function toggleSel(id) { setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n }) }
   function toggleSelAll() { setSelected(s => s.size === invoices.length ? new Set() : new Set(invoices.map(i => i.id))) }
 
+  async function fahrtenbuchKmFor(inv) {
+    const cl = (clients || []).find(x => x.id === inv.client_id)
+    const keys = [cl?.short_name, cl?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim())
+    if (!keys.length) return 0
+    try {
+      const { data } = await supabase.from('fahrtenbuch').select('km, zweck, nach')
+      if (!data) return 0
+      let sum = 0
+      for (const r of data) { const hay = ((r.zweck || '') + ' ' + (r.nach || '')).toLowerCase(); if (keys.some(k => k.length >= 2 && hay.includes(k))) sum += (parseInt(r.km) || 0) }
+      return sum
+    } catch { return 0 }
+  }
   async function downloadPdf(inv) {
     setBusy(true)
     try {
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
-      const bytes = await generateZugferdPdf({ inv, items: its || [], seller, template })
+      const clientKmTotal = await fahrtenbuchKmFor(inv)
+      const bytes = await generateZugferdPdf({ inv, items: its || [], seller, template, clientKmTotal })
       const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a')
       const cl = (clients || []).find(x => x.id === inv.client_id)
       const abk = (cl?.short_name || '').trim().replace(/[\/:*?"<>|]+/g, '').replace(/\s+/g, '-')

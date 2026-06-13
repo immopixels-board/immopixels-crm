@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.9.31 — Számla lábléc: Fahrtenbuch-alapú megtett km az ügyfélnek
+## 2026-06-13
+- A számla alján apró betűkkel megjelenik az adott ügyfélhez TÉNYLEGESEN
+  megtett összes km — a FAHRTENBUCH adataiból (te + Dani + bárki, aki az
+  ügyfélhez utazott), függetlenül attól, hogy számláztál-e Fahrtkosten-t.
+- Szöveg: "Für Ihre Aufträge gefahren (gesamt): X km — überwiegend nicht
+  berechnet." → így az ügyfél is, te is látod, mennyit utaztál érte, amit
+  nagyrészt nem számláztál ki.
+- Az illesztés a Fahrtenbuch 'Zweck' (és 'Nach') mezőjében az ügyfél
+  neve/rövidítése alapján történik (nem kell pontos egyezés). Minden staff
+  bejegyzése beleszámít.
+- A korábbi tétel-alapú km-sor megmarad ("Gefahrene Strecke (berechnet)"),
+  a Fahrtenbuch-összeg egy KÜLÖN info-sor alatta.
+- Megjelenik a számla-szerkesztő PDF-előnézetében ÉS a már kiállított
+  számlák PDF-letöltésénél is.
+
+Érintett: lib/invoice/zugferd.js, app/rechnungen/neu/page.js,
+app/rechnungen/page.js, app/BoardApp.js (VER). VER: v4.9.31
