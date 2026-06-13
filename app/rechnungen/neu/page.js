@@ -19,7 +19,7 @@ const SCHABLONEN = {
   erinnerung: { label: 'Zahlungserinnerung', subject: 'Zahlungserinnerung — Ihre Rechnung', body: 'wir möchten Sie freundlich an die noch offene Rechnung (im Anhang) erinnern. Sollten Sie den Betrag bereits überwiesen haben, betrachten Sie diese Nachricht als gegenstandslos.' },
   danke: { label: 'Danke + Bewertung', subject: 'Vielen Dank — Ihre Rechnung', body: 'vielen Dank für Ihren Auftrag! Im Anhang finden Sie Ihre Rechnung.\n\nWenn Sie zufrieden waren, freuen wir uns sehr über eine kurze Google-Bewertung.' }
 }
-const emptyItem = vat => ({ title: '', desc: '', qty: 1, unit_price: '', discount: '', vat_rate: vat })
+const emptyItem = vat => ({ title: '', desc: '', qty: 1, unit_price: '', discount: '', vat_rate: vat, unit: '' })
 const SERVICE_CATALOG = [
   { id: 'foto', label: 'Fotoshooting', grundpreis: '199.00' },
   { id: 'fotodron', label: 'Foto + Drohne', grundpreis: '349.00' },
@@ -54,6 +54,7 @@ export default function NeueRechnungPage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [numberPreview, setNumberPreview] = useState('')
   const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}
   const [shootsOpen, setShootsOpen] = useState({})
   const [emailModal, setEmailModal] = useState(false)
@@ -95,8 +96,14 @@ export default function NeueRechnungPage() {
       } else newBlank(today, sl)
     }
     setLoading(false)
+    // Rechnungsnummer-Vorschau (nur Anzeige; echte Nummer erst beim Festschreiben)
+    try {
+      const y = new Date().getFullYear()
+      const { data: nd } = await supabase.rpc('next_invoice_number', { p_year: y })
+      if (nd) setNumberPreview(nd)
+    } catch {}
   }
-  function splitItem(it) { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: (it.unit_price === 0 || it.unit_price) ? it.unit_price : '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19, _card: it._card } }
+  function splitItem(it) { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: (it.unit_price === 0 || it.unit_price) ? it.unit_price : '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19, unit: it.unit || '', _card: it._card } }
   function newBlank(today, sl) { setInv({ invoice_date: today, due_date: addDays(today, 14), client_id: null, client_name: '', buyer: {}, notes: '', invoice_number: '', items: [emptyItem(sl.kleinunternehmer ? 0 : 19)] }); setShoots(null) }
   function buyerFromClient(c) { if (!c) return {}; return { company: c.name || '', contact: [c.contact_firstname, c.contact_lastname].filter(Boolean).join(' '), address: c.addr || '', email: c.contact_email || c.email || '', phone: c.contact_tel || c.tel || '', kundennr: c.kundennr || '' } }
 
@@ -150,7 +157,17 @@ export default function NeueRechnungPage() {
   const dupItem = i => setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { ...a[i], _card: undefined }); return { ...p, items: a } })
   const delItem = i => setInv(p => ({ ...p, items: p.items.filter((_, j) => j !== i) }))
   const moveItem = (i, dir) => setInv(p => { const a = [...p.items]; const j = i + dir; if (j < 0 || j >= a.length) return p; const t = a[i]; a[i] = a[j]; a[j] = t; return { ...p, items: a } })
+  const [dragIdx, setDragIdx] = useState(null)
+  const [dragOver, setDragOver] = useState(null)
+  const dropItem = to => { setInv(p => { if (dragIdx === null || dragIdx === to) return p; const a = [...p.items]; const [m] = a.splice(dragIdx, 1); a.splice(to, 0, m); return { ...p, items: a } }); setDragIdx(null); setDragOver(null) }
   function addrOf(it) { if (it._addr) return it._addr; const parts = String(it.title || '').split(' - '); if (parts.length >= 3) return parts.slice(2).join(' - ').trim(); return (parts[parts.length - 1] || '').trim() }
+  // Cím-rövidítés a Titelhez: PLZ (5 számjegy) és ország eltávolítása, csak utca + város marad
+  function shortAddr(a) {
+    let x = String(a || '').replace(/,?\s*(Deutschland|Germany)\s*$/i, '')
+    x = x.replace(/\b\d{5}\b\s*/g, '') // PLZ ki
+    x = x.replace(/\s*,\s*,/g, ',').replace(/,\s*$/,'').replace(/\s{2,}/g, ' ').trim()
+    return x
+  }
   async function addFahrt(i) {
     const it = inv.items[i]; const addr = addrOf(it)
     if (!fahrt.start) { alert('Startadresse fehlt (rechts im Fahrtkosten-Feld eintragen).'); return }
@@ -164,10 +181,9 @@ export default function NeueRechnungPage() {
       if (!meters) throw new Error('Keine Strecke gefunden — Adresse prüfen')
       const km = Math.round(meters / 1000 * 10) / 10
       const rate = num(fahrt.rate) || 0.29
-      const price = round2(km * rate)
       const ort = addr.split(',')[0]
-      const srcTitle = it.title || ('Fahrtkosten — ' + ort)
-      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: srcTitle, desc: 'Fahrtkosten: ' + km.toLocaleString('de-DE') + ' km × ' + rate.toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' € (Hin- und Rückfahrt)', qty: 1, unit_price: price, discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
+      const srcTitle = shortAddr(it.title) || ('Fahrtkosten — ' + ort)
+      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: srcTitle, desc: 'Fahrtkosten (Hin- und Rückfahrt)', qty: km, unit_price: rate, unit: 'km', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
     } catch (e) { alert('Fahrtkosten-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }
@@ -187,7 +203,7 @@ export default function NeueRechnungPage() {
   }
 
   function totals() { let net = 0, vat = 0; (inv?.items || []).forEach(it => { const ln = num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100); net += ln; vat += seller.kleinunternehmer ? 0 : ln * num(it.vat_rate) / 100 }); return { net: round2(net), vat: round2(vat), gross: round2(net + vat) } }
-  function itemsForDb(invId) { const rate = it => seller.kleinunternehmer ? 0 : num(it.vat_rate); return inv.items.filter(it => (it.title || '').trim() || (it.desc || '').trim() || num(it.unit_price)).map((it, i) => { const ln = round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)); return { invoice_id: invId, position: i + 1, description: [it.title, it.desc].filter(Boolean).join('\n'), qty: num(it.qty), unit_price: num(it.unit_price), discount: num(it.discount), vat_rate: rate(it), line_net: ln, line_gross: round2(ln * (1 + rate(it) / 100)) } }) }
+  function itemsForDb(invId) { const rate = it => seller.kleinunternehmer ? 0 : num(it.vat_rate); return inv.items.filter(it => (it.title || '').trim() || (it.desc || '').trim() || num(it.unit_price)).map((it, i) => { const ln = round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)); const row = { invoice_id: invId, position: i + 1, description: [it.title, it.desc].filter(Boolean).join('\n'), qty: num(it.qty), unit_price: num(it.unit_price), discount: num(it.discount), vat_rate: rate(it), line_net: ln, line_gross: round2(ln * (1 + rate(it) / 100)) }; if (it.unit) row.unit = it.unit; return row } ) }
   function toInvoiceObj() { const t = totals(); return { invoice_number: inv.invoice_number || null, client_name: inv.client_name, invoice_date: inv.invoice_date, due_date: inv.due_date, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes, buyer: inv.buyer || {}, storno_of: inv.storno_of || null } }
 
   async function save(finalize, redirect = true) {
@@ -233,7 +249,7 @@ export default function NeueRechnungPage() {
 
   if (loading || !inv) return <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'Arial', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUT }}>Lädt…</div>
   const t = totals()
-  const totalKm = Math.round((inv.items || []).reduce((s, it) => s + (it._km || parseKm(it.desc)), 0) * 10) / 10
+  const totalKm = Math.round((inv.items || []).reduce((s, it) => s + (it.unit === 'km' ? num(it.qty) : (it._km || parseKm(it.desc))), 0) * 10) / 10
   const finalized = inv.id && inv.status && inv.status !== 'draft'
   const monthKeys = shoots ? Object.keys(shoots).sort().reverse() : []
 
@@ -252,7 +268,7 @@ export default function NeueRechnungPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, maxWidth: 1200, margin: '0 auto', padding: 18, alignItems: 'start' }}>
         <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 18 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><Lbl>Rechnungsnummer (änderbar)</Lbl><input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder="automatisch beim Festschreiben" disabled={finalized} style={{ ...box, width: '100%' }} /></div>
+            <div><Lbl>Rechnungsnummer (änderbar)</Lbl><input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder={numberPreview ? 'Vorschau: ' + numberPreview : 'automatisch beim Festschreiben'} disabled={finalized} style={{ ...box, width: '100%' }} />{!finalized && numberPreview && !inv.invoice_number && <div style={{ fontSize: 10, color: MUT, marginTop: 2 }}>Nächste freie Nr.: <b>{numberPreview}</b> — wird beim Festschreiben vergeben</div>}</div>
             <div><Lbl>Datum</Lbl><input type="date" value={inv.invoice_date} onChange={e => onDate(e.target.value)} style={{ ...box, width: '100%' }} /></div>
           </div>
           <div style={{ marginTop: 12 }}><Lbl>Anschrift</Lbl><textarea value={[inv.buyer?.company, inv.buyer?.contact, inv.buyer?.address].filter(Boolean).join('\n')} readOnly rows={3} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial', color: MUT, background: '#f9f7f2' }} placeholder="(Kunde rechts wählen)" /></div>
@@ -280,29 +296,35 @@ export default function NeueRechnungPage() {
           )}
 
           <div style={{ marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 800 }}>Positionen</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '22px 48px 84px 64px 52px 1fr 54px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
-            <span>Pos</span><span>Anzahl</span><span>Preis</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span><span></span>
+          <div style={{ display: 'grid', gridTemplateColumns: '20px 56px 84px 56px 64px 52px 1fr 40px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
+            <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span><span></span>
           </div>
           {inv.items.map((it, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 48px 84px 64px 52px 1fr 54px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px' }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: MUT, textAlign: 'center', paddingTop: 8 }}>{i + 1}</div>
+            <div key={i}
+              draggable
+              onDragStart={e => { setDragIdx(i); e.dataTransfer.effectAllowed = 'move' }}
+              onDragOver={e => { e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
+              onDrop={e => { e.preventDefault(); dropItem(i) }}
+              onDragEnd={() => { setDragIdx(null); setDragOver(null) }}
+              style={{ display: 'grid', gridTemplateColumns: '20px 56px 84px 56px 64px 52px 1fr 40px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + (dragOver === i && dragIdx !== null && dragIdx !== i ? GOLD : LINE), borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.4 : 1 }}>
+              <div title="Zum Verschieben ziehen" style={{ cursor: 'grab', color: '#c9c2b2', textAlign: 'center', paddingTop: 7, fontSize: 15, lineHeight: 1, userSelect: 'none' }}>⠿</div>
               <input value={it.qty} onChange={e => setItem(i, { qty: e.target.value })} style={{ ...box, textAlign: 'right' }} />
               <input value={it.unit_price} onChange={e => setItem(i, { unit_price: e.target.value })} placeholder="0,00" style={{ ...box, textAlign: 'right' }} />
+              <input value={it.unit || ''} onChange={e => setItem(i, { unit: e.target.value })} list="unitopts" placeholder="—" style={{ ...box, textAlign: 'center' }} />
               <select value={it.vat_rate} onChange={e => setItem(i, { vat_rate: e.target.value })} disabled={seller.kleinunternehmer} style={box}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select>
               <input value={it.discount} onChange={e => setItem(i, { discount: e.target.value })} placeholder="0" style={{ ...box, textAlign: 'right' }} />
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
                 <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', paddingTop: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'center', paddingTop: 4 }}>
                 <button title="Fahrtkosten berechnen (Hin- und Rückfahrt)" onClick={() => addFahrt(i)} disabled={busy} style={{ ...icon, color: GOLD }}>🚗</button>
                 <button title="Duplizieren" onClick={() => dupItem(i)} style={icon}>⎘</button>
-                <button onClick={() => moveItem(i, -1)} style={icon}>↑</button>
-                <button onClick={() => moveItem(i, 1)} style={icon}>↓</button>
-                <button onClick={() => delItem(i)} style={{ ...icon, color: '#b3402f' }}>✕</button>
+                <button title="Löschen" onClick={() => delItem(i)} style={{ ...icon, color: '#b3402f' }}>✕</button>
               </div>
             </div>
           ))}
+          <datalist id="unitopts"><option value="km" /><option value="St." /><option value="Std" /><option value="Datum" /></datalist>
           <button onClick={addItem} style={ghost}>+ Position</button>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22, marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + LINE, fontSize: 13 }}>
@@ -403,4 +425,4 @@ function Field({ label, v, on }) { return <div style={{ marginBottom: 8 }}><Lbl>
 const box = { border: '1.5px solid ' + LINE, borderRadius: 6, padding: '7px 8px', fontSize: 12, color: DARK, fontFamily: 'Arial', outline: 'none', boxSizing: 'border-box', background: '#fff' }
 const primary = { background: GOLD, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
 const ghost = { background: '#fff', color: DARK, border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }
-const icon = { background: 'none', border: 'none', cursor: 'pointer', color: MUT, fontSize: 12, padding: 1, lineHeight: 1 }
+const icon = { background: 'none', border: 'none', cursor: 'pointer', color: MUT, fontSize: 17, padding: 2, lineHeight: 1 }

@@ -1,0 +1,37 @@
+# ImmoPixels CRM v4.9.7 — Rechnung-Editor: Einheit, Fahrtkosten je km, Drag&Drop, PDF-Entwurf
+## 2026-06-13
+
+### Einheit-oszlop (Preis mellett)
+- Új "Einheit" oszlop pozíciónként: km / St. / Std / Datum (vagy szabad szöveg,
+  legördülő javaslattal). Megjelenik az Anzahl mellett a PDF-en is (pl. "120 km").
+
+### Fahrtkosten km-alapú számolás
+- A 🚗 gomb mostantól a KM-számot az Anzahl mezőbe írja, a km-díjat (pl. 0,29 €)
+  az egységárba, az Einheit = "km". Így a sor összege = km × díj automatikusan.
+- A km átírásával a sor- és végösszeg AZONNAL újraszámol (és a "Gefahrene Strecke
+  gesamt" összegző sor is követi).
+
+### Pozíciók: Drag & Drop
+- A fel/le nyilak helyett bal oldalon fogantyú (⠿) — a pozíciók egérrel
+  húzva átrendezhetők (mint a kártyák). A többi ikon (🚗 / duplikál / törlés)
+  nagyobb lett.
+
+### Titel cím-tisztítás
+- A Fahrtkosten-pozíció címéből kimarad az irányítószám (PLZ) és az ország —
+  csak utca + város marad.
+
+### Rechnungsnummer-előnézet
+- A szerkesztő betöltéskor megmutatja a következő szabad számot
+  ("Vorschra: 2026-0XX"). A tényleges szám továbbra is csak a Festschreibennél
+  kerül kiosztásra (GoBD: hézagmentes sorszám, nincs lefoglalt-de-eldobott szám).
+
+### PDF: Entwurf-jelzés
+- Amíg nincs végleges szám (vázlat), a PDF minden oldalán halvány átlós
+  "ENTWURF" vízjel jelenik meg.
+
+### Adatbázis (opcionális, de ajánlott)
+- Az új Einheit mentéséhez egy oszlop kell az invoice_items táblában. SQL a
+  chatben. Amíg nincs lefuttatva, a számlakép és a számolás működik, csak az
+  Einheit nem mentődik adatbázisba (a PDF-en így is megjelenik mentés előtt).
+
+Érintett: app/rechnungen/neu/page.js, lib/invoice/zugferd.js. VER label: v4.9.7
