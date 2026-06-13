@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.9.19 — Fix: háttérkép esetén átlátszó oszlopok
+## 2026-06-13
+- Hiba: ha a felhasználó háttérKÉPet állított be (nem sima színt), az oszlopok
+  "átlátszóvá" váltak — a kép átütött rajtuk.
+- Ok: az oszlop háttere egy nagyon halvány (8% átlátszatlanságú) színréteg volt,
+  amin a háttérkép keresztüllátszott.
+- Javítás: az oszlop háttere mostantól egy tömör alapréteg (var(--bg2)) + a halvány
+  színréteg rétegezve. Így a háttérkép NEM üt át az oszlopon, de a finom színárnyalat
+  megmarad. Sima színhátteren a megjelenés változatlan.
+- Élesben is javítja: ezután bárki beállíthat háttérképet, az oszlopok tömörek
+  maradnak.
+
+Érintett: app/BoardApp.js. VER label: v4.9.19
