@@ -141,7 +141,9 @@ export default function RechnungenPage() {
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
       const bytes = await generateZugferdPdf({ inv, items: its || [], seller, template })
       const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a')
-      a.href = u; a.download = 'Rechnung-' + (inv.invoice_number || 'Entwurf') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000)
+      const cl = (clients || []).find(x => x.id === inv.client_id)
+      const abk = (cl?.short_name || '').trim().replace(/[\/:*?"<>|]+/g, '').replace(/\s+/g, '-')
+      a.href = u; a.download = 'Rechnung ' + (inv.invoice_number || 'Entwurf') + (abk ? '_' + abk : '') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000)
     } catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }

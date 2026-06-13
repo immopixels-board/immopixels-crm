@@ -1,0 +1,25 @@
+# ImmoPixels CRM v4.9.9 — Rechnung: előre generált szám, PDF Entwurf ki, fájlnév + Kürzel
+## 2026-06-13
+
+### Rechnungsnummer mindig előre generálva (mint Billomatban)
+- Új számla / vázlat megnyitásakor a rendszer azonnal beírja a következő szabad
+  számot a Rechnungsnummer mezőbe (az eddigi formátumban, pl. 20-0723).
+- A szám szabadon átírható. Véglegesítéskor (Festschreiben) a rendszer ellenőrzi,
+  hogy a szám még szabad-e; ha közben elkelt, automatikusan a következőt adja.
+
+### PDF
+- Eltávolítva az "ENTWURF" átlós vízjel.
+- A fejlécben a "Rechnung Entwurf" helyett mindig a Rechnungsnummer áll
+  (a szám már a vázlatnál is megjelenik).
+
+### PDF-fájlnév
+- Letöltéskor: "Rechnung <Nr>_<Kürzel>.pdf", ahol a Kürzel a Kunde rövid neve
+  (clients.short_name). Pl. "Rechnung 20-0722_Casalie.pdf".
+
+### GoBD-megjegyzés
+- A vázlatok adatbázisban szám NÉLKÜL tárolódnak; a végleges, hézagmentes szám
+  csak a Festschreibennél kerül kiosztásra. Így a megjelenített/PDF-előnézeti
+  szám nem "foglal le" számot, ha a vázlatot eldobod — nincs lyuk a sorszámban.
+
+Érintett: app/rechnungen/neu/page.js, app/rechnungen/page.js,
+lib/invoice/zugferd.js. VER label: v4.9.9

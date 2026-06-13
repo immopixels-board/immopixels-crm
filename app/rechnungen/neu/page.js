@@ -96,11 +96,16 @@ export default function NeueRechnungPage() {
       } else newBlank(today, sl)
     }
     setLoading(false)
-    // Rechnungsnummer-Vorschau (nur Anzeige; echte Nummer erst beim Festschreiben)
+    // Rechnungsnummer: immer vorab generieren (editierbar, wie in Billomat).
+    // Echte Eindeutigkeit wird beim Festschreiben geprüft.
     try {
       const y = new Date().getFullYear()
       const { data: nd } = await supabase.rpc('next_invoice_number', { p_year: y })
-      if (nd) setNumberPreview(nd)
+      if (nd) {
+        setNumberPreview(nd)
+        // nur vorbelegen, wenn noch keine Nummer existiert (neue/Entwurf ohne Nr.)
+        setInv(p => (p && !p.invoice_number && p.status !== 'open') ? { ...p, invoice_number: nd } : p)
+      }
     } catch {}
   }
   function splitItem(it) { const [tt, ...d] = String(it.description || '').split('\n'); return { title: tt || '', desc: d.join('\n'), qty: it.qty ?? 1, unit_price: (it.unit_price === 0 || it.unit_price) ? it.unit_price : '', discount: it.discount || '', vat_rate: it.vat_rate ?? 19, unit: it.unit || '', _card: it._card } }
@@ -212,13 +217,18 @@ export default function NeueRechnungPage() {
       const t = totals()
       const base = { client_id: inv.client_id || null, client_name: inv.client_name || '', invoice_date: inv.invoice_date, due_date: inv.due_date || null, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes || null, seller, buyer: inv.buyer || {}, created_by: myId }
       let invId = inv.id
-      if (invId) { const { error } = await supabase.from('invoices').update({ ...base, invoice_number: inv.invoice_number || null }).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
-      else { const { data, error } = await supabase.from('invoices').insert({ ...base, invoice_number: inv.invoice_number || null, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
+      if (invId) { const { error } = await supabase.from('invoices').update({ ...base, invoice_number: finalize ? (inv.invoice_number || null) : null }).eq('id', invId); if (error) throw error; await supabase.from('invoice_items').delete().eq('invoice_id', invId) }
+      else { const { data, error } = await supabase.from('invoices').insert({ ...base, invoice_number: null, status: 'draft' }).select('id').single(); if (error) throw error; invId = data.id; setInv(p => ({ ...p, id: invId })) }
       const rows = itemsForDb(invId)
       if (rows.length) { const { error: ie } = await supabase.from('invoice_items').insert(rows); if (ie) throw ie }
       if (finalize) {
         let numberStr = inv.invoice_number
-        if (!numberStr) { const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear(); const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd }
+        const y = +(inv.invoice_date || '').slice(0, 4) || new Date().getFullYear()
+        // Eindeutigkeit prüfen; falls belegt (anderer Datensatz), neue Nummer ziehen
+        if (numberStr) {
+          const { data: ex } = await supabase.from('invoices').select('id').eq('invoice_number', numberStr).neq('id', invId).maybeSingle()
+          if (ex) { const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd; setInv(p => ({ ...p, invoice_number: nd })) }
+        } else { const { data: nd, error: nerr } = await supabase.rpc('next_invoice_number', { p_year: y }); if (nerr) throw nerr; numberStr = nd }
         const { error: ferr } = await supabase.from('invoices').update({ invoice_number: numberStr, status: 'open', finalized_at: new Date().toISOString() }).eq('id', invId)
         if (ferr) throw ferr
       }
