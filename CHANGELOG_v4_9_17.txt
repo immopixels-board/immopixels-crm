@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.17 — Demo: csak egyetlen naptár (Demo IP) látszik
+## 2026-06-13
+- Új env: NEXT_PUBLIC_DEMO_CAL_ID. Ha be van állítva (csak a demo-deployon):
+  - a Kalender bal oldali lista CSAK ezt az egy naptárat mutatja ("Demo IP"),
+    a többi (ImmoPixels, D/E/N-Terminen, Holidays) rejtve;
+  - a Google calendarList-ből is csak ezt az egy naptárat tölti be, tehát a
+    naptár-nézetben CSAK ennek az eseményei jelennek meg.
+- Élesben (nincs env) minden változatlan.
+
+Beállítás a demo Vercel projektben:
+  NEXT_PUBLIC_DEMO_CAL_ID = 9a11b48982074de45698bd5dff2d50e962a87e03fbcf5c17918f0385558a5723@group.calendar.google.com
+(majd Redeploy)
+
+Megjegyzés: a Google-OAuth összekötés ettől függetlenül kell, hogy a CRM
+hozzáférjen a naptárhoz; e nélkül a lista üres marad.
+
+Érintett: app/BoardApp.js, components/GoogleCalendarView.js. VER label: v4.9.17

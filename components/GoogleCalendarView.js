@@ -252,7 +252,10 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
         return
       }
       const calList = await calListResp.json()
+      const demoCalId = process.env.NEXT_PUBLIC_DEMO_CAL_ID
       const cals = (calList.items || []).filter(c => {
+        // Demo: csak az egyetlen megadott naptár látszik (a többi rejtve)
+        if (demoCalId) return c.id === demoCalId
         const n = (c.summary || '').toLowerCase()
         return !n.includes('minup') && !n.includes('kontakte') && !n.includes('contact')
       })
