@@ -83,8 +83,11 @@ export async function POST(req) {
   const cardType =
     _foto && _reel && _drohne && _d360 ? 'fotoreeldrohne360' :
     _foto && _reel && _d360 ? 'fotoreel360' :
+    _foto && _reel && _drohne ? 'fotoreeldrohne' :
+    _foto && _drohne && _d360 ? 'fotodrohne360' :
     _foto && _reel ? 'fotoreel' :
     _foto && _drohne ? 'fotodrohne' :
+    _foto && _d360 ? 'foto360' :
     _foto ? 'foto' :
     _reel ? 'reel' :
     _drohne ? 'drohne' :

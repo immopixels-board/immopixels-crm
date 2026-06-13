@@ -5,7 +5,27 @@ export const maxDuration = 30
 
 async function svc() { const { createClient } = await import('@supabase/supabase-js'); return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY) }
 function autoChecklist(ct) { const b = ['Fotografiert', 'Für Bearbeitung gesendet', 'In Bearbeitung', 'Reel in Bearbeitung']; return String(ct || '').includes('reel') ? [...b, 'Reel Fertig'] : b }
-function guessType(s) { const t = String(s || '').toLowerCase(); const foto = /foto/.test(t), reel = /reel/.test(t), dron = /drohne|drone|dron/.test(t); if (foto && reel) return 'foto-reel'; if (foto && dron) return 'foto-dron'; if (reel) return 'reel'; if (dron) return 'dron'; return 'foto' }
+function guessType(s) {
+  const t = String(s || '').toLowerCase()
+  const foto = /foto|photo/.test(t)
+  const reel = /reel|video/.test(t)
+  const dron = /drohne|drone|dron/.test(t)
+  const d360 = /360/.test(t)
+  // Kanonikus kulcsok (a CRM getTypes label-normalizálásához illeszkedik):
+  // foto, fotoreel, fotodrohne, fotoreeldrohne360, fotoreel360, fotodrohne360, drohne, reel, 360
+  if (foto && reel && dron && d360) return 'fotoreeldrohne360'
+  if (foto && reel && d360) return 'fotoreel360'
+  if (foto && reel && dron) return 'fotoreeldrohne'
+  if (foto && dron && d360) return 'fotodrohne360'
+  if (foto && reel) return 'fotoreel'
+  if (foto && dron) return 'fotodrohne'
+  if (foto && d360) return 'foto360'
+  if (foto) return 'foto'
+  if (reel) return 'reel'
+  if (dron) return 'drohne'
+  if (d360) return '360'
+  return 'foto'
+}
 
 // GET → naptárak listája
 export async function GET() {

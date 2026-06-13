@@ -454,9 +454,27 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   const [uploadProgress, setUploadProgress] = useState(null) // null | 0-100
   const [uploadError, setUploadError] = useState(null)
   const [maklerImport, setMaklerImport] = useState(null)
+  // Makler-adatok kinyerése a leírásból is (GCal/booking importnál a makler_* mezők
+  // üresek, az adat a Beschreibungban van: "Immobilienbüro:/Name:/Email:/Telefon:").
+  const bookingMakler = (() => {
+    const d = String(localCard.description || '')
+    const pick = re => { const m = d.match(re); return m ? m[1].trim() : '' }
+    const office = pick(/Immobilienb[üu]ro:\s*([^\n]+)/i)
+    const name = pick(/Name:\s*([^\n]+)/i)
+    const email = pick(/Email:\s*([^\n]+)/i)
+    const tel = pick(/Telefon:\s*([^\n]+)/i)
+    const firma = (office && office !== '—') ? office : ''
+    // a megjelenítendő ügyfél-/Maklernév: iroda, ha van; különben a kontakt neve
+    const display = firma || localCard.client_name || name
+    if (!display) return null
+    return { name: display, contact: name, tel: tel === '—' ? '' : tel, email: email === '—' ? '' : email, office: firma }
+  })()
+  const maklerSource = localCard.makler_name
+    ? { name: localCard.makler_name, tel: localCard.makler_tel || '', email: localCard.makler_email || '' }
+    : bookingMakler
   const maklerExists = (() => {
-    const mn = (localCard.makler_name || '').trim().toLowerCase()
-    const me = (localCard.makler_email || '').trim().toLowerCase()
+    const mn = (maklerSource?.name || '').trim().toLowerCase()
+    const me = (maklerSource?.email || '').trim().toLowerCase()
     if (!mn) return false
     const inClients = (clients || []).some(c =>
       (c.name || '').trim().toLowerCase() === mn || (c.short_name || '').trim().toLowerCase() === mn ||
@@ -956,19 +974,19 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                   </select>
                 </div>
               )}
-              {localCard.makler_name && !maklerExists && (
-                <button onClick={() => setMaklerImport({
-                  name: localCard.makler_name || '',
-                  short_name: (localCard.makler_name || '').trim().split(/\s+/).slice(-1)[0] || '',
-                  tel: localCard.makler_tel || '',
-                  email: localCard.makler_email || '',
-                  addr: localCard.booking_address || localCard.addr || '',
-                })}
-                  style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 9px', background: '#eef4fb', border: '0.5px solid #b5d4f4', borderRadius: 7, color: '#185fa5', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 14 }}>＋</span> Als Kunde importieren
-                </button>
-              )}
             </div>
+            {maklerSource && !maklerExists && (
+              <button onClick={() => setMaklerImport({
+                name: maklerSource.name || '',
+                short_name: (maklerSource.name || '').trim().split(/\s+/)[0] || '',
+                tel: maklerSource.tel || '',
+                email: maklerSource.email || '',
+                addr: localCard.booking_address || localCard.addr || '',
+              })}
+                style={{ marginTop: 4, marginBottom: 4, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 9px', background: '#eef4fb', border: '0.5px solid #b5d4f4', borderRadius: 8, color: '#185fa5', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <span style={{ fontSize: 14 }}>＋</span> Makler als Kunde importieren
+              </button>
+            )}
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Termin</div>
               <CardDateTimePicker

@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.9.14 — "Makler als Kunde importieren" gomb a naptárból jött kártyákon is
+## 2026-06-13
+- Hiba: a v4.9.10 import-gomb csak akkor jelent meg, ha a kártya makler_name mezője
+  ki volt töltve. A Google Calendarból / Makler-Termine importból / online
+  foglalásból készült kártyáknál ez a mező ÜRES — a Makler-adatok csak a
+  Beschreibungban vannak (Immobilienbüro / Name / Email / Telefon). Ezért a
+  naptárból jött kártyákon a gomb sosem jelent meg.
+- Javítás: a Makler-adatokat mostantól a LEÍRÁSBÓL is kiolvassuk
+  (Immobilienbüro/Name/Email/Telefon sorok). A "＋ Makler als Kunde importieren"
+  gomb a Makler-blokk alatt jelenik meg, ha van felismert Makler/Iroda, ÉS az
+  még nincs a rendszerben (Kunden/Makler/Telefonbuch).
+- A popup előtöltése is a leírásból jövő adatokkal történik (Firma=Immobilienbüro,
+  Telefon, Email; Kürzel = a név első szava).
+- A duplikátum-figyelmeztetés (meglévőhöz kötés) változatlanul működik.
+
+Megjegyzés: ha a kártya "Kunde" mezője már egy létező ügyfélre mutat (a Makler már
+a rendszerben van), a gomb szándékosan NEM jelenik meg.
+
+Érintett: components/CardModal.js. VER label: v4.9.14

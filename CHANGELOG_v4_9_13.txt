@@ -1,0 +1,27 @@
+# ImmoPixels CRM v4.9.13 — Kártya-típus Drohne/360 helyes jelölése (booking + GCal import)
+## 2026-06-13
+
+### Hiba
+- Online bookingnál a Drohne / 360°-Tour pipálása csak a "Zusätzliche Leistungen"
+  szövegbe került, a CRM-kártya típusa viszont sokszor maradt sima "Foto" — főleg
+  amikor a kártya a Google Calendar eseményből (GCal-sync / Makler-Termine import)
+  jött létre. A 360° egyáltalán nem volt típusként kezelve, és a régi
+  "foto-dron"/"foto-reel" kulcsok nem illeszkedtek a CRM kategóriáihoz.
+
+### Javítás — egységes, kanonikus kártya-típusok mindenhol
+- Foto alap = "foto"; Drohne pipa → "fotodrohne"; 360° pipa → "foto360";
+  kombináltan: "fotodrohne360", "fotoreel", "fotoreeldrohne", "fotoreel360",
+  "fotoreeldrohne360" stb. (Reel/Video ugyanígy bekerül a kombóba.)
+- Javítva 3 helyen, hogy mindig ugyanazt a kulcsot adják:
+   • app/api/booking/create (online foglalás — addon-pipák alapján)
+   • app/api/gcal (GCal→CRM sync, detectCategory)
+   • app/api/maklertermine (Makler-Termine import, guessType — most a leírásból is
+     felismeri a Drohne/360 zusätzliche Leistungeket, és kezeli a 360-at)
+- A kimenő Google-naptáresemény címe is olvasható lett (pl. "FOTO+DROHNE+360°"
+  a nyers "FOTODROHNE360" helyett).
+- A board most minden kombó-típushoz biztosan ad színt/címkét (nincs néma "Foto"
+  fallback a hármas kombóknál sem).
+- A checklist (Reel Fertig lépés) a kombó-kulcsoknál is helyesen jön létre.
+
+Érintett: app/BoardApp.js, app/api/booking/create/route.js, app/api/gcal/route.js,
+app/api/maklertermine/route.js. VER label: v4.9.13

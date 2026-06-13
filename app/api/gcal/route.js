@@ -21,13 +21,21 @@ const CALS_PULL = [
 
 function detectCategory(description = '', title = '') {
   const text = (description + ' ' + title).toLowerCase()
-  const hasDrone = text.includes('drohne') || text.includes('drone') || text.includes('drón')
-  const hasReel = text.includes('reel')
-  const hasFoto = text.includes('foto') || text.includes('photo')
-  if (hasDrone && hasReel) return 'foto-reel' // prioritize reel if both
-  if (hasDrone) return 'foto-dron'
-  if (hasReel && hasFoto) return 'foto-reel'
-  if (hasReel) return 'reel'
+  const foto = text.includes('foto') || text.includes('photo')
+  const reel = text.includes('reel') || text.includes('video')
+  const dron = text.includes('drohne') || text.includes('drone') || text.includes('drón') || text.includes('dron')
+  const d360 = text.includes('360')
+  if (foto && reel && dron && d360) return 'fotoreeldrohne360'
+  if (foto && reel && d360) return 'fotoreel360'
+  if (foto && reel && dron) return 'fotoreeldrohne'
+  if (foto && dron && d360) return 'fotodrohne360'
+  if (foto && reel) return 'fotoreel'
+  if (foto && dron) return 'fotodrohne'
+  if (foto && d360) return 'foto360'
+  if (foto) return 'foto'
+  if (reel) return 'reel'
+  if (dron) return 'drohne'
+  if (d360) return '360'
   return 'foto'
 }
 
@@ -40,6 +48,13 @@ async function getToken(supabase) {
   return data?.access_token || null
 }
 
+function catLabel(k) {
+  return { foto:'FOTO', reel:'REEL', drohne:'DROHNE', '360':'360°',
+    fotoreel:'FOTO+REEL', fotodrohne:'FOTO+DROHNE', foto360:'FOTO+360°',
+    fotoreeldrohne:'FOTO+REEL+DROHNE', fotoreel360:'FOTO+REEL+360°',
+    fotodrohne360:'FOTO+DROHNE+360°', fotoreeldrohne360:'FOTO+REEL+DROHNE+360°' }[k] || k.toUpperCase()
+}
+
 function buildEventBody(card) {
   const category = detectCategory(card.description || '', card.title || '')
   const isDateTime = !!card.card_time
@@ -48,7 +63,7 @@ function buildEventBody(card) {
     ? (() => { const d = new Date(`${card.card_date}T${card.card_time}:00`); d.setHours(d.getHours() + 2); return d.toISOString().slice(0, 19) })()
     : card.card_date
   return {
-    summary: `${category.toUpperCase()} - ${card.addr}${card.client_name ? ' · ' + card.client_name : ''}`,
+    summary: `${catLabel(category)} - ${card.addr}${card.client_name ? ' · ' + card.client_name : ''}`,
     location: card.addr,
     description: card.description || '',
     status: 'confirmed',
