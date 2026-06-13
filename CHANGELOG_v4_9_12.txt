@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.9.12 — Oszlop-rendezés választó (pl. Shootings)
+## 2026-06-13
+- Háttér: a Shootings oszlop eddig a TERMIN dátuma szerint rendezett (jövőbeli
+  terminek elöl, legközelebbi elsőként; múltbeliek hátul) — ezért nem a
+  legújabban létrehozott kártyák kerültek felülre.
+- Új: minden oszlop fejlécében egy rendezés-ikon (↕) — három mód közül lehet
+  választani, oszloponként külön, és a böngészőben megjegyzi:
+   • Termin (Standard) — a régi viselkedés (Shootingsnál dátum szerint).
+   • Neueste zuerst — a legújabban létrehozott kártyák legfelül (created_at).
+   • Manuell (Reihenfolge) — kézi drag&drop sorrend (position).
+- A beállítás localStorage-ben tárolódik (eszközönként), nem globális.
+
+Érintett: app/BoardApp.js. VER label: v4.9.12
