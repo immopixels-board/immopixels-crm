@@ -21,7 +21,7 @@ export async function POST(req) {
 
   // melyik naptárban van az esemény = a hozzárendelt fotós naptára
   const { data: teamRow } = await supabase.from('card_team').select('staff:staff_id(init)').eq('card_id', card.id).maybeSingle()
-  const CAL = GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
+  const CAL = process.env.DEMO_CAL_ID || process.env.NEXT_PUBLIC_DEMO_CAL_ID || GCAL_IDS[teamRow?.staff?.init] || MAIN_CAL
 
   // Megerősítéskor: státusz + áthelyezés a Shootings oszlopba + lábnyom
   // v4.1.6: a KRITIKUS státusz-írás külön, ellenőrzött lépés. Korábban a

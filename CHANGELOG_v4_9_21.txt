@@ -1,0 +1,21 @@
+# ImmoPixels CRM v4.9.21 — Demo: működő booking, a Demo IP naptárba
+## 2026-06-13
+- A demo-módban a nyilvános foglalás (/buchen) most működik és a foglalások
+  a "Demo IP" naptárba kerülnek (mindkét demo-profilnál).
+- Kód (env-vezérelt, élesben semmi nem változik):
+  • booking/create és booking/confirm a DEMO_CAL_ID (vagy NEXT_PUBLIC_DEMO_CAL_ID)
+    naptárba ír, ha be van állítva — különben a régi (éles) logika.
+  • a Google-token forrása demóban már nem a beégetett éles staff-ID: ha
+    NEXT_PUBLIC_IS_DEMO=1 vagy DEMO_CAL_ID be van állítva, az első elérhető
+    refresh_token-t használja (a demo-fiók összekötése). DEMO_BOOKING_STAFF_ID
+    env-vel konkrét staff is megadható.
+- Külön SQL (DEMO_BOOKING_SEED.sql): feltölti a /buchen szolgáltatásait,
+  a két demo-providert (Joe/Jane), a kínált szolgáltatásokat és a munkanapokat
+  (H–P 09–18).
+
+Beállítás a demo Vercel projektben:
+  DEMO_CAL_ID = 9a11b48982074de45698bd5dff2d50e962a87e03fbcf5c17918f0385558a5723@group.calendar.google.com
+(majd Redeploy). A Google-t a demón össze kell kötni (Kalender-Tab).
+
+Érintett: app/api/booking/create/route.js, app/api/booking/confirm/route.js,
+lib/booking/slots.js, app/BoardApp.js. VER label: v4.9.21

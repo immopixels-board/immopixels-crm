@@ -184,7 +184,8 @@ export async function POST(req) {
         `— Online-Buchung (Status: ausstehend) —`,
       ].filter(x => x !== undefined).join('\n')
 
-      const targetCal = GCAL_IDS[staffInit] || MAIN_CAL
+      const demoCal = process.env.DEMO_CAL_ID || process.env.NEXT_PUBLIC_DEMO_CAL_ID
+      const targetCal = demoCal || GCAL_IDS[staffInit] || MAIN_CAL
       const addonSuffix = [_drohne ? 'Drohne' : null, _d360 ? '360°' : null].filter(Boolean).join(' + ')
       const r = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCal)}/events`,
