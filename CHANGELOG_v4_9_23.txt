@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.23 — Demo: illusztrált tutorial minden belépésnél
+## 2026-06-13
+- A tutorial (TutorialOverlay) teljesen újraírva, rajzolt illusztrációkkal
+  (CSS/SVG mini-ábrák minden lépéshez — kártya, board, naptár, számla stb.),
+  letisztultabb megjelenés, nincs szükség külső képfájlokra.
+- Demo módban (NEXT_PUBLIC_IS_DEMO=1) MINDEN belépéskor automatikusan
+  felugrik (600ms késleltetéssel). Élesben nem változik — ott csak a
+  ?-gombbal indul, mint eddig.
+- Bővített témák (13 lépés): üdvözlés, board/workflow, kártya-státusz
+  jelölések (Noch nicht gesendet / geliefert / überfällig), kártya
+  mozgatás+rendezés, Kunden + Kürzel, Kalender + Google-összekötés,
+  naptárból kártya-felismerés, Fahrtenbuch + működés, Rechnungen,
+  Fahrtkosten beillesztése, Mitarbeiter + Arbeitszeit + Gehaltszettel,
+  Widgets, Claude AI, záró lépés.
+
+Érintett: components/TutorialOverlay.js (újraírva), app/BoardApp.js
+(demo auto-open effekt + VER). VER label: v4.9.23
