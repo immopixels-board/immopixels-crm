@@ -1,0 +1,14 @@
+# ImmoPixels CRM v4.9.22 — Demo booking: cím kézzel + nem kötelező mezők
+## 2026-06-13
+- Hiba: a demón a /buchen oldal a cím-mezőnél nem engedett tovább, mert a cím
+  csak a Google Maps autocomplete-ből töltődött ki — demóban viszont nincs
+  Maps-kulcs, így a mező üres maradt és a "Weiter" tiltva volt.
+- Javítás (env-vezérelt, NEXT_PUBLIC_IS_DEMO=1 esetén, élesben változatlan):
+  • a cím-mező mostantól KÉZZEL is kitölthető (onChange írja az addr.address-t),
+    nem csak autocomplete-ből;
+  • demóban a kötelező mezők NEM blokkolnak — elég egy érvényes e-mail és egy
+    cím; a Vorname/Nachname/Telefon/Anmerkung nem kötelező a demo-foglaláshoz;
+  • a Maps-függő segédszöveg ("válassz a javaslatokból") demóban rejtve.
+- Élesben minden marad: autocomplete + összes kötelező mező.
+
+Érintett: app/buchen/BuchenClient.js, app/BoardApp.js. VER label: v4.9.22

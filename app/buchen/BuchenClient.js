@@ -227,8 +227,11 @@ export default function BuchenClient() {
     const dt = new Date(d+'T12:00')
     return isNaN(dt) ? '' : dt.toLocaleDateString('de-DE', opts)
   }
-  const contactOk = contact.vorname.trim() && contact.nachname.trim() && /\S+@\S+\.\S+/.test(contact.email) && contact.phone.trim() && contact.note.trim()
-  const can = { 2:!!service, 3:!!addr.address && contactOk, submit:!!date && !!time }
+  const isDemo = process.env.NEXT_PUBLIC_IS_DEMO === '1'
+  const contactOk = isDemo
+    ? /\S+@\S+\.\S+/.test(contact.email)
+    : (contact.vorname.trim() && contact.nachname.trim() && /\S+@\S+\.\S+/.test(contact.email) && contact.phone.trim() && contact.note.trim())
+  const can = { 2:!!service, 3:(isDemo ? (!!addr.address && contactOk) : (!!addr.address && contactOk)), submit:!!date && !!time }
 
   const providerSlots = providers.map(pr => {
     const freeCount = slotsFull.filter(s=>s.providers?.includes(pr.init)).length
@@ -463,10 +466,10 @@ export default function BuchenClient() {
           <div style={{display:'flex',flexDirection:'column',gap:24}}>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Shooting-Adresse</div>
-              <input ref={addrRef} type="text" placeholder="Straße, PLZ, Ort eingeben…" defaultValue={addr.address} className={!addr.address?'req-empty':''} />
+              <input ref={addrRef} type="text" placeholder="Straße, PLZ, Ort eingeben…" defaultValue={addr.address} onChange={e=>setAddr(a=>({...a, address:e.target.value}))} className={!addr.address?'req-empty':''} />
               {addr.plz && <p style={{fontSize:12,color:'#15803d',margin:'-4px 0 10px'}}>✓ {addr.address}</p>}
               <div ref={mapRef} style={{width:'100%',height:220,borderRadius:10,background:'#eee',border:'0.5px solid #e6ddc9',display: addr.lat?'block':'none'}} />
-              {!addr.lat && <p style={{fontSize:11,color:'#aaa',margin:'0'}}>Bitte eine Adresse aus den Vorschlägen wählen — die Karte erscheint automatisch.</p>}
+              {!addr.lat && !isDemo && <p style={{fontSize:11,color:'#aaa',margin:'0'}}>Bitte eine Adresse aus den Vorschlägen wählen — die Karte erscheint automatisch.</p>}
             </div>
             <div>
               <div style={{fontSize:11,fontWeight:700,color:'#888',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:6}}>Ihre Kontaktdaten</div>
