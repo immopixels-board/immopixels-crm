@@ -453,6 +453,20 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
   const [avHover, setAvHover] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(null) // null | 0-100
   const [uploadError, setUploadError] = useState(null)
+  const [maklerImport, setMaklerImport] = useState(null)
+  const maklerExists = (() => {
+    const mn = (localCard.makler_name || '').trim().toLowerCase()
+    const me = (localCard.makler_email || '').trim().toLowerCase()
+    if (!mn) return false
+    const inClients = (clients || []).some(c =>
+      (c.name || '').trim().toLowerCase() === mn || (c.short_name || '').trim().toLowerCase() === mn ||
+      (c.contact_name || '').trim().toLowerCase() === mn ||
+      (me && ((c.email || '').trim().toLowerCase() === me || (c.contact_email || '').trim().toLowerCase() === me)))
+    const inMaklers = Object.values(maklers || {}).some(arr => (arr || []).some(m =>
+      (m.name || '').trim().toLowerCase() === mn || (me && (m.email || '').trim().toLowerCase() === me)))
+    const inPhone = (phonebook || []).some(p => (p.name || '').trim().toLowerCase() === mn)
+    return inClients || inMaklers || inPhone
+  })()
   const [zipDragOver, setZipDragOver] = useState(false)
   const fileRef = useRef(null)
   const saveTimer = useRef(null)
@@ -931,6 +945,18 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                   </select>
                 </div>
               )}
+              {localCard.makler_name && !maklerExists && (
+                <button onClick={() => setMaklerImport({
+                  name: localCard.makler_name || '',
+                  short_name: (localCard.makler_name || '').trim().split(/\s+/).slice(-1)[0] || '',
+                  tel: localCard.makler_tel || '',
+                  email: localCard.makler_email || '',
+                  addr: localCard.booking_address || localCard.addr || '',
+                })}
+                  style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 9px', background: '#eef4fb', border: '0.5px solid #b5d4f4', borderRadius: 7, color: '#185fa5', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                  <span style={{ fontSize: 14 }}>＋</span> Als Kunde importieren
+                </button>
+              )}
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px', position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Termin</div>
@@ -1190,6 +1216,76 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
           </button>
         </div>
 
+      </div>
+      {maklerImport && (
+        <MaklerImportModal
+          data={maklerImport}
+          clients={clients}
+          supabase={supabase}
+          onClose={() => setMaklerImport(null)}
+          onDone={(clientName) => { setMaklerImport(null); save('client_name', clientName) }}
+        />
+      )}
+    </div>
+  )
+}
+
+function MaklerImportModal({ data, clients, supabase, onClose, onDone }) {
+  const [f, setF] = useState(data)
+  const [busy, setBusy] = useState(false)
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }))
+  const dup = (() => {
+    const mn = (f.name || '').trim().toLowerCase()
+    const me = (f.email || '').trim().toLowerCase()
+    return (clients || []).find(c =>
+      (c.name || '').trim().toLowerCase() === mn || (c.short_name || '').trim().toLowerCase() === mn ||
+      (me && ((c.email || '').trim().toLowerCase() === me || (c.contact_email || '').trim().toLowerCase() === me)))
+  })()
+  async function create(link) {
+    setBusy(true)
+    try {
+      if (link && dup) { onDone(dup.short_name || dup.name); return }
+      const row = { name: f.name.trim(), short_name: (f.short_name || '').trim(), addr: f.addr || null, email: f.email || null, tel: f.tel || null, category: 'Maklerunternehmen', contact_name: f.name.trim(), contact_tel: f.tel || null, contact_email: f.email || null }
+      const { error } = await supabase.from('clients').insert(row)
+      if (error) throw error
+      onDone(row.short_name || row.name)
+    } catch (e) { alert('Fehler: ' + (e.message || e)); setBusy(false) }
+  }
+  const L = { display: 'block', fontSize: 11, fontWeight: 700, color: '#8a8278', marginBottom: 4 }
+  const I = { width: '100%', boxSizing: 'border-box', border: '1px solid #ddd9d2', borderRadius: 6, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '0.5px solid #eeeae6' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1a16' }}>Makler als Kunde anlegen</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: '#aaa', cursor: 'pointer' }}>✕</button>
+        </div>
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: 11.5, color: '#6b6459', background: '#f4f2ef', borderRadius: 6, padding: '7px 10px', marginBottom: 14 }}>✨ Aus der Online-Buchung vorausgefüllt</div>
+          {dup && (
+            <div style={{ fontSize: 11.5, color: '#8a6a1f', background: '#fdf6e3', border: '0.5px solid #ecd9a8', borderRadius: 6, padding: '8px 10px', marginBottom: 12 }}>
+              ⚠ Ein Kunde mit diesem Namen/E-Mail existiert bereits (<b>{dup.short_name || dup.name}</b>).
+            </div>
+          )}
+          <label style={L}>Makler / Firma</label>
+          <input value={f.name} onChange={e => set('name', e.target.value)} style={{ ...I, marginBottom: 12 }} />
+          <label style={L}>Kürzel (für Rechnungsnr.)</label>
+          <input value={f.short_name} onChange={e => set('short_name', e.target.value)} placeholder="z.B. Casalie" style={{ ...I, marginBottom: 12 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div><label style={L}>Telefon</label><input value={f.tel} onChange={e => set('tel', e.target.value)} style={I} /></div>
+            <div><label style={L}>E-Mail</label><input value={f.email} onChange={e => set('email', e.target.value)} style={I} /></div>
+          </div>
+          <label style={L}>Adresse <span style={{ color: '#b5b1a6', fontWeight: 400 }}>(optional)</span></label>
+          <input value={f.addr} onChange={e => set('addr', e.target.value)} style={{ ...I, marginBottom: 16 }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onClose} disabled={busy} style={{ flex: 1, padding: 9, borderRadius: 7, border: '1px solid #ddd9d2', background: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+            {dup ? (
+              <button onClick={() => create(true)} disabled={busy} style={{ flex: 2, padding: 9, borderRadius: 7, border: 'none', background: '#185fa5', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Mit bestehendem verknüpfen</button>
+            ) : (
+              <button onClick={() => create(false)} disabled={busy || !f.name.trim()} style={{ flex: 2, padding: 9, borderRadius: 7, border: 'none', background: '#185fa5', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', opacity: (!f.name.trim() || busy) ? .5 : 1 }}>{busy ? 'Speichert…' : 'Kunde anlegen & verknüpfen'}</button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

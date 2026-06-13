@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.10 — Makler aus Karte als Kunde importieren
+## 2026-06-13
+- Új gomb a kártyán (Makler-blokk alatt): "＋ Als Kunde importieren" — CSAK akkor
+  jelenik meg, ha a kártyán van Makler-név, de az a Makler még NINCS a rendszerben
+  (sem a Kunden közt, sem a Maklern, sem a Telefonbuchban).
+- A gomb popupot nyit, ahol az online bookingban megadott adatok már elő vannak
+  töltve: Makler/Firma (makler_name), Telefon (makler_tel), E-Mail (makler_email),
+  + Adresse (a booking címéből, opcionális) és egy Kürzel mező (alapból a név
+  utolsó szavából — a Rechnungsnr./fájlnév rövidítéshez).
+- Minden mező szerkeszthető mentés előtt.
+- Duplikátum-védelem: ha a megadott név vagy e-mail már létezik egy ügyfélnél,
+  sárga figyelmeztetés jelenik meg, és a gomb "Mit bestehendem verknüpfen"-re vált
+  — ilyenkor új ügyfél helyett a meglévőhöz köti a kártyát.
+- Mentéskor létrejön a clients rekord (Maklerunternehmen kategória), és a kártya
+  "Kunde" mezője azonnal rákötődik az új/meglévő ügyfélre.
+
+Érintett: components/CardModal.js. VER label: v4.9.10
