@@ -1,0 +1,8 @@
+# ImmoPixels CRM v4.9.47 — Avatar a board Kunden-KÁRTYÁKON is
+## 2026-06-14
+- A board Kunden-tab KÁRTYA-nézetében (▦ Karten) is megjelenik az ügyfél-avatar
+  a cégnév előtt: weboldal-favicon, vagy ahol nincs → a cég kezdőbetűi.
+  (Eddig csak a Liste/táblázat nézetben volt — a v4.9.42 oda tette.)
+- A névtisztítás (Herr/Frau + személynév levágása) a kártya-nézetben is hat.
+
+Érintett: app/BoardApp.js (clients cards view). VER: v4.9.47
