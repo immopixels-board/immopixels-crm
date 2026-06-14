@@ -46,7 +46,7 @@ function CategorySection({ title, icon, items, onAdd, onRename, onRemove }) {
   return (
     <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
       <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-        <i className={'ti ' + icon} style={{ fontSize:16, color:'#b8892a' }} />{title}
+        <i className={'ti ' + icon} style={{ fontSize:16, color:'#1f4d3f' }} />{title}
       </div>
       <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
         {items.map((item, idx) => {
@@ -59,7 +59,7 @@ function CategorySection({ title, icon, items, onAdd, onRename, onRemove }) {
                   autoFocus style={{ border:'none', outline:'none', background:'transparent', fontSize:12, fontWeight:600, width:80, color:'#1c1a16' }}/>
               ) : <span>{lbl}</span>}
               <button onClick={()=>{setEditIdx(idx);setEditVal(lbl)}} style={{ background:'none', border:'none', cursor:'pointer', color:'#aaa8a0', padding:'0 3px', display:'flex', alignItems:'center' }}
-                onMouseEnter={e=>e.currentTarget.style.color='#b8892a'} onMouseLeave={e=>e.currentTarget.style.color='#aaa8a0'}>
+                onMouseEnter={e=>e.currentTarget.style.color='#1f4d3f'} onMouseLeave={e=>e.currentTarget.style.color='#aaa8a0'}>
                 <i className="ti ti-pencil" style={{ fontSize:11 }} />
               </button>
               <button onClick={()=>onRemove(idx)} style={{ background:'none', border:'none', cursor:'pointer', color:'#aaa8a0', padding:'0 3px', display:'flex', alignItems:'center' }}
@@ -75,9 +75,9 @@ function CategorySection({ title, icon, items, onAdd, onRename, onRemove }) {
           onKeyDown={e=>{if(e.key==='Enter'&&newVal.trim()){onAdd(newVal.trim());setNewVal('')}}}
           placeholder="Neu hinzufügen..."
           style={{ flex:1, background:'#f4f2ef', border:'0.5px solid #ddd9d2', borderRadius:8, padding:'8px 12px', fontSize:12, outline:'none', color:'#1c1a16' }}
-          onFocus={e=>e.target.style.borderColor='#b8892a'} onBlur={e=>e.target.style.borderColor='#ddd9d2'}/>
+          onFocus={e=>e.target.style.borderColor='#1f4d3f'} onBlur={e=>e.target.style.borderColor='#ddd9d2'}/>
         <button onClick={()=>{if(newVal.trim()){onAdd(newVal.trim());setNewVal('')}}}
-          style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+          style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
           <i className="ti ti-plus" style={{ fontSize:12 }} /> Hinzufügen
         </button>
       </div>
@@ -105,7 +105,7 @@ function WatchActivateButton() {
   return (
     <div>
       <button onClick={activate} disabled={loading}
-        style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, opacity:loading?0.7:1 }}>
+        style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, opacity:loading?0.7:1 }}>
         <i className="ti ti-refresh" style={{ fontSize:14 }} />
         {loading ? 'Wird verbunden...' : 'Watch aktivieren'}
       </button>
@@ -218,7 +218,7 @@ export default function Settings() {
   }
 
   const NAV = [
-    { key:'appearance', label:'Aussehen', icon:'ti-palette', color:'#b8892a', bg:'rgba(184,137,42,.12)' },
+    { key:'appearance', label:'Aussehen', icon:'ti-palette', color:'#1f4d3f', bg:'rgba(184,137,42,.12)' },
     { key:'categories', label:'Kategorien', icon:'ti-camera', color:'#1d5ec7', bg:'rgba(29,94,199,.10)' },
     { key:'staff', label:'Mitarbeiter', icon:'ti-id-badge', color:'#15803d', bg:'rgba(21,128,61,.10)' },
     ...(isAdmin ? [{ key:'integrations', label:'Integrationen', icon:'ti-plug', color:'#6d28d9', bg:'rgba(109,40,217,.10)' }] : []),
@@ -271,14 +271,14 @@ export default function Settings() {
                 {/* Font size */}
                 <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                    <i className="ti ti-text-size" style={{ fontSize:16, color:'#b8892a' }} /> Schriftgröße
+                    <i className="ti ti-text-size" style={{ fontSize:16, color:'#1f4d3f' }} /> Schriftgröße
                   </div>
                   <div style={{ display:'flex', gap:8 }}>
                     {FONT_SIZES.map(f => (
                       <div key={f.key} onClick={() => { setFontSize(f.key); saveUserSetting('font_size', f.key) }}
-                        style={{ flex:1, background: fontSize===f.key ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: fontSize===f.key ? '1.5px solid #b8892a' : '0.5px solid #eeeae6', borderRadius:9, padding:'12px', textAlign:'center', cursor:'pointer', transition:'all .15s' }}>
-                        <div style={{ fontSize: f.key==='sm'?'13px':f.key==='lg'?'18px':'15px', fontWeight:700, color: fontSize===f.key ? '#b8892a' : '#1c1a16', marginBottom:4 }}>Aa</div>
-                        <div style={{ fontSize:11, color: fontSize===f.key ? '#b8892a' : '#8a8278', fontWeight:600 }}>{f.label}</div>
+                        style={{ flex:1, background: fontSize===f.key ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: fontSize===f.key ? '1.5px solid #1f4d3f' : '0.5px solid #eeeae6', borderRadius:9, padding:'12px', textAlign:'center', cursor:'pointer', transition:'all .15s' }}>
+                        <div style={{ fontSize: f.key==='sm'?'13px':f.key==='lg'?'18px':'15px', fontWeight:700, color: fontSize===f.key ? '#1f4d3f' : '#1c1a16', marginBottom:4 }}>Aa</div>
+                        <div style={{ fontSize:11, color: fontSize===f.key ? '#1f4d3f' : '#8a8278', fontWeight:600 }}>{f.label}</div>
                       </div>
                     ))}
                   </div>
@@ -287,18 +287,18 @@ export default function Settings() {
                 {/* Card size */}
                 <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                    <i className="ti ti-layout-cards" style={{ fontSize:16, color:'#b8892a' }} /> Kartengröße
+                    <i className="ti ti-layout-cards" style={{ fontSize:16, color:'#1f4d3f' }} /> Kartengröße
                   </div>
                   <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
                     {CARD_SIZES.map(cs => (
                       <div key={cs.key} onClick={() => { setCardSize(cs.key); saveUserSetting('card_size', cs.key) }} style={{ cursor:'pointer', textAlign:'center' }}>
-                        <div style={{ width:cs.w, border: cardSize===cs.key ? '1.5px solid #b8892a' : '0.5px solid #ddd9d2', borderRadius:9, padding: cs.key==='compact'?'7px 9px':cs.key==='standard'?'9px 10px':'12px', background: cardSize===cs.key ? 'rgba(184,137,42,.05)' : '#fff', boxShadow: cardSize===cs.key ? '0 0 0 3px rgba(184,137,42,.1)' : 'none', transition:'all .15s' }}>
+                        <div style={{ width:cs.w, border: cardSize===cs.key ? '1.5px solid #1f4d3f' : '0.5px solid #ddd9d2', borderRadius:9, padding: cs.key==='compact'?'7px 9px':cs.key==='standard'?'9px 10px':'12px', background: cardSize===cs.key ? 'rgba(184,137,42,.05)' : '#fff', boxShadow: cardSize===cs.key ? '0 0 0 3px rgba(184,137,42,.1)' : 'none', transition:'all .15s' }}>
                           <div style={{ height:cs.key==='compact'?6:cs.key==='standard'?7:8, background:'#FFBE98', borderRadius:3, marginBottom:cs.key==='compact'?4:5, width:'55%' }} />
                           <div style={{ height:cs.key==='compact'?8:cs.key==='standard'?9:10, background:'#eeeae6', borderRadius:2, marginBottom:3 }} />
                           <div style={{ height:cs.key==='compact'?6:cs.key==='standard'?7:8, background:'#f4f2ef', borderRadius:2, width:'70%' }} />
                           {cs.key==='large' && <div style={{ height:22, background:'#f4f2ef', borderRadius:5, marginTop:7 }} />}
                         </div>
-                        <div style={{ fontSize:11, fontWeight:700, color: cardSize===cs.key ? '#b8892a' : '#4a4540', marginTop:6 }}>{cs.label}</div>
+                        <div style={{ fontSize:11, fontWeight:700, color: cardSize===cs.key ? '#1f4d3f' : '#4a4540', marginTop:6 }}>{cs.label}</div>
                         <div style={{ fontSize:10, color:'#aaa8a0' }}>{cs.desc}</div>
                       </div>
                     ))}
@@ -308,7 +308,7 @@ export default function Settings() {
                 {/* Hintergrund - szín + kép egy helyen */}
                 <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-                    <i className="ti ti-paint" style={{ fontSize:16, color:'#b8892a' }} /> Hintergrund
+                    <i className="ti ti-paint" style={{ fontSize:16, color:'#1f4d3f' }} /> Hintergrund
                   </div>
                   <div style={{ fontSize:11, fontWeight:700, color:'#8a8278', marginBottom:8, textTransform:'uppercase', letterSpacing:'.5px' }}>Farbe</div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
@@ -316,7 +316,7 @@ export default function Settings() {
                       <div key={bg.key}
                         onClick={async () => { setBgColor(bg.key); setBgImage(null); saveBgImage(null); saveUserSetting('bg_color', bg.key); try { const sid = await getStaffId(); if(sid){const {data:st}=await supabase.from('staff').select('init,name').eq('id',sid).single(); if(st)await supabase.from('debug_log').insert({action:'Hintergrundfarbe: '+bg.label,staff_init:st.init,staff_name:st.name,staff_id:sid})}} catch(e){} }}
                         title={bg.label}
-                        style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key && !bgImage ? '2px solid #b8892a' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key && !bgImage ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s', opacity: bgImage ? 0.45 : 1 }}
+                        style={{ width:40, height:40, borderRadius:9, background:bg.color, cursor:'pointer', border: bgColor===bg.key && !bgImage ? '2px solid #1f4d3f' : '1px solid #ddd9d2', boxShadow: bgColor===bg.key && !bgImage ? '0 0 0 3px rgba(184,137,42,.2)' : 'none', transition:'all .15s', opacity: bgImage ? 0.45 : 1 }}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
                         onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
                       />
@@ -327,15 +327,15 @@ export default function Settings() {
                   </div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                     <div onClick={()=>{ setBgImage(null); saveBgImage(null) }}
-                      style={{ width:56, height:40, borderRadius:7, background:'var(--bg3)', border: !bgImage?'2px solid #b8892a':'1px solid #ddd9d2', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#8a8278', transition:'all .15s' }}>
+                      style={{ width:56, height:40, borderRadius:7, background:'var(--bg3)', border: !bgImage?'2px solid #1f4d3f':'1px solid #ddd9d2', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'#8a8278', transition:'all .15s' }}>
                       Keine
                     </div>
                     {BG_IMAGE_OPTIONS.map(bg => (
                       <div key={bg.key} onClick={()=>saveBgImage(bg.src)} title={bg.label}
-                        style={{ width:56, height:40, borderRadius:7, backgroundImage:'url('+bg.src+')', backgroundSize:'cover', cursor:'pointer', border: bgImage===bg.src?'2px solid #b8892a':'1px solid #ddd9d2', boxShadow: bgImage===bg.src?'0 0 0 3px rgba(184,137,42,.2)':'none', transition:'all .15s', position:'relative' }}
+                        style={{ width:56, height:40, borderRadius:7, backgroundImage:'url('+bg.src+')', backgroundSize:'cover', cursor:'pointer', border: bgImage===bg.src?'2px solid #1f4d3f':'1px solid #ddd9d2', boxShadow: bgImage===bg.src?'0 0 0 3px rgba(184,137,42,.2)':'none', transition:'all .15s', position:'relative' }}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.05)'}
                         onMouseLeave={e=>e.currentTarget.style.transform='none'}>
-                        {bgImage===bg.src && <div style={{ position:'absolute', top:2, right:2, width:14, height:14, borderRadius:'50%', background:'#b8892a', display:'flex', alignItems:'center', justifyContent:'center' }}><i className="ti ti-check" style={{fontSize:9,color:'#fff'}}/></div>}
+                        {bgImage===bg.src && <div style={{ position:'absolute', top:2, right:2, width:14, height:14, borderRadius:'50%', background:'#1f4d3f', display:'flex', alignItems:'center', justifyContent:'center' }}><i className="ti ti-check" style={{fontSize:9,color:'#fff'}}/></div>}
                         <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,.35)', borderRadius:'0 0 6px 6px', padding:'2px 4px', fontSize:8, color:'#fff', fontWeight:700, textAlign:'center' }}>{bg.label}</div>
                       </div>
                     ))}
@@ -348,7 +348,7 @@ export default function Settings() {
             {activeNav === 'appearance' && (
               <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                 <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                  <i className="ti ti-columns" style={{ fontSize:16, color:'#b8892a' }} />
+                  <i className="ti ti-columns" style={{ fontSize:16, color:'#1f4d3f' }} />
                   Spalten-Header Stil
                 </div>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -357,7 +357,7 @@ export default function Settings() {
                     <div style={{ fontSize:11, color:'#8a8278', marginTop:2 }}>Farbiger Header wie bei Widgets</div>
                   </div>
                   <div onClick={()=>{ const nv=!colWidgetOn; setColWidgetOn(nv); saveUserSetting('col_widget_header',nv) }}
-                    style={{ width:44, height:24, borderRadius:12, background:colWidgetOn?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+                    style={{ width:44, height:24, borderRadius:12, background:colWidgetOn?'#1f4d3f':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:colWidgetOn?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
                   </div>
                 </div>
@@ -367,7 +367,7 @@ export default function Settings() {
             {activeNav === 'appearance' && (
               <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                 <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                  <i className="ti ti-layout-list" style={{ fontSize:16, color:'#b8892a' }} />
+                  <i className="ti ti-layout-list" style={{ fontSize:16, color:'#1f4d3f' }} />
                   Kompakt Karten
                 </div>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -376,7 +376,7 @@ export default function Settings() {
                     <div style={{ fontSize:11, color:'#8a8278', marginTop:2 }}>Zeigt nur Titel + Notiz je Karte (Toggle per Karte im Hover-Menü)</div>
                   </div>
                   <div onClick={()=>{ const newVal=!compactCardsOn; setCompactCardsOn(newVal); saveUserSetting('compact_cards_enabled',newVal) }}
-                    style={{ width:44, height:24, borderRadius:12, background:compactCardsOn?'#b8892a':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
+                    style={{ width:44, height:24, borderRadius:12, background:compactCardsOn?'#1f4d3f':'#ddd9d2', cursor:'pointer', position:'relative', transition:'background .2s', flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left:compactCardsOn?22:2, transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export default function Settings() {
             <div>
               <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                 <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                  <i className="ti ti-brand-google" style={{ fontSize:16, color:'#b8892a' }} />
+                  <i className="ti ti-brand-google" style={{ fontSize:16, color:'#1f4d3f' }} />
                   Google Calendar Sync
                 </div>
                 <div style={{ fontSize:12, color:'#8a8278', marginBottom:14, lineHeight:1.6 }}>
@@ -419,13 +419,13 @@ export default function Settings() {
               </div>
               <div style={{ background:'#fff', border:'0.5px solid #eeeae6', borderRadius:12, padding:18, marginBottom:14 }}>
                 <div style={{ fontSize:14, fontWeight:700, color:'#1c1a16', display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                  <i className="ti ti-photo" style={{ fontSize:16, color:'#b8892a' }} />
+                  <i className="ti ti-photo" style={{ fontSize:16, color:'#1f4d3f' }} />
                   Leistungs-Bilder
                 </div>
                 <div style={{ fontSize:12, color:'#8a8278', marginBottom:14, lineHeight:1.6 }}>
                   Runde Kategorie-Bilder für die Buchungsseite hochladen und verwalten.
                 </div>
-                <a href="/admin/leistungen" style={{ display:'inline-block', padding:'9px 18px', fontSize:13, fontWeight:700, background:'#b8892a', color:'#fff', borderRadius:8, textDecoration:'none' }}>Bilder verwalten →</a>
+                <a href="/admin/leistungen" style={{ display:'inline-block', padding:'9px 18px', fontSize:13, fontWeight:700, background:'#1f4d3f', color:'#fff', borderRadius:8, textDecoration:'none' }}>Bilder verwalten →</a>
               </div>
             </div>
           )}

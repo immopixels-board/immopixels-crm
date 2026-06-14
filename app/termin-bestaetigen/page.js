@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-const GOLD='#b8892a', CREAM='#faf7f0', DARK='#2a2a28'
+const GOLD='#1f4d3f', CREAM='#faf7f0', DARK='#2a2a28'
 
 function Confirm() {
   const sp = useSearchParams()

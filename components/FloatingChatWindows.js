@@ -33,7 +33,7 @@ function ChatWindowContent({ chat, staff, me, supabase, partner }) {
         const linkMatch = msg.text?.match(/(https?:\/\/[^\s]+|www\.[^\s]+)/)?.[0]
         return (
           <div key={msg.id} style={{ display:'flex', gap:6, marginBottom:8, flexDirection:isMine?'row-reverse':'row' }}>
-            <div style={{ width:24, height:24, borderRadius:'50%', background:(msg.sender_color||'#b8892a')+'22', color:msg.sender_color||'#b8892a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
+            <div style={{ width:24, height:24, borderRadius:'50%', background:(msg.sender_color||'#1f4d3f')+'22', color:msg.sender_color||'#1f4d3f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
               {msg.sender_avatar?<img src={msg.sender_avatar} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:msg.sender_init}
             </div>
             <div style={{ maxWidth:'75%' }}>
@@ -71,7 +71,7 @@ function ChatWindowInput({ chat, me, supabase, partner }) {
       sender_name: me?.name||'?',
       sender_init: me?.init||'?',
       sender_avatar: me?.avatar_url||null,
-      sender_color: me?.color||'#b8892a',
+      sender_color: me?.color||'#1f4d3f',
       sender_id: me?.id||null,
       channel: chat.type==='team'?'team':'private',
       recipient_id: chat.type==='private'?chat.staffId:null,

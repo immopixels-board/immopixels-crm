@@ -239,9 +239,9 @@ export async function POST(req) {
           <strong>Shooting Ort:</strong> <a href="${mapsLink}">${address}</a></p>
           <p><strong>Zusätzliche Info:</strong><br>${(note||'—').replace(/\n/g,'<br>')}</p>
           <p><strong>Zusätzliche Leistungen:</strong> ${addons.length?addons.join(', '):'—'}</p>
-          ${travelTight ? '<p style="background:#fffbf0;border:1px solid #f0d9a8;border-radius:8px;padding:10px;color:#b8892a"><strong>⚠ Hinweis:</strong> Wegen der Anfahrt von einem vorherigen Termin kann sich die Ankunft um bis zu 15 Minuten verschieben.</p>' : ''}
+          ${travelTight ? '<p style="background:#fffbf0;border:1px solid #f0d9a8;border-radius:8px;padding:10px;color:#1f4d3f"><strong>⚠ Hinweis:</strong> Wegen der Anfahrt von einem vorherigen Termin kann sich die Ankunft um bis zu 15 Minuten verschieben.</p>' : ''}
           <p style="margin-top:24px">
-            <a href="${confirmUrl}" style="display:inline-block;background:#b8892a;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Termin bestätigen</a>
+            <a href="${confirmUrl}" style="display:inline-block;background:#1f4d3f;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Termin bestätigen</a>
           </p>
         </div>`
     })

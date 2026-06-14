@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 
 const STATUS = {
   confirmed:{ label:'Bestätigt', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0' },
-  pending:  { label:'In Prüfung', color:'#b8892a', bg:'#fffbeb', border:'#fde68a' },
+  pending:  { label:'In Prüfung', color:'#1f4d3f', bg:'#fffbeb', border:'#fde68a' },
   cancelled:{ label:'Storniert', color:'#b91c1c', bg:'#fef2f2', border:'#fecaca' },
 }
 const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So']
@@ -194,7 +194,7 @@ export default function BuchungenView({ supabase, staff, me }) {
   }
 
   function fmt(d,t){ if(!d) return '—'; return new Date(d+'T12:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})+' · '+String(t).slice(0,5) }
-  const staffColor = init => staff?.find(s=>s.init===init)?.color || '#b8892a'
+  const staffColor = init => staff?.find(s=>s.init===init)?.color || '#1f4d3f'
 
   const _q = search.trim().toLowerCase()
   const visibleBookings = _q
@@ -216,11 +216,11 @@ export default function BuchungenView({ supabase, staff, me }) {
       {/* Header */}
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
         <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:6 }}>
-          <i className="ti ti-calendar-plus" style={{ fontSize:16, color:'#b8892a' }} /> Buchungen
+          <i className="ti ti-calendar-plus" style={{ fontSize:16, color:'#1f4d3f' }} /> Buchungen
         </span>
         <div style={{ display:'flex', gap:4, background:'var(--bg3)', borderRadius:7, padding:2 }}>
           {['list','calendar'].map(m=>(
-            <button key={m} onClick={()=>setMode(m)} style={{ padding:'4px 12px', borderRadius:5, border:'none', background:mode===m?'#b8892a':'transparent', color:mode===m?'#fff':'var(--t3)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            <button key={m} onClick={()=>setMode(m)} style={{ padding:'4px 12px', borderRadius:5, border:'none', background:mode===m?'#1f4d3f':'transparent', color:mode===m?'#fff':'var(--t3)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
               {m==='list'?'Liste':'Kalender'}
             </button>
           ))}
@@ -234,7 +234,7 @@ export default function BuchungenView({ supabase, staff, me }) {
           <a href="/admin/leistungen" target="_blank" rel="noopener" style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', color:'var(--t2)', fontSize:11, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
             <i className="ti ti-settings" style={{fontSize:12}} /> Leistungen
           </a>
-          <a href="/buchen" target="_blank" rel="noopener" style={{ background:'#b8892a', color:'#fff', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:5 }}>
+          <a href="/buchen" target="_blank" rel="noopener" style={{ background:'#1f4d3f', color:'#fff', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:5 }}>
             <i className="ti ti-external-link" style={{fontSize:11}} /> Buchungsseite
           </a>
         </div>
@@ -244,7 +244,7 @@ export default function BuchungenView({ supabase, staff, me }) {
       <div style={{ padding:'8px 16px', background:'var(--bg2)', borderBottom:'0.5px solid var(--border)', display:'flex', gap:0, overflowX:'auto' }}>
         {[
           { key:'all',       label:'Alle',         color:'var(--gold)' },
-          { key:'pending',   label:'In Prüfung',   color:'#b8892a' },
+          { key:'pending',   label:'In Prüfung',   color:'#1f4d3f' },
           { key:'confirmed', label:'Bestätigt',    color:'#15803d' },
           { key:'cancelled', label:'Storniert',    color:'#b91c1c' },
         ].map(t => {
@@ -384,8 +384,8 @@ export default function BuchungenView({ supabase, staff, me }) {
                 const items = byDay[ds]||[]
                 const isToday = ds===iso(new Date())
                 return (
-                  <div key={ds} style={{ background:'var(--bg2)', border:'0.5px solid '+(isToday?'#b8892a':'var(--border)'), borderRadius:8, minHeight:120, padding:6 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:isToday?'#b8892a':'var(--t3)', textAlign:'center', marginBottom:6, textTransform:'uppercase' }}>{DAYS[i]} {d.getDate()}</div>
+                  <div key={ds} style={{ background:'var(--bg2)', border:'0.5px solid '+(isToday?'#1f4d3f':'var(--border)'), borderRadius:8, minHeight:120, padding:6 }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:isToday?'#1f4d3f':'var(--t3)', textAlign:'center', marginBottom:6, textTransform:'uppercase' }}>{DAYS[i]} {d.getDate()}</div>
                     {items.map(b=>{
                       const st = STATUS[b.booking_status]||STATUS.pending
                       return (
@@ -420,7 +420,7 @@ export default function BuchungenView({ supabase, staff, me }) {
                   {slots.length===0 ? <div style={{gridColumn:'1/-1',fontSize:11,color:'#b91c1c'}}>Keine freien Zeiten</div>
                   : slots.map(t=>(
                     <button key={t} onClick={()=>setEf({...ef,time:t})} title={warnTimes.includes(t)?'Knapp wegen Anfahrt':''}
-                      style={{padding:'7px 0',fontSize:12,borderRadius:6,cursor:'pointer',border:'0.5px solid '+(ef.time===t?'#b8892a':(warnTimes.includes(t)?'#e0a82e':'var(--border)')),background:ef.time===t?'#b8892a':(warnTimes.includes(t)?'#fffbf0':'var(--bg3)'),color:ef.time===t?'#fff':'var(--t2)',fontWeight:ef.time===t?700:400}}>
+                      style={{padding:'7px 0',fontSize:12,borderRadius:6,cursor:'pointer',border:'0.5px solid '+(ef.time===t?'#1f4d3f':(warnTimes.includes(t)?'#e0a82e':'var(--border)')),background:ef.time===t?'#1f4d3f':(warnTimes.includes(t)?'#fffbf0':'var(--bg3)'),color:ef.time===t?'#fff':'var(--t2)',fontWeight:ef.time===t?700:400}}>
                       {t}{warnTimes.includes(t)?'⚠':''}
                     </button>
                   ))}
@@ -442,7 +442,7 @@ export default function BuchungenView({ supabase, staff, me }) {
               <label style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase'}}>Anmerkung</label>
               <textarea value={ef.note} onChange={e=>setEf({...ef,note:e.target.value})} style={{...inp,minHeight:60,resize:'vertical',margin:'4px 0 14px'}} />
               <div style={{display:'flex',gap:8}}>
-                <button onClick={saveEdit} disabled={savingEdit||!ef.date||!ef.time} style={{flex:1,padding:'11px',background:(ef.date&&ef.time)?'#b8892a':'#ccc',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:(ef.date&&ef.time)?'pointer':'default'}}>
+                <button onClick={saveEdit} disabled={savingEdit||!ef.date||!ef.time} style={{flex:1,padding:'11px',background:(ef.date&&ef.time)?'#1f4d3f':'#ccc',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:(ef.date&&ef.time)?'pointer':'default'}}>
                   {savingEdit?'Wird gespeichert…':'Speichern & benachrichtigen'}
                 </button>
                 <button onClick={()=>{setEditTok(null);setEf(null)}} style={{padding:'11px 18px',background:'none',border:'0.5px solid var(--border)',borderRadius:8,color:'var(--t3)',fontSize:13,cursor:'pointer'}}>Abbrechen</button>

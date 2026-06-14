@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 
-const GOLD = '#b8892a', DARK = '#2a2a28'
+const GOLD = '#1f4d3f', DARK = '#2a2a28'
 
 // --- Rich-text szerkesztő (félkövér / dőlt / aláhúzott) ---
 function RichText({ value, onChange }) {

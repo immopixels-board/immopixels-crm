@@ -191,14 +191,14 @@ export default function StatsPage() {
 
   return (
     <div style={{ fontFamily: 'Arial', background: '#f4f2ef', minHeight: '100vh', color: '#1c1a16' }}>
-      <style>{`:root{--bg:#f4f2ef;--bg2:#fff;--border:#ddd9d2;--t1:#1c1a16;--t3:#8a8278;--gold:#b8892a}`}</style>
+      <style>{`:root{--bg:#f4f2ef;--bg2:#fff;--border:#ddd9d2;--t1:#1c1a16;--t3:#8a8278;--gold:#1f4d3f}`}</style>
 
       <div style={{ height: 52, background: '#fff', borderBottom: '1px solid #ddd9d2', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 16 }}>
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#8a8278', fontSize: 13 }}>
           <i className="ti ti-arrow-left" style={{ fontSize: 13 }} /> Board
         </a>
         <div style={{ width: 1, height: 16, background: '#ddd9d2' }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#b8892a' }}>Kunden Statistik {year}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#1f4d3f' }}>Kunden Statistik {year}</span>
       </div>
 
       <div style={{ padding: '20px 24px', maxWidth: 1200, margin: '0 auto' }}>
@@ -221,7 +221,7 @@ export default function StatsPage() {
         {/* Goal circles + settings */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
           <GoalCircle
-            pct={umsatzPct} color="#b8892a" label="Umsatz-Ziel"
+            pct={umsatzPct} color="#1f4d3f" label="Umsatz-Ziel"
             current={totalUmsatz} target={goals.umsatz} unit=" €"
             remaining={(goals.umsatz - totalUmsatz).toLocaleString('de-DE') + ' €'}
           />
@@ -248,7 +248,7 @@ export default function StatsPage() {
                 <div style={{ fontSize: 10, color: '#8a8278', marginBottom: 4 }}>{f.label}</div>
                 <input type="number" value={goalsInput[f.key]} onChange={e => setGoalsInput(p => ({ ...p, [f.key]: e.target.value }))}
                   style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 7, padding: '6px 10px', fontSize: 13, fontWeight: 700, color: '#1c1a16', outline: 'none', boxSizing: 'border-box' }}
-                  onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+                  onFocus={e => e.currentTarget.style.borderColor = '#1f4d3f'}
                   onBlur={e => e.currentTarget.style.borderColor = '#ddd9d2'}
                 />
               </div>
@@ -257,12 +257,12 @@ export default function StatsPage() {
               <div style={{ fontSize: 10, color: '#8a8278', marginBottom: 4 }}>Instagram aktuell</div>
               <input type="number" value={igInput} onChange={e => setIgInput(e.target.value)}
                 style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 7, padding: '6px 10px', fontSize: 13, fontWeight: 700, color: '#1c1a16', outline: 'none', boxSizing: 'border-box' }}
-                onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+                onFocus={e => e.currentTarget.style.borderColor = '#1f4d3f'}
                 onBlur={e => e.currentTarget.style.borderColor = '#ddd9d2'}
               />
             </div>
             <button onClick={saveGoals} disabled={savingGoals}
-              style={{ background: '#b8892a', color: '#fff', border: 'none', borderRadius: 7, padding: '8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 'auto' }}>
+              style={{ background: '#1f4d3f', color: '#fff', border: 'none', borderRadius: 7, padding: '8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', marginTop: 'auto' }}>
               {savingGoals ? '...' : 'Speichern'}
             </button>
           </div>
@@ -277,9 +277,9 @@ export default function StatsPage() {
               const isCur = i === curMonth
               return (
                 <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <div style={{ fontSize: 9, color: m.count ? (isCur ? '#b8892a' : '#8a8278') : 'transparent', fontWeight: isCur ? 700 : 400 }}>{m.count || 0}</div>
-                  <div style={{ width: '100%', height: h, background: isCur ? '#b8892a' : (m.count ? '#e8e4de' : '#f4f2ef'), borderRadius: '3px 3px 0 0' }}/>
-                  <div style={{ fontSize: 9, color: isCur ? '#b8892a' : (m.count ? '#8a8278' : '#ccc8c0'), fontWeight: isCur ? 700 : 400 }}>{m.month}</div>
+                  <div style={{ fontSize: 9, color: m.count ? (isCur ? '#1f4d3f' : '#8a8278') : 'transparent', fontWeight: isCur ? 700 : 400 }}>{m.count || 0}</div>
+                  <div style={{ width: '100%', height: h, background: isCur ? '#1f4d3f' : (m.count ? '#e8e4de' : '#f4f2ef'), borderRadius: '3px 3px 0 0' }}/>
+                  <div style={{ fontSize: 9, color: isCur ? '#1f4d3f' : (m.count ? '#8a8278' : '#ccc8c0'), fontWeight: isCur ? 700 : 400 }}>{m.month}</div>
                 </div>
               )
             })}
@@ -303,9 +303,9 @@ export default function StatsPage() {
               </div>
               {MONTHS.map((m, mi) => {
                 const cnt = clientMonthCount(c, mi)
-                return <div key={m} style={{ textAlign: 'center', fontSize: 11, fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+                return <div key={m} style={{ textAlign: 'center', fontSize: 11, fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#1f4d3f' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
               })}
-              <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{clientTotal(c)}</div>
+              <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1f4d3f' }}>{clientTotal(c)}</div>
               <div style={{ textAlign: 'right', fontSize: 11, color: '#4a4540' }}>{clientUmsatz(c) ? clientUmsatz(c).toLocaleString('de-DE') + ' €' : '—'}</div>
               <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700, color:'#15803d' }}>{clientUmsatz(c) ? clientUmsatz(c).toLocaleString('de-DE') + ' €' : '—'}</div>
             </div>
@@ -317,11 +317,11 @@ export default function StatsPage() {
               const cnt = monthlyData[mi].count
               const monthUmsatz = bm.on ? (bm.byMonth[mi] || 0) : yearCards.filter(c => new Date(c.card_date).getMonth() === mi).reduce((s, c) => s + (parseFloat(c.price)||0), 0)
               return <div key={m} style={{ textAlign: 'center', fontSize: 10 }}>
-                <div style={{ fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#b8892a' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
+                <div style={{ fontWeight: cnt ? 700 : 400, color: cnt ? (mi === curMonth ? '#1f4d3f' : '#1c1a16') : '#ccc9c2' }}>{cnt || '—'}</div>
                 {monthUmsatz > 0 && <div style={{ color:'#15803d', fontWeight:700, marginTop:2 }}>{monthUmsatz.toLocaleString('de-DE')}€</div>}
               </div>
             })}
-            <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#b8892a' }}>{totalAufnahmen}</div>
+            <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1f4d3f' }}>{totalAufnahmen}</div>
             <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700 }}>{totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—'}</div>
             <div style={{ textAlign: 'right', fontSize: 11, fontWeight: 700, color:'#15803d' }}>{totalUmsatz ? totalUmsatz.toLocaleString('de-DE') + ' €' : '—'}</div>
           </div>

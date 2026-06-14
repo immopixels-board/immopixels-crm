@@ -24,7 +24,7 @@ export async function GET() {
   const providersOut = (providers || []).map(p => ({
     ...p,
     avatar_url: staffMap[p.staff_init]?.avatar_url || null,
-    color: staffMap[p.staff_init]?.color || '#b8892a',
+    color: staffMap[p.staff_init]?.color || '#1f4d3f',
   }))
 
   const assignments = {}

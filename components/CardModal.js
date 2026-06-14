@@ -31,7 +31,7 @@ function AutoSaveBadge({ show }) {
 }
 
 var TYPES_LIST_DEFAULT = [
-  { key:'foto',      label:'Foto',        c:'#b8892a', bg:'rgba(184,137,42,.12)', br:'rgba(184,137,42,.3)' },
+  { key:'foto',      label:'Foto',        c:'#1f4d3f', bg:'rgba(184,137,42,.12)', br:'rgba(184,137,42,.3)' },
   { key:'foto-reel', label:'Foto+Reel',   c:'#6d28d9', bg:'rgba(109,40,217,.12)', br:'rgba(109,40,217,.3)' },
   { key:'foto-dron', label:'Foto+Drohne', c:'#a16207', bg:'rgba(161,98,7,.12)',   br:'rgba(161,98,7,.3)' },
   { key:'dron',      label:'Drohne',      c:'#15803d', bg:'rgba(21,128,61,.12)',  br:'rgba(21,128,61,.3)' },
@@ -53,7 +53,7 @@ function saveExtraType(label, color) {
     const extra = JSON.parse(localStorage.getItem(EXTRA_TYPES_KEY) || '[]')
     const key = label.toLowerCase().replace(/[^a-z0-9]/g,'')
     if (!extra.find(x => x.key === key)) {
-      const c = color || '#b8892a'
+      const c = color || '#1f4d3f'
       extra.push({ key, label, c, bg: c+'22', br: c+'66' })
       localStorage.setItem(EXTRA_TYPES_KEY, JSON.stringify(extra))
     }
@@ -107,7 +107,7 @@ function CategoryPicker({ cardType, onChange }) {
                 placeholder="Name..."
                 style={{ flex:1, border:'0.5px solid #ddd9d2', borderRadius:5, padding:'4px 8px', fontSize:11, outline:'none', background:'#f4f2ef', color:'#1c1a16', minWidth:0 }} />
               <button onClick={e=>{e.stopPropagation();addNew()}}
-                style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:5, padding:'4px 7px', fontSize:11, fontWeight:700, cursor:'pointer', flexShrink:0 }}>+</button>
+                style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:5, padding:'4px 7px', fontSize:11, fontWeight:700, cursor:'pointer', flexShrink:0 }}>+</button>
             </div>
           </div>
         </div>
@@ -144,7 +144,7 @@ function PlacesAddrField({ value, onSave }) {
       onBlur={() => { setEditing(false); if(val !== value) onSave(val) }}
       onKeyDown={e => { if(e.key==='Escape'){setVal(value||'');setEditing(false)} }}
       placeholder="Adresse hinzufügen..." autoComplete="off"
-      style={{ width:'100%', background:'#fff', border:'1.5px solid #b8892a', borderRadius:6, padding:'3px 8px', fontSize:12, color:'#8a8278', fontFamily:'Arial', outline:'none' }} />
+      style={{ width:'100%', background:'#fff', border:'1.5px solid #1f4d3f', borderRadius:6, padding:'3px 8px', fontSize:12, color:'#8a8278', fontFamily:'Arial', outline:'none' }} />
   )
   return (
     <div onClick={()=>setEditing(true)} style={{ cursor:'pointer', fontSize:12, color:val?'#8a8278':'#bbb', display:'flex', alignItems:'center', gap:4 }}>
@@ -209,7 +209,7 @@ function NoteField({ value, onSave, staff }) {
         placeholder="Notiz hinzufügen... (@name zum Taggen)"
         rows={3}
         style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid #ddd9d2', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#4a4540', fontFamily: 'Arial', outline: 'none', resize: 'vertical', minHeight: 60, boxSizing: 'border-box' }}
-        onFocus={e => e.currentTarget.style.borderColor = '#b8892a'}
+        onFocus={e => e.currentTarget.style.borderColor = '#1f4d3f'}
       />
       {mention.show && (
         <div style={{ position: 'absolute', bottom: '100%', left: 0, zIndex: 9999, background: '#fff', border: '1px solid #ddd9d2', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', minWidth: 160, overflow: 'hidden' }}>
@@ -273,7 +273,7 @@ function EditableField({ value, onSave, style, multiline, placeholder, staff, re
       onChange: handleChange,
       onBlur: () => setTimeout(save, 150),
       onKeyDown: e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); save() } if (e.key === 'Escape') { setVal(value||''); setMention(p=>({...p,show:false})); setEditing(false) } },
-      style: { width: '100%', background: '#fff', border: '1.5px solid #b8892a', borderRadius: 6, padding: '5px 8px', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', fontFamily: 'Arial', outline: 'none', resize: multiline ? 'vertical' : 'none', minHeight: multiline ? 60 : 'auto', ...style }
+      style: { width: '100%', background: '#fff', border: '1.5px solid #1f4d3f', borderRadius: 6, padding: '5px 8px', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', fontFamily: 'Arial', outline: 'none', resize: multiline ? 'vertical' : 'none', minHeight: multiline ? 60 : 'auto', ...style }
     }
     return (
       <div style={{ position: 'relative' }}>
@@ -284,7 +284,7 @@ function EditableField({ value, onSave, style, multiline, placeholder, staff, re
               <div key={s.id} onMouseDown={e => { e.preventDefault(); selectMention(s) }}
                 style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                 onMouseEnter={e => e.currentTarget.style.background = '#f4f2ef'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: (s.color||'#b8892a') + '22', color: s.color||'#b8892a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: (s.color||'#1f4d3f') + '22', color: s.color||'#1f4d3f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
                   {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
                 </div>
                 {s.name}
@@ -344,12 +344,12 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
   return (
     <div>
       <div style={{ display:'flex', gap:8, marginBottom:6 }}>
-        <div onClick={()=>{setCalOpen(p=>!p);setTimeOpen(false)}} style={{ flex:'1.2', background:calOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(calOpen||date?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:700, color:date?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+        <div onClick={()=>{setCalOpen(p=>!p);setTimeOpen(false)}} style={{ flex:'1.2', background:calOpen?'#1f4d3f14':'#f4f2ef', border:'1.5px solid '+(calOpen||date?'#1f4d3f':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:700, color:date?'#1f4d3f':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
           <i className="ti ti-calendar" style={{ fontSize:13 }} />
           <span style={{ flex:1 }}>{fmtD(date)}</span>
           <i className="ti ti-chevron-down" style={{ fontSize:10, transition:'.2s', transform:calOpen?'rotate(180deg)':'' }} />
         </div>
-        <div onClick={()=>{setTimeOpen(p=>!p);setCalOpen(false)}} style={{ flex:1, background:timeOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(timeOpen||time?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:12, fontWeight:700, color:time?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+        <div onClick={()=>{setTimeOpen(p=>!p);setCalOpen(false)}} style={{ flex:1, background:timeOpen?'#1f4d3f14':'#f4f2ef', border:'1.5px solid '+(timeOpen||time?'#1f4d3f':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:12, fontWeight:700, color:time?'#1f4d3f':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
           <i className="ti ti-clock" style={{ fontSize:13 }} />
           <span style={{ flex:1 }}>{fromT} – {toT}</span>
           <i className="ti ti-chevron-down" style={{ fontSize:10, transition:'.2s', transform:timeOpen?'rotate(180deg)':'' }} />
@@ -371,7 +371,7 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
               const ds=day.date.toISOString().slice(0,10)
               const isSel=ds===date,isSun=day.date.getDay()===0,isToday=ds===new Date().toISOString().slice(0,10)
               return <div key={i} onClick={()=>{onDateChange(ds);setCy(day.date.getFullYear());setCm(day.date.getMonth())}}
-                style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', fontSize:11, cursor:'pointer', margin:'0 auto', fontWeight:isSel?700:400, background:isSel?'#b8892a':'none', color:isSel?'#fff':!day.cur?'#aaa8a0':isSun?'#b91c1c':'#1c1a16', border:isToday&&!isSel?'1.5px solid #b8892a':'none' }}>{day.date.getDate()}</div>
+                style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', fontSize:11, cursor:'pointer', margin:'0 auto', fontWeight:isSel?700:400, background:isSel?'#1f4d3f':'none', color:isSel?'#fff':!day.cur?'#aaa8a0':isSun?'#b91c1c':'#1c1a16', border:isToday&&!isSel?'1.5px solid #1f4d3f':'none' }}>{day.date.getDate()}</div>
             })}
           </div>
           {date && <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8, paddingTop:8, borderTop:'0.5px solid #eeeae6' }}>
@@ -387,7 +387,7 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'#4a4540', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:7 }}>Von</div>
               <div style={{ maxHeight:180, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
-                {slots.map(t=><div key={t} onClick={()=>pickFrom(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===fromT?700:500, background:t===fromT?'#b8892a':'#f4f2ef', color:t===fromT?'#fff':'#1c1a16', border:'0.5px solid '+(t===fromT?'#b8892a':'#ddd9d2') }}>{t}</div>)}
+                {slots.map(t=><div key={t} onClick={()=>pickFrom(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===fromT?700:500, background:t===fromT?'#1f4d3f':'#f4f2ef', color:t===fromT?'#fff':'#1c1a16', border:'0.5px solid '+(t===fromT?'#1f4d3f':'#ddd9d2') }}>{t}</div>)}
               </div>
             </div>
             <div>
@@ -395,14 +395,14 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
               <div style={{ maxHeight:180, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
                 {slots.filter(t=>toMin(t)>toMin(fromT)).map(t=>{
                   const inRange=toMin(t)>toMin(fromT)&&toMin(t)<=toMin(toT)
-                  return <div key={t} onClick={()=>onTimeToChange(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===toT?700:500, background:t===toT?'#b8892a':inRange?'#b8892a18':'#f4f2ef', color:t===toT?'#fff':inRange?'#7a4a00':'#1c1a16', border:'0.5px solid '+(t===toT?'#b8892a':inRange?'#b8892a66':'#ddd9d2') }}>{t}</div>
+                  return <div key={t} onClick={()=>onTimeToChange(t)} style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===toT?700:500, background:t===toT?'#1f4d3f':inRange?'#1f4d3f18':'#f4f2ef', color:t===toT?'#fff':inRange?'#7a4a00':'#1c1a16', border:'0.5px solid '+(t===toT?'#1f4d3f':inRange?'#1f4d3f66':'#ddd9d2') }}>{t}</div>
                 })}
               </div>
             </div>
           </div>
           <div style={{ marginTop:10, paddingTop:8, borderTop:'0.5px solid #eeeae6', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:12, color:'#4a4540', fontWeight:600 }}>⏱ {durLabel} Aufnahmedauer</span>
-            <button type="button" onClick={()=>setTimeOpen(false)} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:6, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer' }}>OK</button>
+            <button type="button" onClick={()=>setTimeOpen(false)} style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:6, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer' }}>OK</button>
           </div>
         </div>
       )}
@@ -564,9 +564,9 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     if (last < text.length) parts.push({ type:'text', val: text.slice(last) })
     if (parts.length === 0) parts.push({ type:'text', val: text })
     return parts.map((pt, i) => {
-      if (pt.type === 'url') return <a key={i} href={pt.val} target="_blank" rel="noopener" style={{ color:'#b8892a', fontWeight:700, textDecoration:'none', wordBreak:'break-all', display:'inline-block', maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', verticalAlign:'bottom' }}>{pt.short}</a>
+      if (pt.type === 'url') return <a key={i} href={pt.val} target="_blank" rel="noopener" style={{ color:'#1f4d3f', fontWeight:700, textDecoration:'none', wordBreak:'break-all', display:'inline-block', maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', verticalAlign:'bottom' }}>{pt.short}</a>
       const sub = pt.val.split(/(@[A-Za-zÀ-ž0-9_.-]+)/g)
-      return sub.map((s, j) => s.startsWith('@') ? <span key={i+'-'+j} style={{ color:'#b8892a', fontWeight:700 }}>{s}</span> : s)
+      return sub.map((s, j) => s.startsWith('@') ? <span key={i+'-'+j} style={{ color:'#1f4d3f', fontWeight:700 }}>{s}</span> : s)
     })
   }
 
@@ -907,7 +907,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               const pf = { client_name: localCard.client_name || '', invoice_date: localCard.card_date || new Date().toISOString().slice(0, 10), items: [{ description: (line1 ? line1 + '\n' : '') + 'Immobilienfotografie + Postproduktion', qty: 1, unit_price: localCard.price || '', discount: '', vat_rate: 19 }] }
               try { localStorage.setItem('ip-invoice-prefill', JSON.stringify(pf)) } catch {}
               window.location.href = '/rechnungen/neu'
-            }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', background: '#fbf3e3', border: '1px solid #e7cf9e', borderRadius: 8, color: '#9a6a12', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', background: '#fbf3e3', border: '1px solid #e7cf9e', borderRadius: 8, color: '#163a2f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               🧾 Eigene Rechnung erstellen <span style={{ fontWeight: 400, fontSize: 10, color: '#b08a3a' }}>(Testphase)</span>
             </button>
           )}
@@ -1008,10 +1008,10 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
               onDragLeave={e => { e.preventDefault(); setDragOver(false) }}
               onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const files = Array.from(e.dataTransfer.files); if(files.length) files.forEach(uploadFile) }}
-              style={{ background: dragOver ? 'rgba(184,137,42,.08)' : '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: dragOver ? '1.5px dashed #b8892a' : '0.5px solid #e4e0d9', transition: 'all .15s', position: 'relative' }}>
+              style={{ background: dragOver ? 'rgba(184,137,42,.08)' : '#f4f2ef', borderRadius: 10, padding: '12px 14px', gridColumn: 'span 2', border: dragOver ? '1.5px dashed #1f4d3f' : '0.5px solid #e4e0d9', transition: 'all .15s', position: 'relative' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px' }}>Beschreibung</div>
-                {dragOver && <div style={{ fontSize: 10, fontWeight: 700, color: '#b8892a' }}>📎 Datei hierher ziehen</div>}
+                {dragOver && <div style={{ fontSize: 10, fontWeight: 700, color: '#1f4d3f' }}>📎 Datei hierher ziehen</div>}
               </div>
               {localCard.is_gcal && localCard.description?.includes('<') ? (
                 <div style={{ fontSize: 13, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word' }}
@@ -1028,7 +1028,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {teamMembers.map(s => { const h = avHover === 't' + s.id; return (
                 <div key={s.id} onMouseEnter={() => setAvHover('t' + s.id)} onMouseLeave={() => setAvHover(null)}
-                  style={{ display: 'flex', alignItems: 'center', background: '#f4f2ef', border: '0.5px solid #c9a05a', borderRadius: 20, padding: 3, paddingRight: h ? 10 : 3, maxWidth: h ? 200 : 30, overflow: 'hidden', transition: 'max-width .25s cubic-bezier(.34,1.2,.64,1), padding .25s', cursor: 'default' }}>
+                  style={{ display: 'flex', alignItems: 'center', background: '#f4f2ef', border: '0.5px solid #2e6b56', borderRadius: 20, padding: 3, paddingRight: h ? 10 : 3, maxWidth: h ? 200 : 30, overflow: 'hidden', transition: 'max-width .25s cubic-bezier(.34,1.2,.64,1), padding .25s', cursor: 'default' }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.color + '22', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
                     {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : s.init}
                   </div>
@@ -1092,18 +1092,18 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               onDragLeave={e => { e.stopPropagation(); setZipDragOver(false) }}
               onDrop={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if(f) uploadZipToDrive(f) }}
               onClick={e => { e.stopPropagation(); if(uploadProgress!==null) return; const inp=document.createElement('input'); inp.type='file'; inp.accept='.zip,application/zip'; inp.onchange=ev=>{ev.stopPropagation();uploadZipToDrive(ev.target.files[0])}; inp.click() }}
-              style={{ border: '1.5px dashed '+(zipDragOver?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'14px 12px', textAlign:'center', cursor: uploadProgress!==null?'default':'pointer', background: zipDragOver?'#b8892a0a':'#f9f8f6', transition:'all .15s' }}>
+              style={{ border: '1.5px dashed '+(zipDragOver?'#1f4d3f':'#ddd9d2'), borderRadius:8, padding:'14px 12px', textAlign:'center', cursor: uploadProgress!==null?'default':'pointer', background: zipDragOver?'#1f4d3f0a':'#f9f8f6', transition:'all .15s' }}>
               {uploadProgress === null ? (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
-                  <i className="ti ti-cloud-upload" style={{ fontSize:22, color:'#b8892a' }} />
-                  <span style={{ fontSize:12, color:'#8a8278' }}>ZIP hierher ziehen oder <span style={{ color:'#b8892a', fontWeight:700 }}>klicken</span></span>
+                  <i className="ti ti-cloud-upload" style={{ fontSize:22, color:'#1f4d3f' }} />
+                  <span style={{ fontSize:12, color:'#8a8278' }}>ZIP hierher ziehen oder <span style={{ color:'#1f4d3f', fontWeight:700 }}>klicken</span></span>
                 </div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:7 }}>
                   <div style={{ width:'100%', background:'#eeeae6', borderRadius:10, height:8 }}>
-                    <div style={{ width: uploadProgress+'%', background:'#b8892a', height:8, borderRadius:10, transition:'width .3s' }} />
+                    <div style={{ width: uploadProgress+'%', background:'#1f4d3f', height:8, borderRadius:10, transition:'width .3s' }} />
                   </div>
-                  <span style={{ fontSize:11, color:'#b8892a', fontWeight:700 }}>{uploadProgress < 100 ? uploadProgress+'% wird hochgeladen...' : '✓ Fertig! Link wird gespeichert...'}</span>
+                  <span style={{ fontSize:11, color:'#1f4d3f', fontWeight:700 }}>{uploadProgress < 100 ? uploadProgress+'% wird hochgeladen...' : '✓ Fertig! Link wird gespeichert...'}</span>
                 </div>
               )}
             </div>
@@ -1184,7 +1184,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
               <div onDragOver={e => { e.preventDefault(); setDragOver(true) }} onDragLeave={() => setDragOver(false)}
                 onDrop={e => { e.preventDefault(); setDragOver(false); Array.from(e.dataTransfer.files).forEach(uploadFile) }}
                 onClick={() => fileRef.current?.click()}
-                style={{ border: '1.5px dashed ' + (dragOver ? '#b8892a' : '#ccc8c0'), borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: dragOver ? '#b8892a' : '#8a8278', fontSize: 12, background: dragOver ? 'rgba(184,137,42,.05)' : 'none', transition: 'all .15s' }}>
+                style={{ border: '1.5px dashed ' + (dragOver ? '#1f4d3f' : '#ccc8c0'), borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: dragOver ? '#1f4d3f' : '#8a8278', fontSize: 12, background: dragOver ? 'rgba(184,137,42,.05)' : 'none', transition: 'all .15s' }}>
                 <i className="ti ti-upload" style={{ fontSize: 15 }} />
                 Datei hierher ziehen oder klicken
               </div>
@@ -1218,7 +1218,7 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
 
         {/* Footer */}
         <div style={{ padding: '10px 20px', borderTop: '0.5px solid #eeeae6', display: 'flex', gap: 8, alignItems: 'center', background: '#faf9f7', flexShrink: 0 }}>
-          <button onClick={() => onSend && onSend(card)} style={{ background: '#c9a05a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <button onClick={() => onSend && onSend(card)} style={{ background: '#2e6b56', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
             <i className="ti ti-send" style={{ fontSize: 13 }} /> Senden
           </button>
           <button onClick={async () => {

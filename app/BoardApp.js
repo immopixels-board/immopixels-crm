@@ -17,12 +17,12 @@ import { supabase } from '../lib/supabase'
 
 var CLAUDE_SVG = 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSJub25lIiBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9IjAgLS4wMSAzOS41IDM5LjUzIiB3aWR0aD0iMjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtNy43NSAyNi4yNyA3Ljc3LTQuMzYuMTMtLjM4LS4xMy0uMjFoLS4zOGwtMS4zLS4wOC00LjQ0LS4xMi0zLjg1LS4xNi0zLjczLS4yLS45NC0uMi0uODgtMS4xNi4wOS0uNTguNzktLjUzIDEuMTMuMSAyLjUuMTcgMy43NS4yNiAyLjcyLjE2IDQuMDMuNDJoLjY0bC4wOS0uMjYtLjIyLS4xNi0uMTctLjE2LTMuODgtMi42My00LjItMi43OC0yLjItMS42LTEuMTktLjgxLS42LS43Ni0uMjYtMS42NiAxLjA4LTEuMTkgMS40NS4xLjM3LjEgMS40NyAxLjEzIDMuMTQgMi40MyA0LjEgMy4wMi42LjUuMjQtLjE3LjAzLS4xMi0uMjctLjQ1LTIuMjMtNC4wMy0yLjM4LTQuMS0xLjA2LTEuNy0uMjgtMS4wMmMtLjEtLjQyLS4xNy0uNzctLjE3LTEuMmwxLjIzLTEuNjcuNjgtLjIyIDEuNjQuMjIuNjkuNiAxLjAyIDIuMzMgMS42NSAzLjY3IDIuNTYgNC45OS43NSAxLjQ4LjQgMS4zNy4xNS40MmguMjZ2LS4yNGwuMjEtMi44MS4zOS0zLjQ1LjM4LTQuNDQuMTMtMS4yNS42Mi0xLjUgMS4yMy0uODEuOTYuNDYuNzkgMS4xMy0uMTEuNzMtLjQ3IDMuMDUtLjkyIDQuNzgtLjYgMy4yaC4zNWwuNC0uNCAxLjYyLTIuMTUgMi43Mi0zLjQgMS4yLTEuMzUgMS40LTEuNDkuOS0uNzFoMS43bDEuMjUgMS44Ni0uNTYgMS45Mi0xLjc1IDIuMjItMS40NSAxLjg4LTIuMDggMi44LTEuMyAyLjI0LjEyLjE4LjMxLS4wMyA0LjctMSAyLjU0LS40NiAzLjAzLS41MiAxLjM3LjY0LjE1LjY1LS41NCAxLjMzLTMuMjQuOC0zLjguNzYtNS42NiAxLjM0LS4wNy4wNS4wOC4xIDIuNTUuMjQgMS4wOS4wNmgyLjY3bDQuOTcuMzcgMS4zLjg2Ljc4IDEuMDUtLjEzLjgtMiAxLjAyLTIuNy0uNjQtNi4zLTEuNS0yLjE2LS41NGgtLjN2LjE4bDEuOCAxLjc2IDMuMyAyLjk4IDQuMTMgMy44NC4yMS45NS0uNTMuNzUtLjU2LS4wOC0zLjYzLTIuNzMtMS40LTEuMjMtMy4xNy0yLjY3aC0uMjF2LjI4bC43MyAxLjA3IDMuODYgNS44LjIgMS43OC0uMjguNTgtMSAuMzUtMS4xLS4yLTIuMjYtMy4xNy0yLjMzLTMuNTctMS44OC0zLjItLjIzLjEzLTEuMTEgMTEuOTUtLjUyLjYxLTEuMi40Ni0xLS43Ni0uNTMtMS4yMy41My0yLjQzLjY0LTMuMTcuNTItMi41Mi40Ny0zLjEzLjI4LTEuMDQtLjAyLS4wNy0uMjMuMDMtMi4zNiAzLjI0LTMuNTkgNC44NS0yLjg0IDMuMDQtLjY4LjI3LTEuMTgtLjYxLjExLTEuMDkuNjYtLjk3IDMuOTMtNSAyLjM3LTMuMSAxLjUzLTEuNzktLjAxLS4yNmgtLjA5bC0xMC40NCA2Ljc4LTEuODYuMjQtLjgtLjc1LjEtMS4yMy4zOC0uNCAzLjE0LTIuMTZ6IiBmaWxsPSIjZDk3NzU3Ii8+PC9zdmc+'
 var LOGO = 'data:image/png;base64,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'
-var VER = 'v4.9.31'
+var VER = 'v4.9.32'
 
 
 
 var TYPES = {
-  foto:        { i:'',  l:'Foto',        c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' },
+  foto:        { i:'',  l:'Foto',        c:'#1f4d3f', bg:'#1f4d3f14', br:'#1f4d3f30' },
   'foto-reel': { i:'',  l:'Foto+Reel',   c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
   'foto-dron': { i:'',  l:'Foto+Drohne', c:'#a16207', bg:'#a1620712', br:'#a1620730' },
   dron:        { i:'',  l:'Drohne',      c:'#15803d', bg:'#15803d12', br:'#15803d30' },
@@ -42,15 +42,15 @@ function hexToGradient(hex) {
 function getTypes(photoCats) {
   const result = {}
   const src = (photoCats && photoCats.length) ? photoCats : [
-    { l:'Foto', c:'#b8892a' }, { l:'Foto+Reel', c:'#6d28d9' },
+    { l:'Foto', c:'#1f4d3f' }, { l:'Foto+Reel', c:'#6d28d9' },
     { l:'Foto+Drohne', c:'#a16207' }, { l:'Drohne', c:'#15803d' },
     { l:'Reel', c:'#6d28d9' }, { l:'360°', c:'#0891b2' }, { l:'Video', c:'#1d5ec7' },
   ]
   for (const cat of src) {
-    const obj = typeof cat === 'string' ? { l:cat, c:'#b8892a' } : cat
+    const obj = typeof cat === 'string' ? { l:cat, c:'#1f4d3f' } : cat
     const key = obj.l.toLowerCase().replace(/[^a-z0-9]/g,'')
     if (key && !result[key]) {
-      const c = obj.c || '#b8892a'
+      const c = obj.c || '#1f4d3f'
       result[key] = { i:'', l:obj.l, c, bg:c+'22', br:c+'55' }
     }
   }
@@ -58,7 +58,7 @@ function getTypes(photoCats) {
   // Kanonikus kombó-kulcsok biztosítása (GCal/booking importból jöhetnek),
   // hogy a kártya mindig kapjon színt/labelt és ne essen néma fallbackre.
   const COMBO = {
-    foto:['Foto','#b8892a'], reel:['Reel','#6d28d9'], drohne:['Drohne','#15803d'], '360':['360°','#0891b2'],
+    foto:['Foto','#1f4d3f'], reel:['Reel','#6d28d9'], drohne:['Drohne','#15803d'], '360':['360°','#0891b2'],
     fotoreel:['Foto+Reel','#6d28d9'], fotodrohne:['Foto+Drohne','#a16207'], foto360:['Foto+360°','#0891b2'],
     fotoreeldrohne:['Foto+Reel+Drohne','#7c3aed'], fotoreel360:['Foto+Reel+360°','#7c3aed'],
     fotodrohne360:['Foto+Drohne+360°','#a16207'], fotoreeldrohne360:['Foto+Reel+Drohne+360°','#7c3aed'],
@@ -120,13 +120,13 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
     <div>
       <div style={{ display:'flex', gap:8, marginBottom:6 }}>
         <div onClick={()=>{setCalOpen(p=>!p);setTimeOpen(false)}}
-          style={{ flex:'1.2', background:calOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(calOpen||date?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:700, color:date?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:5, userSelect:'none' }}>
+          style={{ flex:'1.2', background:calOpen?'#1f4d3f14':'#f4f2ef', border:'1.5px solid '+(calOpen||date?'#1f4d3f':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:13, fontWeight:700, color:date?'#1f4d3f':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:5, userSelect:'none' }}>
           <i className="ti ti-calendar" style={{ fontSize:13 }} />
           <span>{fmtDateDisp(date)}</span>
           <i className="ti ti-chevron-down" style={{ fontSize:10, marginLeft:'auto', transition:'.2s', transform:calOpen?'rotate(180deg)':'' }} />
         </div>
         <div onClick={()=>{setTimeOpen(p=>!p);setCalOpen(false)}}
-          style={{ flex:1, background:timeOpen?'#b8892a14':'#f4f2ef', border:'1.5px solid '+(timeOpen||time?'#b8892a':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:12, fontWeight:700, color:time?'#b8892a':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:4, userSelect:'none' }}>
+          style={{ flex:1, background:timeOpen?'#1f4d3f14':'#f4f2ef', border:'1.5px solid '+(timeOpen||time?'#1f4d3f':'#ddd9d2'), borderRadius:8, padding:'7px 10px', fontSize:12, fontWeight:700, color:time?'#1f4d3f':'#4a4540', cursor:'pointer', display:'flex', alignItems:'center', gap:4, userSelect:'none' }}>
           <i className="ti ti-clock" style={{ fontSize:13 }} />
           <span>{fromT} – {toT}</span>
           <i className="ti ti-chevron-down" style={{ fontSize:10, marginLeft:'auto', transition:'.2s', transform:timeOpen?'rotate(180deg)':'' }} />
@@ -150,7 +150,7 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
               const isSel=ds===date, isSun=day.date.getDay()===0
               const today=new Date().toISOString().slice(0,10)
               return <div key={i} onClick={()=>{onDateChange(ds);setCy(day.date.getFullYear());setCm(day.date.getMonth())}}
-                style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', fontSize:11, cursor:'pointer', margin:'0 auto', fontWeight:isSel?700:400, background:isSel?'#b8892a':'none', color:isSel?'#fff':!day.cur?'#aaa8a0':isSun?'#b91c1c':'#1c1a16', border:ds===today&&!isSel?'1.5px solid #b8892a':'none' }}>{day.date.getDate()}</div>
+                style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', fontSize:11, cursor:'pointer', margin:'0 auto', fontWeight:isSel?700:400, background:isSel?'#1f4d3f':'none', color:isSel?'#fff':!day.cur?'#aaa8a0':isSun?'#b91c1c':'#1c1a16', border:ds===today&&!isSel?'1.5px solid #1f4d3f':'none' }}>{day.date.getDate()}</div>
             })}
           </div>
           {date && <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8, paddingTop:8, borderTop:'0.5px solid #eeeae6' }}>
@@ -166,12 +166,12 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'#4a4540', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:7, display:'flex', alignItems:'center', gap:4 }}>
-                <i className="ti ti-player-play" style={{ fontSize:10, color:'#b8892a' }} /> Von
+                <i className="ti ti-player-play" style={{ fontSize:10, color:'#1f4d3f' }} /> Von
               </div>
               <div style={{ maxHeight:200, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
                 {timeSlots.map(t=>(
                   <div key={t} onClick={()=>pickFrom(t)}
-                    style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===fromT?700:500, background:t===fromT?'#b8892a':'#f4f2ef', color:t===fromT?'#fff':'#1c1a16', border:'0.5px solid '+(t===fromT?'#b8892a':'#ddd9d2') }}>
+                    style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===fromT?700:500, background:t===fromT?'#1f4d3f':'#f4f2ef', color:t===fromT?'#fff':'#1c1a16', border:'0.5px solid '+(t===fromT?'#1f4d3f':'#ddd9d2') }}>
                     {t}
                   </div>
                 ))}
@@ -179,13 +179,13 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
             </div>
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'#4a4540', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:7, display:'flex', alignItems:'center', gap:4 }}>
-                <i className="ti ti-player-stop" style={{ fontSize:10, color:'#b8892a' }} /> Bis
+                <i className="ti ti-player-stop" style={{ fontSize:10, color:'#1f4d3f' }} /> Bis
               </div>
               <div style={{ maxHeight:200, overflowY:'auto', display:'flex', flexDirection:'column', gap:3, scrollbarWidth:'none' }}>
                 {timeSlots.filter(t=>toMin(t)>toMin(fromT)).map(t=>{
                   const inRange=toMin(t)>toMin(fromT)&&toMin(t)<=toMin(toT)
                   return <div key={t} onClick={()=>onTimeToChange(t)}
-                    style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===toT?700:500, background:t===toT?'#b8892a':inRange?'#b8892a18':'#f4f2ef', color:t===toT?'#fff':inRange?'#7a4a00':'#1c1a16', border:'0.5px solid '+(t===toT?'#b8892a':inRange?'#b8892a66':'#ddd9d2') }}>
+                    style={{ padding:'7px 6px', textAlign:'center', borderRadius:6, fontSize:12, cursor:'pointer', fontWeight:t===toT?700:500, background:t===toT?'#1f4d3f':inRange?'#1f4d3f18':'#f4f2ef', color:t===toT?'#fff':inRange?'#7a4a00':'#1c1a16', border:'0.5px solid '+(t===toT?'#1f4d3f':inRange?'#1f4d3f66':'#ddd9d2') }}>
                     {t}
                   </div>
                 })}
@@ -194,7 +194,7 @@ function DateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, onTime
           </div>
           <div style={{ marginTop:10, paddingTop:8, borderTop:'0.5px solid #eeeae6', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:12, color:'#4a4540', fontWeight:600 }}>⏱ {durLabel} Aufnahmedauer</span>
-            <button type="button" onClick={()=>setTimeOpen(false)} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:6, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer' }}>OK</button>
+            <button type="button" onClick={()=>setTimeOpen(false)} style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:6, padding:'5px 14px', fontSize:12, fontWeight:700, cursor:'pointer' }}>OK</button>
           </div>
         </div>
       )}
@@ -277,7 +277,7 @@ function MentionDropdown({ query, staff, onSelect, style }) {
   return (
     <div style={{ position:'absolute', zIndex:9999, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,.12)', minWidth:160, overflow:'hidden', ...style }}>
       {showAll && (
-        <div onMouseDown={e=>{ e.preventDefault(); onSelect({ id:'__all__', name:'all', init:'ALL', color:'#b8892a', avatar_url:null }) }}
+        <div onMouseDown={e=>{ e.preventDefault(); onSelect({ id:'__all__', name:'all', init:'ALL', color:'#1f4d3f', avatar_url:null }) }}
           style={{ padding:'7px 12px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:8, color:'var(--gold)' }}
           onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
           onMouseLeave={e=>e.currentTarget.style.background='none'}>
@@ -474,7 +474,7 @@ function NotificationDropdown({ notifications, onRead, onReadAll, staff }) {
           return (
             <div key={n.id} onClick={() => onRead(n)} style={{ padding:'10px 14px', display:'flex', gap:9, alignItems:'flex-start', borderBottom:'0.5px solid var(--border)', cursor:'pointer', background: n.read?'none':'rgba(184,137,42,.04)', transition:'background .12s' }}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e=>e.currentTarget.style.background=n.read?'none':'rgba(184,137,42,.04)'}>
-              <div style={{ width:28, height:28, borderRadius:'50%', background:(s?.color||'#b8892a')+'22', color:s?.color||'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
+              <div style={{ width:28, height:28, borderRadius:'50%', background:(s?.color||'#1f4d3f')+'22', color:s?.color||'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
                 {s?.avatar_url ? <img src={s.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : (s?.init||'?')}
               </div>
               <div style={{ flex:1 }}>
@@ -622,7 +622,7 @@ export default function Home() {
 
   const noteTimerRef = useRef({})
   const [photoCats, setPhotoCats] = useState([
-    { l:'Foto', c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' },
+    { l:'Foto', c:'#1f4d3f', bg:'#1f4d3f14', br:'#1f4d3f30' },
     { l:'Foto+Reel', c:'#6d28d9', bg:'#6d28d912', br:'#6d28d930' },
     { l:'Foto+Drohne', c:'#a16207', bg:'#a1620712', br:'#a1620730' },
     { l:'Drohne', c:'#15803d', bg:'#15803d12', br:'#15803d30' },
@@ -1200,7 +1200,7 @@ export default function Home() {
     if (s.photo_categories) {
       // backward compat: string[] → object[]
       const cats = s.photo_categories.map(c => typeof c === 'string'
-        ? { l:c, c:'#b8892a', bg:'#b8892a14', br:'#b8892a30' }
+        ? { l:c, c:'#1f4d3f', bg:'#1f4d3f14', br:'#1f4d3f30' }
         : c)
       setPhotoCats(cats)
     }
@@ -1296,7 +1296,7 @@ export default function Home() {
 
     // Flying clone
     const fly = document.createElement('div')
-    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:' + r.width + 'px;left:' + (clientX - dragOffRef.current.x) + 'px;top:' + (clientY - dragOffRef.current.y) + 'px;background:#fff;border:1px solid #b8892a;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700;color:#1c1a16;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:transform .06s linear;will-change:transform;opacity:.95'
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:' + r.width + 'px;left:' + (clientX - dragOffRef.current.x) + 'px;top:' + (clientY - dragOffRef.current.y) + 'px;background:#fff;border:1px solid #1f4d3f;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:700;color:#1c1a16;box-shadow:0 8px 24px rgba(0,0,0,.18);transition:transform .06s linear;will-change:transform;opacity:.95'
     fly.innerHTML = cardEl.innerHTML
     document.body.appendChild(fly)
     dragFlyRef.current = fly
@@ -1412,7 +1412,7 @@ export default function Home() {
     document.body.style.webkitUserSelect = 'none'
 
     const fly = document.createElement('div')
-    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #1f4d3f;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
     fly.textContent = col.title
     document.body.appendChild(fly)
     colDragFlyRef.current = fly
@@ -1420,7 +1420,7 @@ export default function Home() {
     // Create DOM placeholder
     const colPh = document.createElement('div')
     colPh.id = 'col-drag-ph'
-    colPh.style.cssText = 'width:' + r.width + 'px;min-width:' + r.width + 'px;height:' + r.height + 'px;border-radius:11px;background:rgba(184,137,42,.08);border:1.5px dashed #b8892a;flex-shrink:0;pointer-events:none'
+    colPh.style.cssText = 'width:' + r.width + 'px;min-width:' + r.width + 'px;height:' + r.height + 'px;border-radius:11px;background:rgba(184,137,42,.08);border:1.5px dashed #1f4d3f;flex-shrink:0;pointer-events:none'
     colEl.insertAdjacentElement('afterend', colPh)
 
     colDragOverIndexRef.current = getColDropIndex(clientX)
@@ -2039,14 +2039,14 @@ export default function Home() {
 
     // Placeholder
     const ph = document.createElement('div')
-    ph.style.cssText = 'width:' + r.width + 'px;min-width:' + r.width + 'px;height:' + r.height + 'px;border-radius:11px;background:rgba(184,137,42,.08);border:1.5px dashed #b8892a;flex-shrink:0;transition:opacity .2s'
+    ph.style.cssText = 'width:' + r.width + 'px;min-width:' + r.width + 'px;height:' + r.height + 'px;border-radius:11px;background:rgba(184,137,42,.08);border:1.5px dashed #1f4d3f;flex-shrink:0;transition:opacity .2s'
     ph.classList.add('col-drag-ph')
     colEl.parentNode.insertBefore(ph, colEl.nextSibling)
     colDragPhRef.current = ph
 
     // Flying clone — just header
     const fly = document.createElement('div')
-    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #b8892a;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
+    fly.style.cssText = 'position:fixed;pointer-events:none;z-index:9998;width:' + r.width + 'px;left:' + (clientX - colDragOffRef.current.x) + 'px;top:' + r.top + 'px;background:#fff;border:1px solid #1f4d3f;border-radius:11px;padding:10px 12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-size:13px;font-weight:700;color:#1c1a16;transition:transform .06s linear;opacity:.95'
     fly.textContent = col.title
     document.body.appendChild(fly)
     colDragFlyRef.current = fly
@@ -2427,7 +2427,7 @@ export default function Home() {
 
   async function renameCol(colId, title) {
     const col = cols.find(c => c.id === colId)
-    setEditColModal({ id: colId, title, dot_color: col?.dot_color || '#b8892a' })
+    setEditColModal({ id: colId, title, dot_color: col?.dot_color || '#1f4d3f' })
   }
 
   async function deleteColConfirmed(colId) {
@@ -2500,7 +2500,7 @@ export default function Home() {
       email: fd.get('email') || '',
       tel: fd.get('tel') || '',
       cal_id: fd.get('cal') || '',
-      color: editStaff?._color || editStaff?.color || '#b8892a',
+      color: editStaff?._color || editStaff?.color || '#1f4d3f',
       avatar_url: staffAvatarData || editStaff?.avatar_url || null,
       address: fd.get('address') || null,
       birthday: fd.get('birthday') || null,
@@ -2990,7 +2990,7 @@ export default function Home() {
           {me?.role_level === 'admin' && (
             <a className="mobile-hide" href="/stats" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', textDecoration:'none' }} title='Statistik'><i className='ti ti-chart-bar' style={{fontSize:14}}></i></a>
           )}
-          {process.env.NEXT_PUBLIC_IS_DEMO === '1' && <div className="mobile-hide" style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#b8892a', borderRadius: 5, padding: '3px 8px', letterSpacing: '.5px' }}>DEMO</div>}
+          {process.env.NEXT_PUBLIC_IS_DEMO === '1' && <div className="mobile-hide" style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1f4d3f', borderRadius: 5, padding: '3px 8px', letterSpacing: '.5px' }}>DEMO</div>}
           <div className="mobile-hide" style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 7px', fontFamily: 'monospace' }}>{version}</div>
 
           <button className="mobile-only" onClick={()=>setChatOpen(p=>!p)} style={{ display:'none', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:6, color:'var(--t3)', cursor:'pointer', position:'relative' }}>
@@ -3017,7 +3017,7 @@ export default function Home() {
               )}
             </div>
           <div style={{ position: 'relative' }}>
-            <div onClick={e => { e.stopPropagation(); setShowProfile(p => !p) }} style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#d4a845,#8a5e20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer', border: '2px solid var(--border)' }}>
+            <div onClick={e => { e.stopPropagation(); setShowProfile(p => !p) }} style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg,#2e6b56,#8a5e20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer', border: '2px solid var(--border)' }}>
               {me?.avatar_url
                 ? <img src={me.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <span>{me?.init || 'CD'}</span>}
@@ -3026,7 +3026,7 @@ export default function Home() {
               <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', right: 16, top: 58, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 11, width: 248, boxShadow: '0 8px 32px rgba(0,0,0,.15)', zIndex: 501, overflow:'hidden' }}>
                 {/* Header */}
                 <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
-                  <div style={{ width:40, height:40, borderRadius:'50%', overflow:'hidden', background:(me?.color||'#b8892a')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:me?.color||'#b8892a', flexShrink:0, border:'2px solid '+(me?.color||'#b8892a'), position:'relative' }}>
+                  <div style={{ width:40, height:40, borderRadius:'50%', overflow:'hidden', background:(me?.color||'#1f4d3f')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:me?.color||'#1f4d3f', flexShrink:0, border:'2px solid '+(me?.color||'#1f4d3f'), position:'relative' }}>
                     {me?.avatar_url ? <img src={me.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <span>{me?.init||'?'}</span>}
                     <div style={{ position:'absolute', bottom:-1, right:-1, width:9, height:9, borderRadius:'50%', background:activeSession?'#15803d':'#8a8278', border:'1.5px solid var(--bg2)' }} />
                   </div>
@@ -3042,7 +3042,7 @@ export default function Home() {
                     <div>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
                         <span style={{ fontSize:11, color:'var(--t2)' }}>Arbeitszeit</span>
-                        <span style={{ fontSize:13, fontWeight:700, color:'#b8892a' }}>{getSessionDuration(activeSession)}</span>
+                        <span style={{ fontSize:13, fontWeight:700, color:'#1f4d3f' }}>{getSessionDuration(activeSession)}</span>
                       </div>
                       <button onClick={()=>{ const n=prompt('Notiz (optional):',''); doCheckOut(n); setShowProfile(false) }}
                         style={{ width:'100%', background:'#b91c1c', color:'#fff', border:'none', borderRadius:7, padding:'8px', fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
@@ -3116,7 +3116,7 @@ export default function Home() {
 
       {/* ── BOARD ── */}
       {isDemo && (
-        <div style={{ background:'#b8892a', color:'#fff', textAlign:'center', fontSize:12, fontWeight:700, padding:'6px', letterSpacing:'.3px', zIndex:999, flexShrink:0 }}>
+        <div style={{ background:'#1f4d3f', color:'#fff', textAlign:'center', fontSize:12, fontWeight:700, padding:'6px', letterSpacing:'.3px', zIndex:999, flexShrink:0 }}>
           Demo-Modus — Nur Ansicht, keine Änderungen möglich
         </div>
       )}
@@ -3207,7 +3207,7 @@ export default function Home() {
                       </div>
                     ) : (
                       <>
-                        <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: colWidgetHeader?hexToGradient(col.dot_color||'#b8892a'):'none', borderRadius: colWidgetHeader?'10px 10px 0 0':0 }}>
+                        <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: colWidgetHeader?hexToGradient(col.dot_color||'#1f4d3f'):'none', borderRadius: colWidgetHeader?'10px 10px 0 0':0 }}>
                           <div
                             onMouseDown={e => {
                               e.preventDefault()
@@ -3238,7 +3238,7 @@ export default function Home() {
                                     const active = (colSort[col.id] || '') === mode
                                     return (
                                       <div key={mode||'std'} onClick={() => { setColSortFor(col.id, mode); setColSortMenu(null) }}
-                                        style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 9px', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight: active?700:500, color: active?'#b8892a':'var(--t1)', background: active?'#b8892a14':'transparent' }}>
+                                        style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 9px', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight: active?700:500, color: active?'#1f4d3f':'var(--t1)', background: active?'#1f4d3f14':'transparent' }}>
                                         <i className={'ti '+ic} style={{ fontSize:14 }}></i><span style={{ flex:1 }}>{label}</span>{active && <i className="ti ti-check" style={{ fontSize:13 }}></i>}
                                       </div>
                                     )
@@ -3277,7 +3277,7 @@ export default function Home() {
                             let inserted = false
                             ccVisible.forEach((card, i) => {
                               if (isDragCol && !inserted && i === dragIdx) {
-                                items.push(<div key="ph" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #b8892a', flexShrink: 0, transition: 'height .2s' }} />)
+                                items.push(<div key="ph" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #1f4d3f', flexShrink: 0, transition: 'height .2s' }} />)
                                 inserted = true
                               }
                               if (dragging && card.id === dragging.id) return
@@ -3315,7 +3315,7 @@ export default function Home() {
                               )
                             })
                             if (isDragCol && !inserted) {
-                              items.push(<div key="ph-end" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #b8892a', flexShrink: 0 }} />)
+                              items.push(<div key="ph-end" style={{ height: 52, borderRadius: 9, background: 'rgba(184,137,42,.1)', border: '1.5px dashed #1f4d3f', flexShrink: 0 }} />)
                             }
                             if (ccMore) {
                               items.push(
@@ -3399,7 +3399,7 @@ export default function Home() {
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
               {cards.filter(c => c.card_date === new Date().toISOString().slice(0, 10)).map(card => {
-                const t = findType(getTypes(photoCats), card.card_type) || { i:'', l:'Foto', c:'#b8892a', bg:'#b8892a22', br:'#b8892a55' }
+                const t = findType(getTypes(photoCats), card.card_type) || { i:'', l:'Foto', c:'#1f4d3f', bg:'#1f4d3f22', br:'#1f4d3f55' }
                 return (
                   <div key={card.id} onClick={() => setActiveCard(card)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderLeft: '3px solid ' + t.c, borderRadius: 7, padding: '8px 9px', marginBottom: 6, cursor: 'pointer', fontSize: 11 }}>
                     <div style={{ fontWeight: 700, marginBottom: 2 }}>{card.title}</div>
@@ -3864,7 +3864,7 @@ export default function Home() {
         if (w.type === 'makler' && me?.role_level !== 'admin') return null
         const ICONS = { weather:'🌤️', todo:'✅', nexttermin:'📅', stats:'📊', makler:'📋' }
         const TITLES = { weather:'Wetter', todo:'To Do', nexttermin:'Nächster Termin', stats:'Statistik', makler:'Makler / Monat' }
-        const HEADGRAD = w.type==='weather'?'linear-gradient(135deg,#9fd5df,#7BBFCB)':w.type==='todo'?'linear-gradient(135deg,#dcc088,#C9A96E)':w.type==='nexttermin'?'linear-gradient(135deg,#b8cca8,#9CAF88)':w.type==='stats'?'linear-gradient(135deg,#ffd4b0,#FFBE98)':w.type==='makler'?'linear-gradient(135deg,#c9a96e,#b8892a)':'linear-gradient(135deg,#c49a75,#A67B5B)'
+        const HEADGRAD = w.type==='weather'?'linear-gradient(135deg,#9fd5df,#7BBFCB)':w.type==='todo'?'linear-gradient(135deg,#dcc088,#C9A96E)':w.type==='nexttermin'?'linear-gradient(135deg,#b8cca8,#9CAF88)':w.type==='stats'?'linear-gradient(135deg,#ffd4b0,#FFBE98)':w.type==='makler'?'linear-gradient(135deg,#c9a96e,#1f4d3f)':'linear-gradient(135deg,#c49a75,#A67B5B)'
         const headBg = w.headerColor || HEADGRAD
         const headFg = w.headerColor ? '#fff' : (w.type==='stats'?'#7a3a10':'#fff')
         return (
@@ -3893,7 +3893,7 @@ export default function Home() {
               </button>
               {colorPickerWidget===w.id && (
                 <div onMouseDown={e=>e.stopPropagation()} style={{ position:'absolute', top:36, right:6, zIndex:300, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:8, boxShadow:'var(--sh2)', display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6, width:158 }}>
-                  {['#b8892a','#7BBFCB','#9CAF88','#FFBE98','#A67B5B','#6d28d9','#d4537e','#378add','#e24b4a','#5f5e5a'].map(col=>(
+                  {['#1f4d3f','#7BBFCB','#9CAF88','#FFBE98','#A67B5B','#6d28d9','#d4537e','#378add','#e24b4a','#5f5e5a'].map(col=>(
                     <button key={col} onClick={()=>{ saveWidgets(widgets.map(ww=>ww.id===w.id?{...ww,headerColor:col}:ww)); setColorPickerWidget(null) }} style={{ width:22, height:22, borderRadius:6, background:col, border: w.headerColor===col?'2px solid var(--t1)':'1px solid rgba(0,0,0,.12)', cursor:'pointer' }} />
                   ))}
                   <button onClick={()=>{ saveWidgets(widgets.map(ww=>ww.id===w.id?{...ww,headerColor:null}:ww)); setColorPickerWidget(null) }} style={{ gridColumn:'1/-1', fontSize:11, padding:'4px', borderRadius:6, border:'0.5px solid var(--border)', background:'var(--bg3)', cursor:'pointer', color:'var(--t2)' }}>Standard</button>
@@ -3981,7 +3981,7 @@ export default function Home() {
                     />
                     <button onClick={() => { if(todoInput.trim()){saveTodos([...todoItems,{text:todoInput.trim(),done:false}]);setTodoInput('')} }}
                       style={{ width:30, height:30, background:'#C9A96E', color:'#fff', border:'none', borderRadius:7, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s' }}
-                      onMouseEnter={e=>{e.currentTarget.style.background='#b8892a';e.currentTarget.style.transform='scale(1.05)'}}
+                      onMouseEnter={e=>{e.currentTarget.style.background='#1f4d3f';e.currentTarget.style.transform='scale(1.05)'}}
                       onMouseLeave={e=>{e.currentTarget.style.background='#C9A96E';e.currentTarget.style.transform='scale(1)'}}>
                       <i className="ti ti-plus" style={{ fontSize:14 }} />
                     </button>
@@ -4146,13 +4146,13 @@ export default function Home() {
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:8 }}>Farbe</label>
               <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-                {['#b8892a','#e24b4a','#15803d','#1d5ec7','#7c3aed','#db2777','#0891b2','#ea580c','#4b5563'].map(col=>(
+                {['#1f4d3f','#e24b4a','#15803d','#1d5ec7','#7c3aed','#db2777','#0891b2','#ea580c','#4b5563'].map(col=>(
                   <div key={col} onClick={()=>setEditColModal(p=>({...p,dot_color:col}))}
                     style={{ width:22, height:22, borderRadius:'50%', background:col, cursor:'pointer', outline: editColModal.dot_color===col?'3px solid var(--t1)':'none', outlineOffset:2, transition:'transform .15s' }}
                     onMouseEnter={e=>e.currentTarget.style.transform='scale(1.2)'}
                     onMouseLeave={e=>e.currentTarget.style.transform='none'} />
                 ))}
-                <input type="color" value={editColModal.dot_color||'#b8892a'} onChange={e=>setEditColModal(p=>({...p,dot_color:e.target.value}))}
+                <input type="color" value={editColModal.dot_color||'#1f4d3f'} onChange={e=>setEditColModal(p=>({...p,dot_color:e.target.value}))}
                   style={{ width:32, height:28, border:'none', borderRadius:6, cursor:'pointer', padding:2 }} />
               </div>
             </div>
@@ -4161,7 +4161,7 @@ export default function Home() {
               <button onClick={async()=>{
                 await supabase.from('columns').update({ title: editColModal.title, dot_color: editColModal.dot_color }).eq('id', editColModal.id)
                 setEditColModal(null); loadCols()
-              }} style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:700, cursor:'pointer' }}>Speichern</button>
+              }} style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:700, cursor:'pointer' }}>Speichern</button>
             </div>
           </div>
         </div>
@@ -4181,7 +4181,7 @@ export default function Home() {
                 {t.label}
               </a>
             : <div key={t.id} onClick={()=>setTab(t.id)}
-                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, fontSize:9, color: tab===t.id?'#b8892a':'var(--t3)', padding:'6px 0', flex:1, cursor:'pointer' }}>
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, fontSize:9, color: tab===t.id?'#1f4d3f':'var(--t3)', padding:'6px 0', flex:1, cursor:'pointer' }}>
                 <i className={'ti '+t.icon} style={{ fontSize:20 }} />
                 {t.label}
               </div>
@@ -4199,7 +4199,7 @@ export default function Home() {
         <div style={{ position:'fixed', inset:0, background:'rgba(28,26,22,.6)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={()=>setGcalPickerOpen(false)}>
           <div style={{ background:'var(--bg2)', borderRadius:14, width:520, maxWidth:'95vw', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,.2)' }} onClick={e=>e.stopPropagation()}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-              <i className="ti ti-brand-google" style={{ fontSize:16, color:'#b8892a' }} />
+              <i className="ti ti-brand-google" style={{ fontSize:16, color:'#1f4d3f' }} />
               <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Karte aus Google Kalender</span>
               <button onClick={()=>setGcalPickerOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--t3)', fontSize:18 }}>×</button>
             </div>
@@ -4211,7 +4211,7 @@ export default function Home() {
                   Keine Termine gefunden
                   <div style={{ marginTop:12 }}>
                     <button onClick={()=>{ setGcalPickerOpen(false); setTab('gcal') }}
-                      style={{ background:'#b8892a', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+                      style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
                       <i className="ti ti-brand-google" style={{fontSize:13}} /> Mit Google verbinden
                     </button>
                   </div>
@@ -4228,7 +4228,7 @@ export default function Home() {
                   </div>
                   {ev.isDup
                     ? <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg4)', borderRadius:4, padding:'2px 7px' }}>Bereits erstellt</span>
-                    : <span style={{ fontSize:10, color:'#b8892a', background:'#b8892a14', border:'0.5px solid #b8892a44', borderRadius:4, padding:'2px 7px' }}>+ Karte</span>
+                    : <span style={{ fontSize:10, color:'#1f4d3f', background:'#1f4d3f14', border:'0.5px solid #1f4d3f44', borderRadius:4, padding:'2px 7px' }}>+ Karte</span>
                   }
                 </div>
               ))}
@@ -4860,7 +4860,7 @@ export default function Home() {
               </div>
               <div style={{ textAlign: 'center', marginBottom: 14 }}>
                 <label style={{ cursor: 'pointer' }}>
-                  <div style={{ width: 72, height: 72, borderRadius: '50%', margin: '0 auto 6px', background: (editStaff?._color||editStaff?.color||'#b8892a')+'22', border: '4px solid '+(editStaff?._color||editStaff?.color||'#b8892a'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: 20, fontWeight: 700, color: editStaff?._color||editStaff?.color||'var(--t3)', transition:'border-color .2s,background .2s' }}>
+                  <div style={{ width: 72, height: 72, borderRadius: '50%', margin: '0 auto 6px', background: (editStaff?._color||editStaff?.color||'#1f4d3f')+'22', border: '4px solid '+(editStaff?._color||editStaff?.color||'#1f4d3f'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontSize: 20, fontWeight: 700, color: editStaff?._color||editStaff?.color||'var(--t3)', transition:'border-color .2s,background .2s' }}>
                     {staffAvatarData ? <img src={staffAvatarData} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : editStaff?.avatar_url ? <img src={editStaff.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (editStaff?.init || '📷')}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--t3)' }}>Profilbild</div>
@@ -4919,7 +4919,7 @@ export default function Home() {
                               const next = e.target.checked ? [...new Set([...current, b.id])] : current.filter(x=>x!==b.id)
                               setEditStaff({ ...editStaff, _allowed_boards: next })
                             }} />
-                            <span style={{ display:'inline-block', width:8, height:8, borderRadius:'50%', background:b.color||'#b8892a' }} />
+                            <span style={{ display:'inline-block', width:8, height:8, borderRadius:'50%', background:b.color||'#1f4d3f' }} />
                             {b.name}
                           </label>
                         )
@@ -4954,13 +4954,13 @@ export default function Home() {
                 <label style={LS}>Farbe</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 5 }}>
                   {COLORS.map(col => (
-                    <div key={col} onClick={() => setEditStaff(s => ({ ...s, _color: col }))} style={{ width: 20, height: 20, borderRadius: '50%', background: col, cursor: 'pointer', outline: (editStaff?._color || editStaff?.color || '#b8892a') === col ? '3px solid var(--t1)' : 'none', outlineOffset: 2 }} />
+                    <div key={col} onClick={() => setEditStaff(s => ({ ...s, _color: col }))} style={{ width: 20, height: 20, borderRadius: '50%', background: col, cursor: 'pointer', outline: (editStaff?._color || editStaff?.color || '#1f4d3f') === col ? '3px solid var(--t1)' : 'none', outlineOffset: 2 }} />
                   ))}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                   <label style={{ fontSize: 11, color: 'var(--t3)' }}>Egyedi szín:</label>
-                  <input type="color" value={editStaff?._color || editStaff?.color || '#b8892a'} onChange={e => setEditStaff(s => ({ ...s, _color: e.target.value }))} style={{ width: 32, height: 28, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
-                  <span style={{ fontSize: 11, color: 'var(--t3)', fontFamily: 'monospace' }}>{editStaff?._color || editStaff?.color || '#b8892a'}</span>
+                  <input type="color" value={editStaff?._color || editStaff?.color || '#1f4d3f'} onChange={e => setEditStaff(s => ({ ...s, _color: e.target.value }))} style={{ width: 32, height: 28, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+                  <span style={{ fontSize: 11, color: 'var(--t3)', fontFamily: 'monospace' }}>{editStaff?._color || editStaff?.color || '#1f4d3f'}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 7, justifyContent: 'flex-end' }}>
@@ -5122,7 +5122,7 @@ export default function Home() {
 function StaffAv({ id, size = 20, staff = [], fontSize = 14 }) {
   const s = staff?.find(x => x.id === id) || {}
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: (s.color||'#b8892a') + '22', color: s.color||'#b8892a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: size < 22 ? 7 : 9, fontWeight: 700, border: '2px solid var(--bg2)', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: (s.color||'#1f4d3f') + '22', color: s.color||'#1f4d3f', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: size < 22 ? 7 : 9, fontWeight: 700, border: '2px solid var(--bg2)', overflow: 'hidden', flexShrink: 0 }}>
       {s.avatar_url ? <img src={s.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (s.init || '?')}
     </div>
   )

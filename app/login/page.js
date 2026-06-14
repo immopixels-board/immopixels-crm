@@ -56,17 +56,17 @@ export default function Login() {
             <input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}
               placeholder="E-Mail-Adresse"
               style={{ width:'100%', background:'#f4f2ef', border:'1.5px solid #ddd9d2', borderRadius:8, padding:'10px 13px', fontSize:14, color:'#1c1a16', outline:'none', fontFamily:'Arial', boxSizing:'border-box' }}
-              onFocus={e=>e.target.style.borderColor='#b8892a'} onBlur={e=>e.target.style.borderColor='#ddd9d2'} />
+              onFocus={e=>e.target.style.borderColor='#1f4d3f'} onBlur={e=>e.target.style.borderColor='#ddd9d2'} />
           </div>
           <div style={{ marginBottom:22 }}>
             <label style={{ fontSize:11, fontWeight:700, color:'#8a8278', textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:5 }}>Passwort</label>
             <input type="password" required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}
               placeholder="••••••••"
               style={{ width:'100%', background:'#f4f2ef', border:'1.5px solid #ddd9d2', borderRadius:8, padding:'10px 13px', fontSize:14, color:'#1c1a16', outline:'none', fontFamily:'Arial', boxSizing:'border-box' }}
-              onFocus={e=>e.target.style.borderColor='#b8892a'} onBlur={e=>e.target.style.borderColor='#ddd9d2'} />
+              onFocus={e=>e.target.style.borderColor='#1f4d3f'} onBlur={e=>e.target.style.borderColor='#ddd9d2'} />
           </div>
           {error && <div style={{ background:'#b91c1c12', border:'1px solid #b91c1c30', borderRadius:7, padding:'9px 13px', fontSize:13, color:'#b91c1c', marginBottom:14 }}>{error}</div>}
-          <button type="submit" disabled={loading} style={{ width:'100%', background:'#b8892a', color:'#fff', border:'none', borderRadius:9, padding:'12px', fontSize:14, fontWeight:700, cursor:'pointer', opacity:loading?.7:1 }}>
+          <button type="submit" disabled={loading} style={{ width:'100%', background:'#1f4d3f', color:'#fff', border:'none', borderRadius:9, padding:'12px', fontSize:14, fontWeight:700, cursor:'pointer', opacity:loading?.7:1 }}>
             {loading ? 'Bitte warten...' : 'Anmelden →'}
           </button>
         </form>

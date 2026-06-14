@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.9.32 — Új színséma: Waldgrün (arany helyett)
+## 2026-06-14
+- A teljes CRM színsémája arany (#b8892a) → Waldgrün (#1f4d3f) lett,
+  nyugodtabb, kevésbé fárasztó, üzletiesebb.
+- Központi CSS-változók átírva (--gold, --gold2, --gdbg, --gdbr) →
+  ez automatikusan átüt mindenhol, ahol var(--gold)-ot használ a kód.
+- Plusz 34 fájlban a beégetett arany hexek is lecserélve a zöld
+  megfelelőjükre (nincs maradék arany folt).
+- Paletta: fő #1f4d3f (erdőzöld), akcent #2e6b56, halvány háttér,
+  sötét szöveg #163a2f.
+
+Érintett: app/globals.css + 34 fájl (BoardApp, TeamChat, számla, stb.).
+VER: v4.9.32

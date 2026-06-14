@@ -12,7 +12,7 @@ export async function GET(req) {
   const init = (searchParams.get('init') || '').slice(0, 8)
   const sel = searchParams.get('sel') === '1'
   if (!init) return new NextResponse('init fehlt', { status: 400 })
-  const ring = sel ? '#b8892a' : '#8d8478'
+  const ring = sel ? '#1f4d3f' : '#8d8478'
   try {
     const sharp = (await import('sharp')).default
     let avatarTag = null

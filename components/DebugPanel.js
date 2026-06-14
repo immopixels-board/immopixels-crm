@@ -36,7 +36,7 @@ const CHANGELOGS = [
   { ver: 'v2.3.7', date: '2026-05-16', items: ['Team Chat újraépítés', 'Online státusz', '@All taggelés', 'Drag & Drop fix'] },
 ]
 
-const INIT_COLORS = { 'CD': '#b8892a', 'DB': '#1d5ec7', 'EL': '#15803d', 'NS': '#6d28d9', 'CA': '#b91c1c' }
+const INIT_COLORS = { 'CD': '#1f4d3f', 'DB': '#1d5ec7', 'EL': '#15803d', 'NS': '#6d28d9', 'CA': '#b91c1c' }
 
 export default function DebugPanel({ supabase, localLog, me }) {
   const [tab, setTab] = useState('logs')
@@ -267,14 +267,14 @@ export default function DebugPanel({ supabase, localLog, me }) {
               return cards.map(c=>{
                 const isDup = dupIds.has(c.id)
                 return (
-                  <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, background:selectedCards.has(c.id)?'#b8892a14':isDup?'#fef2f2':'var(--bg3)', border:'0.5px solid '+(selectedCards.has(c.id)?'#b8892a':isDup?'#fecaca':'var(--border)'), marginBottom:4, cursor:'pointer' }}
+                  <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:6, background:selectedCards.has(c.id)?'#1f4d3f14':isDup?'#fef2f2':'var(--bg3)', border:'0.5px solid '+(selectedCards.has(c.id)?'#1f4d3f':isDup?'#fecaca':'var(--border)'), marginBottom:4, cursor:'pointer' }}
                     onClick={()=>setSelectedCards(prev=>{ const n=new Set(prev); n.has(c.id)?n.delete(c.id):n.add(c.id); return n })}>
                     <input type="checkbox" checked={selectedCards.has(c.id)} readOnly style={{ flexShrink:0 }} />
                     {isDup && <span style={{ fontSize:9, color:'#b91c1c', fontWeight:700, flexShrink:0 }}>DUP</span>}
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:11, fontWeight:600, color:isDup?'#b91c1c':'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title||'—'}</div>
                       <div style={{ fontSize:10, color:'var(--t3)' }}>
-                        {c.card_date} {c.client_name&&`· ${c.client_name}`} {c.is_gcal&&<span style={{color:'#b8892a'}}>· GCal</span>}
+                        {c.card_date} {c.client_name&&`· ${c.client_name}`} {c.is_gcal&&<span style={{color:'#1f4d3f'}}>· GCal</span>}
                       </div>
                     </div>
                     <div style={{ fontSize:10, color:'var(--t3)', flexShrink:0 }}>{allCols.find(col=>col.id===c.column_id)?.title||'?'}</div>

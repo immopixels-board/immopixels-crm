@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 
-const GOLD = '#b8892a'
+const GOLD = '#1f4d3f'
 const CREAM = '#faf7f0'
 const DARK = '#2a2a28'
 
@@ -359,13 +359,13 @@ export default function BuchenClient() {
         .ip-slot.busy{background:#f9f9f9;color:#bbb;cursor:not-allowed;text-decoration:line-through}
         .ip-svc{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:0.5px solid #e6ddc9;border-radius:12px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;text-align:left;width:100%;position:relative}
         .ip-svc:hover{border-color:${GOLD};transform:scale(1.025);box-shadow:0 6px 18px rgba(0,0,0,.08);z-index:2}
-        .ip-svc.sel{border-color:${GOLD};border-width:1.5px;background:#b8892a08;transform:scale(1.025);box-shadow:0 6px 18px rgba(184,137,42,.18);z-index:1}
+        .ip-svc.sel{border-color:${GOLD};border-width:1.5px;background:#1f4d3f08;transform:scale(1.025);box-shadow:0 6px 18px rgba(184,137,42,.18);z-index:1}
         input,textarea{width:100%;padding:11px 14px;font-size:14px;border:0.5px solid #e6ddc9;border-radius:8px;margin-bottom:10px;box-sizing:border-box;background:#fff;color:${DARK};font-family:inherit;outline:none}
         input:focus,textarea:focus{border-color:${GOLD}}
         input.req-empty{border-color:#e3b7b7}
         .pac-container{z-index:99999!important;font-family:'Lato',sans-serif!important;border-radius:8px!important}
         .ip-addon{display:flex;align-items:center;gap:10px;padding:11px 14px;border:0.5px solid #e6ddc9;border-radius:10px;background:#fff;cursor:pointer;margin-bottom:8px;transition:all .12s}
-        .ip-addon.on{border-color:${GOLD};background:#b8892a0a}
+        .ip-addon.on{border-color:${GOLD};background:#1f4d3f0a}
         .ip-addon input{width:auto;margin:0}
         /* MOBIL OPTIMALIZÁLÁS (<560px) */
         @media (max-width:560px){
@@ -548,7 +548,7 @@ export default function BuchenClient() {
                     </div>
                   )}
                   {warnTimes.length>0 && (
-                    <div style={{marginTop:10,fontSize:11,color:'#b8892a',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
+                    <div style={{marginTop:10,fontSize:11,color:'#1f4d3f',background:'#fffbf0',border:'0.5px solid #f0d9a8',borderRadius:8,padding:'8px 10px'}}>
                       ⚠ Markierte Zeiten: Ankunft kann sich wegen der Anfahrt um bis zu 15 Min verschieben.
                     </div>
                   )}

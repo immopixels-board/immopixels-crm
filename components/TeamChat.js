@@ -142,7 +142,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen
             sender_name: me?.name || '?',
             sender_init: me?.init || '?',
             sender_avatar: me?.avatar_url || null,
-            sender_color: me?.color || '#b8892a',
+            sender_color: me?.color || '#1f4d3f',
             sender_id: me?.id || null,
             channel: activeChannel === 'team' ? 'team' : 'private',
             recipient_id: activeChannel !== 'team' ? activeChannel : null,
@@ -163,7 +163,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen
         sender_name: me?.name || '?',
         sender_init: me?.init || '?',
         sender_avatar: me?.avatar_url || null,
-        sender_color: me?.color || '#b8892a',
+        sender_color: me?.color || '#1f4d3f',
         sender_id: me?.id || null,
         channel: activeChannel === 'team' ? 'team' : 'private',
         recipient_id: activeChannel !== 'team' ? activeChannel : null,
@@ -299,7 +299,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen
                         <strong>{msg.reply_to_sender}</strong>: {msg.reply_to_text}
                       </div>
                     )}
-                    <div style={{ background: isMe ? '#b8892a' : 'var(--bg3)', color: isMe ? '#fff' : 'var(--t1)', borderRadius: isMe ? '13px 13px 4px 13px' : '13px 13px 13px 4px', padding: '8px 12px', fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <div style={{ background: isMe ? '#1f4d3f' : 'var(--bg3)', color: isMe ? '#fff' : 'var(--t1)', borderRadius: isMe ? '13px 13px 4px 13px' : '13px 13px 13px 4px', padding: '8px 12px', fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {msg.text && msg.text !== msg.attachment_name && <div>{msg.text}</div>}
                       {msg.attachment_url && (
                         <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: msg.text && msg.text !== msg.attachment_name ? 6 : 0, textDecoration: 'none', background: isMe ? 'rgba(255,255,255,.15)' : 'var(--bg2)', borderRadius: 7, padding: '6px 8px', border: '0.5px solid ' + (isMe ? 'rgba(255,255,255,.2)' : 'var(--border)') }}>
@@ -389,7 +389,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen
                 onChange={e => {
                   setInput(e.target.value)
                   const match = e.target.value.match(/@(\w*)$/)
-                  if (match) { const q = match[1].toLowerCase(); const allOpt = 'all'.startsWith(q) ? [{ id:'__all__', name:'all', init:'ALL', color:'#b8892a', avatar_url:null }] : []; setMentionList([...allOpt, ...staff.filter(s => s.name.toLowerCase().includes(q) || s.init.toLowerCase().includes(q))].slice(0,7)); setMentionIdx(0) }
+                  if (match) { const q = match[1].toLowerCase(); const allOpt = 'all'.startsWith(q) ? [{ id:'__all__', name:'all', init:'ALL', color:'#1f4d3f', avatar_url:null }] : []; setMentionList([...allOpt, ...staff.filter(s => s.name.toLowerCase().includes(q) || s.init.toLowerCase().includes(q))].slice(0,7)); setMentionIdx(0) }
                   else setMentionList([])
                 }}
                 onKeyDown={e => {

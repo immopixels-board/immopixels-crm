@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 
-const GOLD='#b8892a', CREAM='#faf7f0', DARK='#2a2a28'
+const GOLD='#1f4d3f', CREAM='#faf7f0', DARK='#2a2a28'
 const STATUS_LABEL = { pending:'In Prüfung', confirmed:'Bestätigt', cancelled:'Storniert' }
-const STATUS_COLOR = { pending:'#b8892a', confirmed:'#15803d', cancelled:'#b91c1c' }
+const STATUS_COLOR = { pending:'#1f4d3f', confirmed:'#15803d', cancelled:'#b91c1c' }
 
 export default function ManagePage() {
   const params = useParams()

@@ -47,7 +47,7 @@ export function NotificationDropdown({ notifications, onRead, onReadAll, onClose
             <div key={n.id} onClick={() => onRead(n)} style={{ padding:'10px 14px', display:'flex', gap:9, alignItems:'flex-start', borderBottom:'0.5px solid var(--border)', cursor:'pointer', background: n.read ? 'none' : 'rgba(184,137,42,.04)', transition:'background .12s' }}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
               onMouseLeave={e=>e.currentTarget.style.background=n.read?'none':'rgba(184,137,42,.04)'}>
-              <div style={{ width:30, height:30, borderRadius:'50%', background:(sender?.color||'#b8892a')+'22', color:sender?.color||'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
+              <div style={{ width:30, height:30, borderRadius:'50%', background:(sender?.color||'#1f4d3f')+'22', color:sender?.color||'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, flexShrink:0, overflow:'hidden' }}>
                 {sender?.avatar_url ? <img src={sender.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : (sender?.init || '?')}
               </div>
               <div style={{ flex:1 }}>

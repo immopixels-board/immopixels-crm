@@ -1,8 +1,8 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 
-const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
-const PALETTE = ['#b8892a', '#7BBFCB', '#9CAF88', '#A67B5B', '#d4537e', '#6d28d9', '#378add', '#e2914b']
+const GOLD = '#1f4d3f', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
+const PALETTE = ['#1f4d3f', '#7BBFCB', '#9CAF88', '#A67B5B', '#d4537e', '#6d28d9', '#378add', '#e2914b']
 
 const TYPE_LABEL = {
   foto: 'Foto', 'foto-reel': 'Foto + Reel', fotoreel: 'Foto + Reel',

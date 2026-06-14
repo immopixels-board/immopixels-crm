@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateZugferdPdf } from '../../../lib/invoice/zugferd'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-const GOLD = '#b8892a', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', BG = '#f4f1ea'
+const GOLD = '#1f4d3f', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', BG = '#f4f1ea'
 const MONNAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }

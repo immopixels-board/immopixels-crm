@@ -451,7 +451,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
       {/* Header */}
       <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',background:'var(--bg2)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span style={{fontSize:14,fontWeight:700,color:'var(--t1)',display:'flex',alignItems:'center',gap:6}}>
-          <i className="ti ti-car" style={{fontSize:16,color:'#b8892a'}} /> Fahrtenbuch
+          <i className="ti ti-car" style={{fontSize:16,color:'#1f4d3f'}} /> Fahrtenbuch
         </span>
         {isAdmin && (
           <select value={selStaffId||''} onChange={e=>setSelStaffId(e.target.value)}
@@ -478,7 +478,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
           </button>
         </div>
         {calcLoading
-          ? <span style={{fontSize:11,color:'#b8892a'}}>⟳ km wird berechnet...</span>
+          ? <span style={{fontSize:11,color:'#1f4d3f'}}>⟳ km wird berechnet...</span>
           : <div style={{display:'flex',gap:6}}>
               <button onClick={()=>recalcKm(rows.filter(r=>r.id&&r.from_addr&&r.to_addr),{announce:true})}
                 style={{background:'none',border:'0.5px solid var(--border)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',color:'var(--t3)',display:'flex',alignItems:'center',gap:4}}>
@@ -554,7 +554,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
                 <td style={{padding:'6px 8px'}}><input type="number" value={row.km_start||''} onChange={e=>updateRow(i,'km_start',e.target.value?parseFloat(e.target.value):null)} style={{...IS,textAlign:'right'}} placeholder="—" /></td>
                 <td style={{padding:'6px 8px'}}><input type="number" value={row.km_end||''} onChange={e=>updateRow(i,'km_end',e.target.value?parseFloat(e.target.value):null)} style={{...IS,textAlign:'right'}} placeholder="—" /></td>
                 <td style={{padding:'6px 8px',textAlign:'right'}}>
-                  <input type="number" value={row.km||''} onChange={e=>updateRow(i,'km',e.target.value?parseFloat(e.target.value):null)} style={{...IS,textAlign:'right',color:'#b8892a',fontWeight:700}} placeholder="—" />
+                  <input type="number" value={row.km||''} onChange={e=>updateRow(i,'km',e.target.value?parseFloat(e.target.value):null)} style={{...IS,textAlign:'right',color:'#1f4d3f',fontWeight:700}} placeholder="—" />
                   {saving[row.id] && <span style={{fontSize:8,color:'var(--t3)',display:'block'}}>💾</span>}
                 </td>
                 <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,fontWeight:700,color:'#15803d'}}>{row.km ? (parseFloat(row.km)*RATE).toFixed(2)+' €' : '—'}</td>
@@ -570,7 +570,7 @@ export default function Fahrtenbuch({staff, cards, me, isAdmin, supabase}){
             <tfoot>
               <tr style={{background:'var(--bg3)',borderTop:'1px solid var(--border)'}}>
                 <td colSpan={8} style={{padding:'8px',fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.4px'}}>{monthLabel} — Gesamt</td>
-                <td style={{padding:'8px',textAlign:'right',fontSize:13,fontWeight:700,color:'#b8892a'}}>{totalKm.toFixed(1)}</td>
+                <td style={{padding:'8px',textAlign:'right',fontSize:13,fontWeight:700,color:'#1f4d3f'}}>{totalKm.toFixed(1)}</td>
                 <td style={{padding:'8px',textAlign:'right',fontSize:13,fontWeight:700,color:'#15803d'}}>{totalCost} €</td>
                 <td></td>
               </tr>
