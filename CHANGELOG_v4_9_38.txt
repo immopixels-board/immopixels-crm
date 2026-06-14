@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.38 — Egységes fejléc a Rechnungen/Kunden oldalakon
+## 2026-06-14
+- Új közös TopNav komponens: a Rechnungen és Kunden oldalon mostantól a
+  TELJES, board-dal azonos felső menü látszik (ImmoPixels logó + Board,
+  Kalender, Buchungen, Kunden, Telefonbuch, Mitarbeiter, Fahrtenbuch,
+  Kunden, Rechnungen) — nem a korábbi csonka "← CRM" fejléc.
+- A board-menüpontok átnavigálnak a főoldal megfelelő tabjára (?tab=…);
+  a főoldal most olvassa a ?tab= paramétert és a megfelelő nézetet nyitja.
+- A Kunden/Rechnungen menüpont a saját oldalra visz, az aktív kiemelve.
+- Egységes élmény: ugyanaz a navigáció mindenhol.
+
+MEGJEGYZÉS: a külön oldalakon a fejléc a navigációra fókuszál; a board
+jobb-oldali élő ikonjai (GCal-szinkron, értesítés, widget) a boardon
+maradnak (oda visz vissza a logó/menü).
+
+Érintett: components/TopNav.js (új), app/kunden/page.js, app/rechnungen/page.js,
+app/BoardApp.js (?tab= olvasás + VER). VER: v4.9.38

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import TopNav from '../../components/TopNav'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6'
@@ -164,13 +165,7 @@ const btnPrimary = { display: 'inline-flex', alignItems: 'center', gap: 6, paddi
 function Shell({ children }) {
   return (
     <div style={{ minHeight: '100vh', background: '#f7f4ee' }}>
-      <div style={{ background: '#fff', borderBottom: '1px solid ' + LINE, padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div onClick={() => { window.location.href = '/' }} style={{ fontWeight: 800, color: ACC, cursor: 'pointer', fontSize: 15 }}>← CRM</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <a href="/kunden" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: ACC, borderBottom: '2px solid ' + ACC, textDecoration: 'none' }}>Kunden</a>
-          <a href="/rechnungen" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: MUT, textDecoration: 'none' }}>Rechnungen</a>
-        </div>
-      </div>
+      <TopNav active="kunden-liste" />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 20px' }}>{children}</div>
     </div>
   )

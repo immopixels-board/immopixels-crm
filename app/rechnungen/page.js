@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { generateZugferdPdf } from '../../lib/invoice/zugferd'
 import { generateMahnungPdf, defaultMahnungText } from '../../lib/invoice/mahnung'
+import TopNav from '../../components/TopNav'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const GOLD = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
@@ -223,7 +224,6 @@ export default function RechnungenPage() {
         <span style={{ fontSize: 11, fontWeight: 700, color: GOLD, background: '#f6efe0', border: '1px solid #ecdfc4', borderRadius: 20, padding: '3px 10px' }}>🔒 nur du</span>
         <div style={{ flex: 1 }} />
         <button onClick={() => setSettingsModal(true)} style={ghost}>⚙ Vorlage & Absender</button>
-        <a href="/" style={{ fontSize: 12, color: MUT, textDecoration: 'none' }}>← Board</a>
       </div>
       <div style={{ display: 'flex', gap: 8, margin: '14px 0', flexWrap: 'wrap' }}>
         {[['umsatz', '📊 Umsatz'], ['rechnungen', '🧾 Rechnungen'], ['import', '⬇️ Import']].map(([id, lbl]) => <button key={id} onClick={() => setTab(id)} style={tabBtn(tab === id)}>{lbl}</button>)}
@@ -504,14 +504,8 @@ function ImportTab({ clients, myId, seller, onDone }) {
 function Shell({ children }) {
   return (
     <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}>
-      <div style={{ background: '#fff', borderBottom: '1px solid ' + LINE, padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div onClick={() => { window.location.href = '/' }} style={{ fontWeight: 800, color: GOLD, cursor: 'pointer', fontSize: 15 }}>← CRM</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <a href="/kunden" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: MUT, textDecoration: 'none' }}>Kunden</a>
-          <a href="/rechnungen" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: GOLD, borderBottom: '2px solid ' + GOLD, textDecoration: 'none' }}>Rechnungen</a>
-        </div>
-      </div>
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 20px 90px' }}>{children}</div>
+      <TopNav active="rechnungen" />
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 20px 90px' }}>{children}</div>
     </div>
   )
 }
