@@ -144,14 +144,19 @@ export default function RechnungenPage() {
 
   async function fahrtenbuchKmFor(inv) {
     const cl = (clients || []).find(x => x.id === inv.client_id)
-    const keys = [cl?.short_name, cl?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim())
+    const keys = [cl?.short_name, cl?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim()).filter(k => k.length >= 2)
     if (!keys.length) return 0
     try {
-      const { data } = await supabase.from('fahrtenbuch').select('km, zweck, nach')
-      if (!data) return 0
+      const store = JSON.parse(localStorage.getItem('bartz-fahrtenbuch-v1') || '{}')
+      const rowsByProfile = store.rows || {}
       let sum = 0
-      for (const r of data) { const hay = ((r.zweck || '') + ' ' + (r.nach || '')).toLowerCase(); if (keys.some(k => k.length >= 2 && hay.includes(k))) sum += (parseInt(r.km) || 0) }
-      return sum
+      for (const pid of Object.keys(rowsByProfile)) {
+        for (const r of (rowsByProfile[pid] || [])) {
+          const hay = ((r.zweck || '') + ' ' + (r.von || '') + ' ' + (r.bis || '')).toLowerCase()
+          if (keys.some(k => hay.includes(k))) sum += (parseFloat(r.km) || 0)
+        }
+      }
+      return Math.round(sum)
     } catch { return 0 }
   }
   async function downloadPdf(inv) {
@@ -159,11 +164,12 @@ export default function RechnungenPage() {
     try {
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
       const clientKmTotal = await fahrtenbuchKmFor(inv)
-      const bytes = await generateZugferdPdf({ inv, items: its || [], seller, template, clientKmTotal })
-      const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a')
-      const cl = (clients || []).find(x => x.id === inv.client_id)
-      const abk = (cl?.short_name || '').trim().replace(/[\/:*?"<>|]+/g, '').replace(/\s+/g, '-')
-      a.href = u; a.download = 'Rechnung ' + (inv.invoice_number || 'Entwurf') + (abk ? '_' + abk : '') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000)
+      const cl0 = (clients || []).find(x => x.id === inv.client_id)
+      const invForPdf = { ...inv, buyer: { ...(inv.buyer || {}), kundennr: (inv.buyer && inv.buyer.kundennr) || cl0?.kundennr || '' } }
+      const bytes = await generateZugferdPdf({ inv: invForPdf, items: its || [], seller, template, clientKmTotal })
+      const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob)
+      window.open(u, '_blank')
+      setTimeout(() => URL.revokeObjectURL(u), 60000)
     } catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }

@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.9.44 — Számla sürgős fixek (km, vonalak, Kundennr, PDF-megnyitás)
+## 2026-06-14
+1. MEGTETT KM VÉGRE MŰKÖDIK: a Fahrtenbuch a localStorage-ban van
+   (bartz-fahrtenbuch-v1), NEM Supabase-ben — ezért nem talált eddig semmit.
+   Most a localStorage összes profiljának (te + Dani) sorait összesíti, ahol a
+   zweck/von/bis illeszkedik az ügyfélre → "Für Ihre Aufträge gefahren (gesamt)".
+   FONTOS: csak abban a böngészőben működik, ahol a Fahrtenbuchot vezeted.
+2. PDF elválasztó vonalak: több Abstand, a vonal a tételek KÖZÉ került
+   (nem lóg bele a szövegbe).
+3. KUNDENNUMMER a dátum elé a PDF-en: most a client adatból is kitölti
+   (a régi számláknál is, ahol a buyer-ben még nem volt benne).
+4. Számla-lista "PDF" gomb: letöltés helyett ÚJ ABLAKBAN nyitja meg a PDF-et.
+
+KÖVETKEZŐ KÖRRE (nagyobb, külön): szerkeszthető Fahrtkosten cím-mezők
+(kiindulás+cél, auto km-újraszámolás) + címek elrejtése a számlán (kipipálható).
+
+Érintett: app/rechnungen/neu/page.js, app/rechnungen/page.js,
+lib/invoice/zugferd.js, app/BoardApp.js (VER). VER: v4.9.44

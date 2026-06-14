@@ -210,7 +210,7 @@ export default function NeueRechnungPage() {
 
   function totals() { let net = 0, vat = 0; (inv?.items || []).forEach(it => { const ln = num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100); net += ln; vat += seller.kleinunternehmer ? 0 : ln * num(it.vat_rate) / 100 }); return { net: round2(net), vat: round2(vat), gross: round2(net + vat) } }
   function itemsForDb(invId) { const rate = it => seller.kleinunternehmer ? 0 : num(it.vat_rate); return inv.items.filter(it => (it.title || '').trim() || (it.desc || '').trim() || num(it.unit_price)).map((it, i) => { const ln = round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)); const row = { invoice_id: invId, position: i + 1, description: [it.title, it.desc].filter(Boolean).join('\n'), qty: num(it.qty), unit_price: num(it.unit_price), discount: num(it.discount), vat_rate: rate(it), line_net: ln, line_gross: round2(ln * (1 + rate(it) / 100)) }; if (it.unit) row.unit = it.unit; return row } ) }
-  function toInvoiceObj() { const t = totals(); return { invoice_number: inv.invoice_number || null, client_name: inv.client_name, invoice_date: inv.invoice_date, due_date: inv.due_date, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes, buyer: inv.buyer || {}, storno_of: inv.storno_of || null } }
+  function toInvoiceObj() { const t = totals(); const c = clients.find(x => x.id === inv.client_id); const buyer = { ...(inv.buyer || {}) }; if (!buyer.kundennr && c?.kundennr) buyer.kundennr = c.kundennr; return { invoice_number: inv.invoice_number || null, client_name: inv.client_name, invoice_date: inv.invoice_date, due_date: inv.due_date, total_net: t.net, vat_amount: t.vat, total_gross: t.gross, notes: inv.notes, buyer, storno_of: inv.storno_of || null } }
 
   async function save(finalize, redirect = true) {
     setBusy(true)
@@ -246,19 +246,22 @@ export default function NeueRechnungPage() {
   }
 
   async function fahrtenbuchKmForClient() {
-    // Összes (te + Dani + bárki) megtett km, ahol a Zweck illeszkedik az ügyfélre.
+    // A Fahrtenbuch a localStorage-ban van (bartz-fahrtenbuch-v1), nem Supabase-ben.
+    // Összes profil (te + Dani + bárki) összes sora, ahol a zweck/von/bis illeszkedik az ügyfélre.
     const c = clients.find(x => x.id === inv.client_id)
-    const keys = [c?.short_name, c?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim())
+    const keys = [c?.short_name, c?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim()).filter(k => k.length >= 2)
     if (!keys.length) return 0
     try {
-      const { data } = await supabase.from('fahrtenbuch').select('km, zweck, nach')
-      if (!data) return 0
+      const store = JSON.parse(localStorage.getItem('bartz-fahrtenbuch-v1') || '{}')
+      const rowsByProfile = store.rows || {}
       let sum = 0
-      for (const r of data) {
-        const hay = ((r.zweck || '') + ' ' + (r.nach || '')).toLowerCase()
-        if (keys.some(k => k.length >= 2 && hay.includes(k))) sum += (parseInt(r.km) || 0)
+      for (const pid of Object.keys(rowsByProfile)) {
+        for (const r of (rowsByProfile[pid] || [])) {
+          const hay = ((r.zweck || '') + ' ' + (r.von || '') + ' ' + (r.bis || '')).toLowerCase()
+          if (keys.some(k => hay.includes(k))) sum += (parseFloat(r.km) || 0)
+        }
       }
-      return sum
+      return Math.round(sum)
     } catch { return 0 }
   }
   async function makePdfBytes() {
