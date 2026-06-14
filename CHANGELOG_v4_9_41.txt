@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.9.41 — Board-oszlopok design + "+ Karte" hover
+## 2026-06-14
+- Board-oszlopok: FEHÉR háttér + vékony világosszürke keret (#e9e4db) +
+  finom árnyék — tisztább, jobban elválnak.
+- Oszlop-FEJLÉC: halvány szürke háttér (#f6f4f0) + alsó elválasztó vonal,
+  hogy elváljon a fehér törzstől (a widget-színes fejlécek változatlanok).
+- "+ Karte" gomb: hoverre animálódik (arany keret+szöveg, finom kiemelkedés,
+  szaggatott→folytonos keret).
+
+(A chat-javítás és a profil-háttérkép külön jön — előbb pár részlet tisztázása.)
+
+Érintett: app/BoardApp.js. VER: v4.9.41
