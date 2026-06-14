@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-const G = '#1f4d3f'
+const G = '#6b6b6e'
 
 function Card({ accent, badge, title, sub, warn }) {
   return (
@@ -10,7 +10,7 @@ function Card({ accent, badge, title, sub, warn }) {
         <span style={{ fontSize:9, fontWeight:700, color:'#fff', background:accent||G, borderRadius:4, padding:'2px 6px' }}>{title}</span>
       </div>
       <div style={{ fontSize:10, fontWeight:600, color:'#2c2719', lineHeight:1.3 }}>{sub}</div>
-      {badge && <div style={{ marginTop:6, fontSize:8.5, fontWeight:700, color:'#1f4d3f', background:'#fbe9d8', borderRadius:4, padding:'2px 6px', display:'inline-block' }}>{badge}</div>}
+      {badge && <div style={{ marginTop:6, fontSize:8.5, fontWeight:700, color:'#6b6b6e', background:'#fbe9d8', borderRadius:4, padding:'2px 6px', display:'inline-block' }}>{badge}</div>}
     </div>
   )
 }
@@ -49,9 +49,9 @@ const ILLUS = {
     <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', padding:'4px 0' }}>
       {[['Muster Immobilien','Muster'],['Beispiel Wohnbau','Beispiel']].map(([n,k],i)=>(
         <div key={i} style={{ width:230, display:'flex', alignItems:'center', gap:9, background:'#faf8f4', border:'0.5px solid #e6ddc9', borderRadius:8, padding:'7px 10px' }}>
-          <div style={{ width:26, height:26, borderRadius:'50%', background:'#e9dcc0', color:'#2e6b56', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{k.slice(0,2)}</div>
+          <div style={{ width:26, height:26, borderRadius:'50%', background:'#e9dcc0', color:'#9a9a9d', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{k.slice(0,2)}</div>
           <div style={{ flex:1, fontSize:11, fontWeight:600, color:'#2c2719' }}>{n}</div>
-          <span style={{ fontSize:9, fontWeight:700, color:'#2e6b56', background:'#f0e6d2', borderRadius:4, padding:'2px 7px' }}>{k}</span>
+          <span style={{ fontSize:9, fontWeight:700, color:'#9a9a9d', background:'#f0e6d2', borderRadius:4, padding:'2px 7px' }}>{k}</span>
         </div>
       ))}
     </div>
@@ -127,7 +127,7 @@ const ILLUS = {
   ),
   mitarbeiter: (
     <div style={{ display:'flex', gap:8, justifyContent:'center', padding:'4px 0' }}>
-      {[['Joe Doe','Admin','#1f4d3f'],['Jane Doe','Video','#6d28d9']].map(([n,r,c],i)=>(
+      {[['Joe Doe','Admin','#6b6b6e'],['Jane Doe','Video','#6d28d9']].map(([n,r,c],i)=>(
         <div key={i} style={{ width:100, background:'#faf8f4', border:'0.5px solid #e6ddc9', borderRadius:8, padding:'9px 7px', textAlign:'center' }}>
           <div style={{ width:30, height:30, borderRadius:'50%', background:c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, margin:'0 auto 6px' }}>{n.split(' ').map(x=>x[0]).join('')}</div>
           <div style={{ fontSize:10, fontWeight:600, color:'#2c2719' }}>{n}</div>
@@ -139,7 +139,7 @@ const ILLUS = {
   ),
   widgets: (
     <div style={{ display:'flex', gap:7, justifyContent:'center', padding:'4px 0', flexWrap:'wrap' }}>
-      {[['✓ To-Do','#1f4d3f'],['☀ Wetter','#7BBFCB'],['📅 Termin','#9CAF88'],['📊 Statistik','#FFBE98']].map(([t,c],i)=>(
+      {[['✓ To-Do','#6b6b6e'],['☀ Wetter','#7BBFCB'],['📅 Termin','#9CAF88'],['📊 Statistik','#FFBE98']].map(([t,c],i)=>(
         <div key={i} style={{ width:95, background:'#fff', border:'0.5px solid #e6ddc9', borderRadius:8, overflow:'hidden' }}>
           <div style={{ fontSize:9, fontWeight:700, color:'#fff', background:c, padding:'5px 8px' }}>{t}</div>
           <div style={{ height:18 }} />

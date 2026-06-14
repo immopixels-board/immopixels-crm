@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 
 var STAFF_COLORS_MAP = {
-  '#1f4d3f': '#1f4d3f', '#7BBFCB': '#7BBFCB',
+  '#6b6b6e': '#6b6b6e', '#7BBFCB': '#7BBFCB',
   '#D4869B': '#D4869B', '#9CAF88': '#9CAF88',
   '#A67B5B': '#A67B5B',
 }
@@ -201,7 +201,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
           date: card.card_date,
           time: card.card_time,
           type: card.card_type,
-          color: primaryStaff?.color || '#1f4d3f',
+          color: primaryStaff?.color || '#6b6b6e',
           staffList: assignedStaff,
           source: 'card',
           card,
@@ -280,7 +280,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
               title: ev.summary || '(Kein Titel)',
               date: (ev.start?.dateTime || ev.start?.date || '').slice(0, 10),
               time: ev.start?.dateTime ? new Date(ev.start.dateTime).toTimeString().slice(0, 5) : null,
-              color: calStaff?.color || me?.color || '#1f4d3f',
+              color: calStaff?.color || me?.color || '#6b6b6e',
               staffList: [calStaff].filter(Boolean),
               source: 'gcal',
               gcalEvent: { ...ev, calendarName: cal.summary, calendarId: cal.id },
@@ -541,7 +541,7 @@ export default function GoogleCalendarView({ staff, me, supabase, cols, onImport
                 setTimeout(() => setImported(false), 2000)
                 setSelectedEvent(null)
                 if (onImported) onImported()
-              }} disabled={importing} style={{ display:'flex', alignItems:'center', gap:6, marginTop:10, background: imported ? '#15803d' : '#1f4d3f', color:'#fff', border:'none', borderRadius:7, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', justifyContent:'center' }}>
+              }} disabled={importing} style={{ display:'flex', alignItems:'center', gap:6, marginTop:10, background: imported ? '#15803d' : '#6b6b6e', color:'#fff', border:'none', borderRadius:7, padding:'8px 14px', fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', justifyContent:'center' }}>
                 <i className="ti ti-download" style={{fontSize:12}}/>
                 {importing ? 'Wird importiert...' : imported ? '✓ Importiert' : 'Auf Board importieren'}
               </button>

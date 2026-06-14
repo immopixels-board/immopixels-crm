@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-const GOLD = '#1f4d3f', DARK = '#2a2a28', CREAM = '#faf6ef', GREEN = '#15803d', RED = '#b91c1c'
+const GOLD = '#6b6b6e', DARK = '#2a2a28', CREAM = '#faf6ef', GREEN = '#15803d', RED = '#b91c1c'
 
 function fmtDuration(ms){
   if (ms < 0) ms = 0

@@ -47,7 +47,7 @@ export async function GET() {
     init: p.staff_init,
     name: avatarByInit[p.staff_init]?.name || p.name,
     avatar_url: avatarByInit[p.staff_init]?.avatar_url || null,
-    color: avatarByInit[p.staff_init]?.color || '#1f4d3f',
+    color: avatarByInit[p.staff_init]?.color || '#6b6b6e',
   }))
 
   return NextResponse.json({ services: services || [], providers }, { headers: CORS })

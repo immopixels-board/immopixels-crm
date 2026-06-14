@@ -5,13 +5,13 @@ import { generateZugferdPdf } from '../../lib/invoice/zugferd'
 import { generateMahnungPdf, defaultMahnungText } from '../../lib/invoice/mahnung'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-const GOLD = '#1f4d3f', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
+const GOLD = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100
 const addDays = (d, n) => { const p = String(d || '').split('-').map(Number); if (p.length < 3 || !p[0]) return ''; return new Date(Date.UTC(p[0], p[1] - 1, p[2] + (parseInt(n) || 0))).toISOString().slice(0, 10) }
-const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open: { label: 'Offen', c: '#163a2f', bg: '#f6efe0' }, overdue: { label: 'Überfällig', c: '#b3402f', bg: '#fae7e2' }, paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' }, storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' } }
+const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open: { label: 'Offen', c: '#54545a', bg: '#f6efe0' }, overdue: { label: 'Überfällig', c: '#b3402f', bg: '#fae7e2' }, paid: { label: 'Bezahlt', c: '#2f7a4f', bg: '#e6f3ec' }, storno: { label: 'Storniert', c: '#b3402f', bg: '#f3e9e7' } }
 
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
 const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: 'Zufrieden? Wir freuen uns über Ihre Google-Bewertung!', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [], startAddress: 'Gartenstr. 2, 67310 Hettenleidelheim', kmRate: 0.29 }
@@ -249,7 +249,7 @@ export default function RechnungenPage() {
               <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
               <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
               <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
-              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#163a2f' }}>Mahnung</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
+              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#54545a' }}>Mahnung</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
             </tr> })}</tbody></table></div>}
         </Card>
       )}
@@ -439,7 +439,7 @@ function ImportTab({ clients, myId, seller, onDone }) {
 }
 
 function Shell({ children }) { return <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}><div style={{ maxWidth: 920, margin: '0 auto', padding: '24px 16px 90px' }}>{children}</div></div> }
-function Kpi({ label, value, sub, accent }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#163a2f' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div> }
+function Kpi({ label, value, sub, accent }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#54545a' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div> }
 function Card({ title, right, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>{right}</div>{children}</div> }
 function Modal({ children, onClose, wide }) { return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 100, overflowY: 'auto' }}><div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: wide ? 660 : 460, fontFamily: 'Arial' }}>{children}</div></div> }
 

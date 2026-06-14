@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useMemo, useState } from 'react'
 
-const GOLD = '#1f4d3f', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
+const GOLD = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
 const STORE_KEY = 'bartz-fahrtenbuch-v1'
 const BUERO = 'Maximilianstraße 37, 67433 Neustadt an der Weinstraße'
 const RATE = 0.30
@@ -117,7 +117,7 @@ export default function BartzFahrtenbuch() {
     dl(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), expName() + '.csv')
   }
   function exportExcel() {
-    const th = HEAD.map(h => `<th style="background:#1f4d3f;color:#fff;padding:6px;border:1px solid #ccc">${h}</th>`).join('')
+    const th = HEAD.map(h => `<th style="background:#6b6b6e;color:#fff;padding:6px;border:1px solid #ccc">${h}</th>`).join('')
     const trs = expData().map(r => '<tr>' + r.map(c => `<td style="padding:5px;border:1px solid #ccc">${c}</td>`).join('') + '</tr>').join('')
     const sum = `<tr><td colspan="5" style="text-align:right;font-weight:bold;padding:5px;border:1px solid #ccc">Summe</td><td style="font-weight:bold;padding:5px;border:1px solid #ccc">${totalKm.toFixed(1)}</td><td style="font-weight:bold;padding:5px;border:1px solid #ccc">${totalKosten.toFixed(2)}</td></tr>`
     const html = `<html><head><meta charset="utf-8"></head><body><h3>${expName()}</h3><table style="border-collapse:collapse"><tr>${th}</tr>${trs}${sum}</table></body></html>`
@@ -133,11 +133,11 @@ export default function BartzFahrtenbuch() {
       h2{margin:0 0 10px}
       .sub{color:#8a8278;font-size:12px;margin-bottom:14px}
       table{width:100%;border-collapse:collapse;font-size:11px}
-      th{background:#1f4d3f;color:#fff;padding:6px 7px;text-align:left;white-space:nowrap}
+      th{background:#6b6b6e;color:#fff;padding:6px 7px;text-align:left;white-space:nowrap}
       td{padding:5px 7px;border-bottom:1px solid #e2dccd}
       td.num,th:nth-child(6),th:nth-child(7){text-align:right;white-space:nowrap}
       th:nth-child(1),td:nth-child(1){white-space:nowrap}
-      tfoot td{font-weight:bold;border-top:2px solid #1f4d3f}
+      tfoot td{font-weight:bold;border-top:2px solid #6b6b6e}
     </style></head><body>
       <h2>Fahrtenbuch — ${profile?.name || ''}</h2>
       <div class="sub">${monthLabel} · Pauschale ${RATE.toFixed(2).replace('.', ',')} €/km</div>

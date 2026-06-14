@@ -1,0 +1,10 @@
+# ImmoPixels CRM v4.9.34 — Színséma javítva: Warmgrau (a helyes választás)
+## 2026-06-14
+- A színséma a helyes választásra állítva: Warmgrau (#6b6b6e), nem zöld.
+  (Az előző build tévedésből Waldgrün lett.)
+- Központi változók: --gold #6b6b6e, --gold2 #9a9a9d, halvány szürke háttér.
+- 34 fájlban a beégetett hexek is Warmgrau-ra cserélve.
+- Megjegyzés: ha a gombok/aktív elemek túl haloványak (beleolvadnak),
+  a kiemelő akcentet átállíthatjuk a homok #c9a98f-re — szólj.
+
+Érintett: app/globals.css + 34 fájl. VER: v4.9.34

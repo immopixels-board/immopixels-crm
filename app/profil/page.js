@@ -330,7 +330,7 @@ export default function ProfilPage() {
     <div style={{ minHeight:'100vh', background:'var(--bg,#f4f2ef)', fontFamily:'Arial,sans-serif', display:'flex', flexDirection:'column' }}>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
       <style>{`
-        :root{--bg:#f4f2ef;--bg2:#fff;--bg3:#eeeae6;--border:#ddd9d2;--gold:#1f4d3f;--t1:#1c1a16;--t2:#4a4540;--t3:#8a8278;--gdbg:rgba(184,137,42,.1);--gdbr:rgba(184,137,42,.3)}
+        :root{--bg:#f4f2ef;--bg2:#fff;--bg3:#eeeae6;--border:#ddd9d2;--gold:#6b6b6e;--t1:#1c1a16;--t2:#4a4540;--t3:#8a8278;--gdbg:rgba(184,137,42,.1);--gdbr:rgba(184,137,42,.3)}
         @keyframes modal-in{0%{opacity:0;transform:scale(.92)}60%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
         .modal-animate{animation:modal-in .22s cubic-bezier(.34,1.56,.64,1) forwards}
       `}</style>
@@ -351,7 +351,7 @@ export default function ProfilPage() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <div style={{ width:200, background:'var(--bg2)', borderRight:'0.5px solid var(--border)', display:'flex', flexDirection:'column', flexShrink:0 }}>
           <div style={{ padding:'16px 14px 12px', borderBottom:'0.5px solid var(--border)', textAlign:'center' }}>
-            <div style={{ width:52, height:52, borderRadius:'50%', background:(viewStaff?.color||'#1f4d3f')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:viewStaff?.color||'var(--gold)', margin:'0 auto 8px', border:'2px dashed '+(viewStaff?.color||'#1f4d3f'), overflow:'hidden' }}>
+            <div style={{ width:52, height:52, borderRadius:'50%', background:(viewStaff?.color||'#6b6b6e')+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:viewStaff?.color||'var(--gold)', margin:'0 auto 8px', border:'2px dashed '+(viewStaff?.color||'#6b6b6e'), overflow:'hidden' }}>
               {viewStaff?.avatar_url ? <img src={viewStaff.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> : (viewStaff?.init || '?')}
             </div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{viewStaff?.name}</div>
@@ -437,7 +437,7 @@ export default function ProfilPage() {
                   <div style={{ display:'flex', gap:4, marginLeft:8 }}>
                     {['week','month'].map(v=>(
                       <button key={v} onClick={()=>setWsView(v)}
-                        style={{ padding:'3px 9px', borderRadius:5, border:'0.5px solid '+(wsView===v?'#1f4d3f':'var(--border)'), background:wsView===v?'#1f4d3f14':'none', color:wsView===v?'#1f4d3f':'var(--t3)', fontSize:10, fontWeight:wsView===v?700:400, cursor:'pointer' }}>
+                        style={{ padding:'3px 9px', borderRadius:5, border:'0.5px solid '+(wsView===v?'#6b6b6e':'var(--border)'), background:wsView===v?'#6b6b6e14':'none', color:wsView===v?'#6b6b6e':'var(--t3)', fontSize:10, fontWeight:wsView===v?700:400, cursor:'pointer' }}>
                         {v==='week'?'Woche':'Monat'}
                       </button>
                     ))}
@@ -480,9 +480,9 @@ export default function ProfilPage() {
                             <td style={{ padding:'7px 10px', fontSize:11, color: !s.check_out?'var(--t3)':s.auto_checkout?'#92400e':'var(--t1)' }}>
                               {isEditing ? <input type="time" defaultValue={s.check_out?new Date(s.check_out).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):''} onChange={e=>setWsEditForm(p=>({...p,check_out:e.target.value}))} style={{ fontSize:11, background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:4, padding:'2px 5px', color:'var(--t1)', outline:'none' }} /> : s.check_out ? new Date(s.check_out).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : <span style={{fontStyle:'italic'}}>aktiv</span>}
                             </td>
-                            <td style={{ padding:'7px 10px', fontSize:11, fontWeight:700, color:'#1f4d3f', textAlign:'right' }}>{fmtSessionDur(s)}</td>
+                            <td style={{ padding:'7px 10px', fontSize:11, fontWeight:700, color:'#6b6b6e', textAlign:'right' }}>{fmtSessionDur(s)}</td>
                             <td style={{ padding:'7px 10px', fontSize:11, color:'var(--t3)' }}>{s.break_minutes ? s.break_minutes+'m' : '—'}</td>
-                            <td style={{ padding:'7px 10px', textAlign:'center' }}>{s.auto_checkout && <i className="ti ti-clock-bolt" style={{fontSize:12,color:'#1f4d3f'}} title="Automatischer Checkout" />}</td>
+                            <td style={{ padding:'7px 10px', textAlign:'center' }}>{s.auto_checkout && <i className="ti ti-clock-bolt" style={{fontSize:12,color:'#6b6b6e'}} title="Automatischer Checkout" />}</td>
                             <td style={{ padding:'7px 10px', fontSize:10, color:'var(--t3)', maxWidth:100, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.note||'—'}</td>
                             {me?.role_level==='admin' && (
                               <td style={{ padding:'7px 6px', textAlign:'center' }}>
@@ -494,7 +494,7 @@ export default function ProfilPage() {
                                       const co = wsEditForm.check_out ? d+'T'+wsEditForm.check_out+':00' : s.check_out
                                       await supabase.from('work_sessions').update({ check_in:ci, check_out:co, auto_checkout:false }).eq('id',s.id)
                                       setWsEditId(null); setWsEditForm({}); loadWorkSessions(viewStaff||me,wsDate)
-                                    }} style={{ background:'#1f4d3f', color:'#fff', border:'none', borderRadius:4, padding:'2px 7px', fontSize:10, cursor:'pointer' }}>✓</button>
+                                    }} style={{ background:'#6b6b6e', color:'#fff', border:'none', borderRadius:4, padding:'2px 7px', fontSize:10, cursor:'pointer' }}>✓</button>
                                     <button onClick={()=>{setWsEditId(null);setWsEditForm({})}} style={{ background:'var(--bg3)', border:'0.5px solid var(--border)', borderRadius:4, padding:'2px 6px', fontSize:10, cursor:'pointer', color:'var(--t2)' }}>✕</button>
                                   </div>
                                 ) : (
@@ -512,7 +512,7 @@ export default function ProfilPage() {
                     <tfoot>
                       <tr style={{ background:'var(--bg3)', borderTop:'1px solid var(--border)' }}>
                         <td colSpan={3} style={{ padding:'8px 10px', fontSize:10, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.4px' }}>Gesamt</td>
-                        <td style={{ padding:'8px 10px', fontSize:13, fontWeight:700, color:'#1f4d3f', textAlign:'right' }}>
+                        <td style={{ padding:'8px 10px', fontSize:13, fontWeight:700, color:'#6b6b6e', textAlign:'right' }}>
                           {(()=>{
                             const total = workSessions.reduce((s,ws)=>{
                               const start=new Date(ws.check_in),end=ws.check_out?new Date(ws.check_out):new Date()
@@ -613,7 +613,7 @@ export default function ProfilPage() {
               <i className="ti ti-car" style={{ fontSize:40, color:'var(--gold)', opacity:.6 }} />
               <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>Fahrtenbuch</div>
               <div style={{ fontSize:12, color:'var(--t3)', textAlign:'center', maxWidth:280 }}>Das Fahrtenbuch ist jetzt im Hauptbereich verfügbar — mit automatischer Routenberechnung.</div>
-              <a href="/?tab=fahrtenbuch" style={{ background:'#1f4d3f', color:'#fff', borderRadius:8, padding:'9px 20px', fontSize:13, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:6 }}>
+              <a href="/?tab=fahrtenbuch" style={{ background:'#6b6b6e', color:'#fff', borderRadius:8, padding:'9px 20px', fontSize:13, fontWeight:700, textDecoration:'none', display:'flex', alignItems:'center', gap:6 }}>
                 <i className="ti ti-external-link" style={{ fontSize:13 }} /> Zum Fahrtenbuch
               </a>
             </div>
@@ -638,7 +638,7 @@ export default function ProfilPage() {
                       {servicePrices.map(s => (
                         <th key={s.id} style={{ padding:'9px 10px', textAlign:'right', color:'var(--bg2)', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>{s.label}</th>
                       ))}
-                      <th style={{ padding:'9px 10px', textAlign:'right', color:'#1f4d3f', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>Ø Preis</th>
+                      <th style={{ padding:'9px 10px', textAlign:'right', color:'#6b6b6e', fontWeight:700, fontSize:10, textTransform:'uppercase', letterSpacing:'.4px', whiteSpace:'nowrap' }}>Ø Preis</th>
                     </tr>
                     <tr style={{ background:'#fef3c7', borderBottom:'1px solid #fcd34d' }}>
                       <td style={{ padding:'7px 14px', fontWeight:700, color:'#92400e', fontSize:11, whiteSpace:'nowrap' }}>⭐ Grundpreis</td>

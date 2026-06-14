@@ -76,7 +76,7 @@ export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
             <input value={name} onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && name.trim() && onSave(name, colorKey, privateCol)}
               placeholder="Spaltenname..."
-              style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid ' + (name ? '#1f4d3f' : '#ddd9d2'), borderRadius: 8, padding: '9px 12px', fontSize: 14, fontWeight: 600, color: '#1c1a16', outline: 'none', fontFamily: 'Arial' }} />
+              style={{ width: '100%', background: '#f4f2ef', border: '1.5px solid ' + (name ? '#6b6b6e' : '#ddd9d2'), borderRadius: 8, padding: '9px 12px', fontSize: 14, fontWeight: 600, color: '#1c1a16', outline: 'none', fontFamily: 'Arial' }} />
           </div>
 
           {/* Color */}
@@ -115,12 +115,12 @@ export default function ColumnModal({ col, onSave, onClose, isAdmin }) {
         <div style={{ padding: '10px 18px', borderTop: '0.5px solid #eeeae6', background: '#faf9f7' }}>
           {isAdmin && (
             <div onClick={() => setPrivateCol(p => !p)}
-              style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background: privateCol ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: '0.5px solid ' + (privateCol ? '#1f4d3f' : '#ddd9d2'), borderRadius:8, marginBottom:10, cursor:'pointer', transition:'all .15s' }}>
-              <div style={{ width:18, height:18, borderRadius:4, border:'1.5px solid ' + (privateCol ? '#1f4d3f' : '#ccc'), background: privateCol ? '#1f4d3f' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s' }}>
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background: privateCol ? 'rgba(184,137,42,.08)' : '#f4f2ef', border: '0.5px solid ' + (privateCol ? '#6b6b6e' : '#ddd9d2'), borderRadius:8, marginBottom:10, cursor:'pointer', transition:'all .15s' }}>
+              <div style={{ width:18, height:18, borderRadius:4, border:'1.5px solid ' + (privateCol ? '#6b6b6e' : '#ccc'), background: privateCol ? '#6b6b6e' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s' }}>
                 {privateCol && <i className="ti ti-check" style={{ fontSize:11, color:'#fff' }} />}
               </div>
-              <i className="ti ti-eye-off" style={{ fontSize:13, color: privateCol ? '#1f4d3f' : '#8a8278' }} />
-              <span style={{ fontSize:12, fontWeight:600, color: privateCol ? '#1f4d3f' : '#4a4540' }}>Nur für mich sichtbar</span>
+              <i className="ti ti-eye-off" style={{ fontSize:13, color: privateCol ? '#6b6b6e' : '#8a8278' }} />
+              <span style={{ fontSize:12, fontWeight:600, color: privateCol ? '#6b6b6e' : '#4a4540' }}>Nur für mich sichtbar</span>
             </div>
           )}
           <div style={{ display:'flex', gap:8 }}>

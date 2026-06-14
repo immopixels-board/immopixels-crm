@@ -12,7 +12,7 @@ export default function CheckinLayout({ children }){
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       <meta name="apple-mobile-web-app-title" content="ImmoPixels" />
-      <meta name="theme-color" content="#1f4d3f" />
+      <meta name="theme-color" content="#6b6b6e" />
       <link rel="apple-touch-icon" href="/favicon.png" />
       {children}
     </>

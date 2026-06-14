@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 
 const STATUS = {
   confirmed:{ label:'Bestätigt', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0' },
-  pending:  { label:'In Prüfung', color:'#1f4d3f', bg:'#fffbeb', border:'#fde68a' },
+  pending:  { label:'In Prüfung', color:'#6b6b6e', bg:'#fffbeb', border:'#fde68a' },
   cancelled:{ label:'Storniert', color:'#b91c1c', bg:'#fef2f2', border:'#fecaca' },
 }
 
@@ -52,14 +52,14 @@ export default function AmeliaView({ staff, me }) {
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)', fontFamily:'Arial,sans-serif' }}>
       <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
         <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', gap:6 }}>
-          <i className="ti ti-calendar-check" style={{ fontSize:16, color:'#1f4d3f' }} /> Online-Buchungen
+          <i className="ti ti-calendar-check" style={{ fontSize:16, color:'#6b6b6e' }} /> Online-Buchungen
         </span>
         <div style={{ display:'flex', gap:6, marginLeft:'auto', flexWrap:'wrap' }}>
           <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
             style={{ border:'0.5px solid var(--border)', borderRadius:6, padding:'4px 8px', fontSize:11, background:'var(--bg3)', color:'var(--t1)', outline:'none' }} />
           {['all','pending','confirmed','cancelled'].map(s => (
             <button key={s} onClick={()=>setFilter(s)}
-              style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid '+(filter===s?'#1f4d3f':'var(--border)'), background:filter===s?'#1f4d3f14':'var(--bg3)', color:filter===s?'#1f4d3f':'var(--t2)', fontSize:11, fontWeight:filter===s?700:400, cursor:'pointer' }}>
+              style={{ padding:'4px 10px', borderRadius:6, border:'0.5px solid '+(filter===s?'#6b6b6e':'var(--border)'), background:filter===s?'#6b6b6e14':'var(--bg3)', color:filter===s?'#6b6b6e':'var(--t2)', fontSize:11, fontWeight:filter===s?700:400, cursor:'pointer' }}>
               {s==='all'?'Alle':STATUS[s]?.label||s}
             </button>
           ))}

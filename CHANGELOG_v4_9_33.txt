@@ -1,0 +1,14 @@
+# ImmoPixels CRM v4.9.33 — Automatikus Kundennummer (KD…) új ügyfeleknek
+## 2026-06-14
+- Új ügyfél létrehozásakor a Kundennummer automatikusan a következő szabad
+  KD-szám lesz (most KD189, utána KD190…), ha üresen hagyod a mezőt.
+- A legnagyobb meglévő KD + 1 elven megy → ha egy régi ügyfelet a saját
+  régi számával importálsz vissza, az megmarad és NEM zavarja a sorozatot.
+- Új SQL: KUNDENNR_AUTO.sql — peek_kundennr() függvény (SECURITY DEFINER).
+- Az ügyfél-szerkesztőbe bekerült a Kundennummer mező (üresen hagyva →
+  automatikus; re-importnál a régi szám beírható).
+
+KÜLÖN SQL — FUTTASD AZ ÉLES SUPABASE-BEN: KUNDENNR_AUTO.sql
+
+Érintett: app/BoardApp.js (ügyfél-mentés + mező + VER).
++ KUNDENNR_AUTO.sql. VER: v4.9.33

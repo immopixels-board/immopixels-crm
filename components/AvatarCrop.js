@@ -131,7 +131,7 @@ export default function AvatarCrop({ onDone, onCancel, initialSrc }) {
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onCancel} style={{ background: 'none', border: '1.5px solid #c8c3ba', color: '#4a4640', borderRadius: 7, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Mégsem</button>
-          {imgSrc && <button onClick={crop} style={{ background: '#1f4d3f', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ Mentés</button>}
+          {imgSrc && <button onClick={crop} style={{ background: '#6b6b6e', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ Mentés</button>}
         </div>
       </div>
     </div>

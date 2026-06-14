@@ -38,7 +38,7 @@ export default function BirthdayOverlay({ person, staff, me, onClose }) {
         `}</style>
 
         {/* Confetti */}
-        {['#1f4d3f','#e24b4a','#1d9e75','#1d5ec7','#7c3aed','#f97316'].map((c,i)=>(
+        {['#6b6b6e','#e24b4a','#1d9e75','#1d5ec7','#7c3aed','#f97316'].map((c,i)=>(
           Array.from({length:4}).map((_,j)=>(
             <div key={c+j} className="bd-confetti" style={{
               left:Math.floor(Math.random()*100)+'%', top:-8,
@@ -51,17 +51,17 @@ export default function BirthdayOverlay({ person, staff, me, onClose }) {
 
         {/* Cake SVG */}
         <svg width="80" height="88" viewBox="0 0 80 88" style={{display:'block',margin:'0 auto 16px'}}>
-          <rect x="8" y="46" width="64" height="38" rx="7" fill={person?.color||'#1f4d3f'} opacity=".18" stroke={person?.color||'#1f4d3f'} strokeWidth="1.2"/>
-          <rect x="16" y="46" width="20" height="38" rx="3" fill={person?.color||'#1f4d3f'} opacity=".22"/>
-          <rect x="44" y="46" width="20" height="38" rx="3" fill={person?.color||'#1f4d3f'} opacity=".22"/>
-          <rect x="8" y="36" width="64" height="14" rx="5" fill={person?.color||'#1f4d3f'} opacity=".28" stroke={person?.color||'#1f4d3f'} strokeWidth="1"/>
-          <line x1="40" y1="36" x2="40" y2="26" stroke={person?.color||'#1f4d3f'} strokeWidth="2" strokeLinecap="round"/>
+          <rect x="8" y="46" width="64" height="38" rx="7" fill={person?.color||'#6b6b6e'} opacity=".18" stroke={person?.color||'#6b6b6e'} strokeWidth="1.2"/>
+          <rect x="16" y="46" width="20" height="38" rx="3" fill={person?.color||'#6b6b6e'} opacity=".22"/>
+          <rect x="44" y="46" width="20" height="38" rx="3" fill={person?.color||'#6b6b6e'} opacity=".22"/>
+          <rect x="8" y="36" width="64" height="14" rx="5" fill={person?.color||'#6b6b6e'} opacity=".28" stroke={person?.color||'#6b6b6e'} strokeWidth="1"/>
+          <line x1="40" y1="36" x2="40" y2="26" stroke={person?.color||'#6b6b6e'} strokeWidth="2" strokeLinecap="round"/>
           <g className="bd-flame" style={{transformOrigin:'40px 26px'}}>
             <ellipse cx="40" cy="20" rx="3.5" ry="7" fill="#f97316" opacity=".95"/>
             <ellipse cx="40" cy="18" rx="1.8" ry="4" fill="#fde68a"/>
           </g>
           {[20,30,50,60].map((x,i)=>(
-            <circle key={i} cx={x} cy="42" r="2.2" fill={['#1f4d3f','#e24b4a','#1d9e75','#1d5ec7'][i]} opacity=".5"/>
+            <circle key={i} cx={x} cy="42" r="2.2" fill={['#6b6b6e','#e24b4a','#1d9e75','#1d5ec7'][i]} opacity=".5"/>
           ))}
         </svg>
 
@@ -92,7 +92,7 @@ export default function BirthdayOverlay({ person, staff, me, onClose }) {
                 {isDani ? 'Und natürlich dein Geburtstagsgeschenk 🎁' : 'Ein kleines Geburtstagsgeschenk wartet!'}
               </div>
               <button onClick={()=>setGiftOpened(true)}
-                style={{ background:person?.color||'#1f4d3f', color:'#fff', border:'none', borderRadius:8, padding:'8px 20px', fontSize:13, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+                style={{ background:person?.color||'#6b6b6e', color:'#fff', border:'none', borderRadius:8, padding:'8px 20px', fontSize:13, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
                 <i className="ti ti-gift" style={{fontSize:14}} /> Geschenk öffnen
               </button>
             </>
@@ -106,7 +106,7 @@ export default function BirthdayOverlay({ person, staff, me, onClose }) {
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize:20, fontWeight:700, color:person?.color||'#1f4d3f', marginBottom:4 }}>Herzlichen Glückwunsch!</div>
+                  <div style={{ fontSize:20, fontWeight:700, color:person?.color||'#6b6b6e', marginBottom:4 }}>Herzlichen Glückwunsch!</div>
                   <div style={{ fontSize:12, color:'var(--t2)' }}>Wir freuen uns, mit dir zu arbeiten!</div>
                 </>
               )}
