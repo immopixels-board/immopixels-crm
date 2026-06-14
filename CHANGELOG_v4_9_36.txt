@@ -1,0 +1,9 @@
+# ImmoPixels CRM v4.9.36 — Navigáció: Kunden/Rechnungen fejléc + szélesebb számla-oldal
+## 2026-06-14
+- A /rechnungen oldal kapott egy fejlécet a "← CRM | Kunden | Rechnungen"
+  váltóval — eddig nem volt menü a számla-oldalon, ezért nem lehetett a
+  Kunden-listára jutni onnan.
+- A /rechnungen tartalom szélessége 920px → 1400px (kitölti a képernyőt).
+- Most a /kunden és /rechnungen között oda-vissza lehet navigálni a fejlécből.
+
+Érintett: app/rechnungen/page.js (Shell), app/BoardApp.js (VER). VER: v4.9.36

@@ -32,6 +32,10 @@ export default function RechnungenPage() {
   const [mahnModal, setMahnModal] = useState(null)
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
+  const [fSearch, setFSearch] = useState('')
+  const [fFrom, setFFrom] = useState('')
+  const [fTo, setFTo] = useState('')
+  const [fStatus, setFStatus] = useState('all')
 
   useEffect(() => { init() }, [])
   async function init() {
@@ -197,6 +201,16 @@ export default function RechnungenPage() {
   const kpiYear = sum(inYear(curY)), kpiAll = sum(issued)
   const kpiOpen = invoices.filter(i => i.status === 'open' || i.status === 'overdue').reduce((s, i) => s + (i.total_gross || 0), 0)
   const draftList = invoices.filter(i => i.status === 'draft'); const kpiDraft = draftList.reduce((s, i) => s + (i.total_gross || 0), 0)
+  // Status-összesítők (db + összeg) a redesignhoz
+  const statusSummary = ['draft', 'open', 'overdue', 'paid', 'storno'].map(s => { const list = invoices.filter(i => i.status === s); return { s, count: list.length, sum: list.reduce((a, i) => a + (i.total_gross || 0), 0) } })
+  // Szűrt lista
+  const filteredInvoices = invoices.filter(i => {
+    if (fStatus !== 'all' && i.status !== fStatus) return false
+    if (fFrom && (i.invoice_date || '') < fFrom) return false
+    if (fTo && (i.invoice_date || '') > fTo) return false
+    if (fSearch) { const t = fSearch.toLowerCase(); if (!String(i.client_name || '').toLowerCase().includes(t) && !String(i.invoice_number || '').toLowerCase().includes(t)) return false }
+    return true
+  })
   const monthVals = MONTHS.map((_, m) => sum(inYear(year).filter(i => +(i.invoice_date || '').slice(5, 7) === m + 1)))
   const maxMonth = Math.max(1, ...monthVals)
   const byClient = {}; inYear(year).forEach(i => { const k = i.client_name || '—'; byClient[k] = (byClient[k] || 0) + val(i) })
@@ -236,22 +250,71 @@ export default function RechnungenPage() {
       </>}
 
       {tab === 'rechnungen' && (
-        <Card title={'Rechnungen (' + invoices.length + ')'} right={<div style={{ display: 'flex', gap: 8 }}>{selected.size > 0 && <button onClick={() => delInvoices([...selected])} disabled={busy} style={{ ...primary, background: '#b3402f' }}>🗑 {selected.size} löschen</button>}<button onClick={newInvoice} style={primary}>+ Neue Rechnung</button></div>}>
-          {invoices.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: '12px 0' }}>Noch keine Rechnungen.</div>}
-          {invoices.length > 0 && <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead><tr style={{ textAlign: 'left', color: MUT }}>
-              <th style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE }}><input type="checkbox" checked={selected.size === invoices.length && invoices.length > 0} onChange={toggleSelAll} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></th>
-              {['Nr.', 'Datum', 'Kunde', 'Status', 'Brutto', ''].map((h, i) => <th key={i} style={{ padding: '6px 8px', borderBottom: '1px solid ' + LINE, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-            <tbody>{invoices.map(i => { const st = STATUS[i.status] || STATUS.open; const sel = selected.has(i.id); return <tr key={i.id} style={{ borderBottom: '0.5px solid ' + LINE, background: sel ? '#fdf6ea' : 'transparent' }}>
-              <td style={{ padding: '7px 8px' }}><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></td>
-              <td style={{ padding: '7px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>{i.invoice_number || '—'}</td>
-              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{i.invoice_date}</td>
-              <td style={{ padding: '7px 8px' }}>{i.client_name}</td>
-              <td style={{ padding: '7px 8px' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 9px', whiteSpace: 'nowrap' }}>{st.label}</span></td>
-              <td style={{ padding: '7px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{eur(i.total_gross)}</td>
-              <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}><button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>{i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}{(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#54545a' }}>Mahnung</button>}{i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}<button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button></td>
-            </tr> })}</tbody></table></div>}
-        </Card>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 16 }}>
+            {statusSummary.map(({ s, count, sum: sm }) => { const st = STATUS[s]; return (
+              <div key={s} onClick={() => setFStatus(fStatus === s ? 'all' : s)} style={{ background: fStatus === s ? st.bg : '#fff', border: '1px solid ' + (fStatus === s ? st.c : LINE), borderRadius: 10, padding: '12px 14px', cursor: 'pointer', transition: 'all .12s' }}>
+                <div style={{ fontSize: 12, color: st.c, fontWeight: 600 }}>{st.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: DARK, marginTop: 2 }}>{count}</div>
+                <div style={{ fontSize: 12, color: MUT }}>{eur(sm)}</div>
+              </div>
+            ) })}
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 14, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 11, top: 9, color: MUT }}>🔍</span>
+                <input value={fSearch} onChange={e => setFSearch(e.target.value)} placeholder="Name oder Rechnungsnummer suchen…" style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13, color: MUT }}>Zeitraum</span>
+                <input type="date" value={fFrom} onChange={e => setFFrom(e.target.value)} style={{ padding: '7px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13 }} />
+                <span style={{ color: MUT }}>–</span>
+                <input type="date" value={fTo} onChange={e => setFTo(e.target.value)} style={{ padding: '7px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13 }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+              {[['all', 'Alle'], ['draft', 'Entwurf'], ['open', 'Offen'], ['paid', 'Bezahlt'], ['overdue', 'Überfällig'], ['storno', 'Storniert']].map(([v, l]) => (
+                <button key={v} onClick={() => setFStatus(v)} style={{ borderRadius: 20, padding: '5px 14px', fontSize: 13, cursor: 'pointer', border: '1px solid ' + (fStatus === v ? GOLD : LINE), background: fStatus === v ? GOLD : '#fff', color: fStatus === v ? '#fff' : (v === 'overdue' ? '#b3402f' : DARK), fontWeight: fStatus === v ? 600 : 400 }}>{l}</button>
+              ))}
+              {(fSearch || fFrom || fTo || fStatus !== 'all') && <button onClick={() => { setFSearch(''); setFFrom(''); setFTo(''); setFStatus('all') }} style={{ borderRadius: 20, padding: '5px 12px', fontSize: 13, cursor: 'pointer', border: '1px solid ' + LINE, background: '#fff', color: MUT }}>✕ Zurücksetzen</button>}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 13, color: MUT }}>{filteredInvoices.length} von {invoices.length} Rechnungen</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {selected.size > 0 && <button onClick={() => delInvoices([...selected])} disabled={busy} style={{ ...primary, background: '#b3402f' }}>🗑 {selected.size} löschen</button>}
+              <button onClick={newInvoice} style={primary}>+ Neue Rechnung</button>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', background: '#faf8f4', fontSize: 11, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.03em' }}>
+              <div><input type="checkbox" checked={selected.size === filteredInvoices.length && filteredInvoices.length > 0} onChange={() => setSelected(s => s.size === filteredInvoices.length ? new Set() : new Set(filteredInvoices.map(i => i.id)))} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
+              <div style={{ textAlign: 'center' }}>Status</div><div>Datum</div><div>Nummer</div><div>Kunde</div><div style={{ textAlign: 'right' }}>Betrag</div><div style={{ textAlign: 'right' }}>Aktion</div>
+            </div>
+            {filteredInvoices.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: MUT }}>Keine Rechnungen gefunden.</div>}
+            {filteredInvoices.map(i => { const st = STATUS[i.status] || STATUS.open; const sel = selected.has(i.id); const clickable = i.status === 'draft'; return (
+              <div key={i.id} style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, background: sel ? '#faf8f4' : 'transparent' }}>
+                <div><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
+                <div style={{ textAlign: 'center' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>{st.label}</span></div>
+                <div style={{ color: MUT, fontSize: 13, whiteSpace: 'nowrap' }}>{i.invoice_date}</div>
+                <div onClick={() => editInvoice(i)} style={{ fontWeight: 700, cursor: 'pointer', color: clickable ? GOLD : DARK, whiteSpace: 'nowrap' }} title={clickable ? 'Entwurf bearbeiten' : 'Rechnung öffnen'}>{i.invoice_number || '—'}</div>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.client_name}</div>
+                <div style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{eur(i.total_gross)}</div>
+                <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>
+                  {i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}
+                  {(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#54545a' }}>Mahnung</button>}
+                  {i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}
+                  <button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button>
+                </div>
+              </div>
+            ) })}
+          </div>
+        </>
       )}
 
       {tab === 'import' && <ImportTab clients={clients} myId={myId} seller={seller} onDone={reload} />}
@@ -438,7 +501,20 @@ function ImportTab({ clients, myId, seller, onDone }) {
   )
 }
 
-function Shell({ children }) { return <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}><div style={{ maxWidth: 920, margin: '0 auto', padding: '24px 16px 90px' }}>{children}</div></div> }
+function Shell({ children }) {
+  return (
+    <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid ' + LINE, padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div onClick={() => { window.location.href = '/' }} style={{ fontWeight: 800, color: GOLD, cursor: 'pointer', fontSize: 15 }}>← CRM</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <a href="/kunden" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: MUT, textDecoration: 'none' }}>Kunden</a>
+          <a href="/rechnungen" style={{ padding: '0 12px', height: 52, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 600, color: GOLD, borderBottom: '2px solid ' + GOLD, textDecoration: 'none' }}>Rechnungen</a>
+        </div>
+      </div>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 20px 90px' }}>{children}</div>
+    </div>
+  )
+}
 function Kpi({ label, value, sub, accent }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#54545a' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div> }
 function Card({ title, right, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>{right}</div>{children}</div> }
 function Modal({ children, onClose, wide }) { return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 100, overflowY: 'auto' }}><div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 20, width: '100%', maxWidth: wide ? 660 : 460, fontFamily: 'Arial' }}>{children}</div></div> }

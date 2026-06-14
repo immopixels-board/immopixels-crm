@@ -1,0 +1,16 @@
+# ImmoPixels CRM v4.9.37 — Rechnungen-Liste redesign (szűrők + status-kártyák)
+## 2026-06-14
+A /rechnungen lista (Rechnungen fül) teljes redesign, a jóváhagyott terv szerint:
+- STATUS-ÖSSZESÍTŐ KÁRTYÁK felül: Entwurf / Offen / Überfällig / Bezahlt /
+  Storniert — mindegyik db + összeg, kattintásra szűr is.
+- SZŰRŐSÁV: kereső (név + számlaszám), Zeitraum von–bis (dátum), status-pillek
+  (Alle/Entwurf/Offen/Bezahlt/Überfällig/Storniert) + Zurücksetzen.
+  Minden szűrő azonnal, JS-ben.
+- ÚJ TÁBLÁZAT oszlopsorrend: Status, Datum, Nummer, Kunde, Betrag, Aktion.
+  Színes status-badge-ek. Teljes szélesség.
+- SZÁMLASZÁMRA / sorra kattintva: számla megnyitása (Entwurf → szerkesztés,
+  kiállított → megtekintés). A vázlat száma aranyszínnel kiemelve.
+- "X von Y Rechnungen" számláló a szűrt nézethez.
+
+Érintett: app/rechnungen/page.js (lista redesign + szűrő-state),
+app/BoardApp.js (VER). VER: v4.9.37
