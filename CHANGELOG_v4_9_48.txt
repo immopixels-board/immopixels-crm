@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.48 — Fahrtkosten-elrendezés, drag-ghost, PDF, Entwurf-mentés
+## 2026-06-14
+1. FAHRTKOSTEN CÍMEK BALRA: a Berechnungs-Adressen blokk (Start/Ziel +
+   km neu berechnen) most a Beschreibung MELLETT balra, külön oszlopban
+   (eddig a leírás alatt volt).
+2. POZÍCIÓ-HÚZÁS ANIMÁLVA: húzáskor a megfogott tétel megdől + árnyékot kap,
+   és ahova bekerülne, ott egy arany szaggatott "↓ hier einfügen" ghost-hely
+   nyílik nagyobb réssel (mint a board-kártyáknál).
+3. PDF: a tétel-vonalak még több Abstand-ot kaptak (nem lógnak a szövegbe);
+   a km-illesztés most a cég nevén/rövidítésén FELÜL a tételek címeiből
+   kinyert VÁROSOKRA is illeszt → így nagyobb eséllyel megtalálja a
+   Fahrtenbuch-bejegyzéseket ("Für Ihre Aufträge gefahren").
+4. ENTWURF-MENTÉS: "Als Entwurf speichern" többé NEM zárja be a szerkesztőt
+   — ment és nyitva marad, tovább szerkesztheted ("✓ Entwurf gespeichert").
+
+Érintett: app/rechnungen/neu/page.js, lib/invoice/zugferd.js,
+app/BoardApp.js (VER). VER: v4.9.48

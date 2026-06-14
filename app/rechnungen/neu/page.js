@@ -55,6 +55,7 @@ export default function NeueRechnungPage() {
   const [inv, setInv] = useState(null)
   const [busy, setBusy] = useState(false)
   const [showAddresses, setShowAddresses] = useState(false)
+  const [savedMsg, setSavedMsg] = useState('')
   const [numberPreview, setNumberPreview] = useState('')
   const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}
   const [shootsOpen, setShootsOpen] = useState({})
@@ -258,16 +259,24 @@ export default function NeueRechnungPage() {
         if (ferr) throw ferr
       }
       if (redirect) { window.location.href = '/rechnungen'; return true }
+      setBusy(false)
       return invId
     } catch (e) { alert('Fehler beim Speichern: ' + (e.message || e) + (String(e.message || '').includes('duplicate') ? '\n→ Diese Rechnungsnummer existiert bereits.' : '')); setBusy(false); return false }
   }
 
   async function fahrtenbuchKmForClient() {
     // A Fahrtenbuch a localStorage-ban van (bartz-fahrtenbuch-v1), nem Supabase-ben.
-    // Összes profil (te + Dani + bárki) összes sora, ahol a zweck/von/bis illeszkedik az ügyfélre.
+    // Illesztés: ügyfél neve/rövidítése VAGY a tételek címeiből kinyert városok.
     const c = clients.find(x => x.id === inv.client_id)
-    const keys = [c?.short_name, c?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim()).filter(k => k.length >= 2)
-    if (!keys.length) return 0
+    const keys = [c?.short_name, c?.name, inv.client_name, inv.buyer?.company].filter(Boolean).map(s => String(s).toLowerCase().trim())
+    // városok a tételek címeiből (az utolsó vesszős rész, szám nélkül)
+    for (const it of (inv.items || [])) {
+      const m = String(it.title || '').split(' - ').slice(2).join(' - ')
+      const city = m.split(',').pop().replace(/\d{4,5}/g, '').trim().toLowerCase()
+      if (city && city.length >= 3) keys.push(city)
+    }
+    const uniq = [...new Set(keys)].filter(k => k.length >= 3)
+    if (!uniq.length) return 0
     try {
       const store = JSON.parse(localStorage.getItem('bartz-fahrtenbuch-v1') || '{}')
       const rowsByProfile = store.rows || {}
@@ -275,7 +284,7 @@ export default function NeueRechnungPage() {
       for (const pid of Object.keys(rowsByProfile)) {
         for (const r of (rowsByProfile[pid] || [])) {
           const hay = ((r.zweck || '') + ' ' + (r.von || '') + ' ' + (r.bis || '')).toLowerCase()
-          if (keys.some(k => hay.includes(k))) sum += (parseFloat(r.km) || 0)
+          if (uniq.some(k => hay.includes(k))) sum += (parseFloat(r.km) || 0)
         }
       }
       return Math.round(sum)
@@ -326,7 +335,8 @@ export default function NeueRechnungPage() {
         <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{finalized ? 'Rechnung ' + inv.invoice_number : (inv.id ? 'Entwurf bearbeiten' : 'Neue Rechnung')}</div>
         <button onClick={() => setEmailModal(true)} disabled={busy} style={ghost}>📧 Per E-Mail</button>
         <button onClick={pdf} disabled={busy} style={ghost}>PDF (neuer Tab)</button>
-        {!finalized && <button onClick={() => save(false)} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
+        {!finalized && <button onClick={async () => { const r = await save(false, false); if (r) { setBusy(false); setSavedMsg('✓ Entwurf gespeichert'); setTimeout(() => setSavedMsg(''), 2500) } }} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
+        {savedMsg && <span style={{ fontSize: 13, color: '#2f7a4f', fontWeight: 600 }}>{savedMsg}</span>}
         {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
         {inv.id && <button onClick={delInvoice} disabled={busy} style={{ ...ghost, color: '#b3402f', borderColor: '#e9c9c2' }}>🗑 Löschen</button>}
         <button onClick={() => { window.location.href = '/rechnungen' }} style={ghost}>Schließen</button>
@@ -383,7 +393,8 @@ export default function NeueRechnungPage() {
             <div key={i}
               onDragOver={e => { if (dragIdx === null) return; e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
               onDrop={e => { if (dragIdx === null) return; e.preventDefault(); dropItem(i) }}
-              style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + (dragOver === i && dragIdx !== null && dragIdx !== i ? GOLD : LINE), borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.4 : 1 }}>
+              style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.35 : 1, transform: dragIdx === i ? 'scale(0.98) rotate(-0.6deg)' : 'none', boxShadow: dragIdx === i ? '0 8px 22px rgba(0,0,0,.14)' : 'none', transition: 'transform .15s, box-shadow .15s, margin .15s', marginTop: (dragOver === i && dragIdx !== null && dragIdx !== i) ? 48 : 0, position: 'relative' }}>
+              {dragOver === i && dragIdx !== null && dragIdx !== i && <div style={{ position: 'absolute', top: -44, left: 0, right: 0, height: 38, border: '2px dashed ' + GOLD, borderRadius: 8, background: 'var(--gdbg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: GOLD, fontWeight: 700, pointerEvents: 'none' }}>↓ hier einfügen</div>}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                 <div
                   draggable
@@ -401,17 +412,19 @@ export default function NeueRechnungPage() {
               <input value={it.discount} onChange={e => setItem(i, { discount: e.target.value })} placeholder="0" style={{ ...box, textAlign: 'right' }} />
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
-                <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
-                {it.unit === 'km' && (it._start != null || it._ziel != null) && (
-                  <div style={{ marginTop: 6, padding: 8, background: '#faf8f4', border: '1px solid ' + LINE, borderRadius: 7 }}>
-                    <div style={{ fontSize: 10, color: MUT, fontWeight: 700, marginBottom: 4 }}>🚗 BERECHNUNGS-ADRESSEN (bearbeitbar → neu berechnen)</div>
-                    <input value={it._start || ''} onChange={e => setItem(i, { _start: e.target.value })} placeholder="Startadresse" style={{ ...box, width: '100%', marginBottom: 4, fontSize: 12 }} />
-                    <input value={it._ziel || ''} onChange={e => setItem(i, { _ziel: e.target.value })} placeholder="Zieladresse" style={{ ...box, width: '100%', marginBottom: 6, fontSize: 12 }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button onClick={() => recalcFahrt(i)} disabled={busy} style={{ ...ghost, fontSize: 11, padding: '4px 10px' }}>↻ km neu berechnen</button>
-                      <span style={{ fontSize: 11, color: MUT }}>aktuell: <b style={{ color: DARK }}>{num(it.qty).toLocaleString('de-DE')} km</b> × {eur(num(it.unit_price))} = <b style={{ color: DARK }}>{eur(num(it.qty) * num(it.unit_price))}</b></span>
+                {it.unit === 'km' && (it._start != null || it._ziel != null) ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'start' }}>
+                    <div style={{ padding: 8, background: '#faf8f4', border: '1px solid ' + LINE, borderRadius: 7 }}>
+                      <div style={{ fontSize: 10, color: MUT, fontWeight: 700, marginBottom: 4 }}>🚗 BERECHNUNGS-ADRESSEN</div>
+                      <input value={it._start || ''} onChange={e => setItem(i, { _start: e.target.value })} placeholder="Startadresse" style={{ ...box, width: '100%', marginBottom: 4, fontSize: 12 }} />
+                      <input value={it._ziel || ''} onChange={e => setItem(i, { _ziel: e.target.value })} placeholder="Zieladresse" style={{ ...box, width: '100%', marginBottom: 6, fontSize: 12 }} />
+                      <button onClick={() => recalcFahrt(i)} disabled={busy} style={{ ...ghost, fontSize: 11, padding: '4px 10px', width: '100%', marginBottom: 4 }}>↻ km neu berechnen</button>
+                      <div style={{ fontSize: 11, color: MUT, textAlign: 'center' }}><b style={{ color: DARK }}>{num(it.qty).toLocaleString('de-DE')} km</b> × {eur(num(it.unit_price))} = <b style={{ color: DARK }}>{eur(num(it.qty) * num(it.unit_price))}</b></div>
                     </div>
+                    <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={3} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
                   </div>
+                ) : (
+                  <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
                 )}
               </div>
             </div>
