@@ -216,7 +216,7 @@ export default function TeamChat({ supabase, currentUser, staff, onClose, aiOpen
   const BTN = { background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 11, color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }
 
   return (
-    <div style={{ position: 'fixed', bottom: 16, right: aiOpen ? 396 : 16, width: 560, maxWidth: 'calc(100vw - 32px)', height: '70vh', maxHeight: 'calc(100vh - 80px)', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 16, boxShadow: '0 12px 40px rgba(120,90,30,.16)', zIndex: 300, display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'right .22s cubic-bezier(.4,0,.2,1)' }}>
+    <div style={{ position: 'fixed', bottom: 20, right: aiOpen ? 412 : 20, width: 560, maxWidth: 'calc(100vw - 40px)', height: 'min(70vh, 620px)', maxHeight: 'calc(100vh - 96px)', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 16, boxShadow: '0 12px 40px rgba(120,90,30,.16)', zIndex: 300, display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'right .22s cubic-bezier(.4,0,.2,1)' }}>
 
       {/* Header */}
       <div style={{ padding: '11px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gdbg)', flexShrink: 0 }}>

@@ -1,0 +1,12 @@
+# ImmoPixels CRM v4.9.43 — Két chat egységesítve (lebegő, lekerekített)
+## 2026-06-14
+- Az AI-chat eddig teljes magasságú, jobbra dokkolt panel volt (felment a
+  tetejéig) → most LEBEGŐ, lekerekített ablak, mint a Team-chat.
+- Mindkét chat azonos stílus: jobb alsó sarok, 20px rés, 16px lekerekítés,
+  azonos árnyék, bottom:20.
+- Footerbe lógás javítva: a magasság most "min(70vh, 620px)" +
+  maxHeight "calc(100vh - 96px)" → biztosan elfér, az input nem lóg ki.
+- Ha mindkét chat nyitva: egymás mellett (AI jobbra, Team tőle balra),
+  nem fednek át.
+
+Érintett: app/BoardApp.js (AI-panel), components/TeamChat.js. VER: v4.9.43
