@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.9.42 — Kunde-avatar (favicon/kezdőbetű) + névtisztítás
+## 2026-06-14
+ÜGYFÉL-AVATAR a név előtt (board Kunden-tábla + /kunden lista):
+- Kis avatar a cégnév előtt: a weboldal FAVICONJA (a domainből, Google S2),
+  ami megbízhatóbb, mint a weboldalból "profilkép-kiszedés".
+- Ahol nincs weboldal / nem tölt be a favicon → a cég KEZDŐBETŰI (színes).
+
+NÉVTISZTÍTÁS a megjelenítésben:
+- A Billomat-importnál a cégnévbe csúszott kontaktszemély (pl.
+  "Immoztion ImmobilienHerr Jens Hotzel") megjelenítéskor levágva →
+  csak az iroda neve ("Immoztion Immobilien"). A Herr/Frau/Dr. + személynév
+  nem látszik (akár szóköz nélkül egybeírva is kezeli).
+- FONTOS: csak a MEGJELENÍTÉST tisztítja, a tárolt adatot nem írja át.
+
+MEGJEGYZÉS (őszinte korlát): a weboldalból tényleges "profilkép" automatikus
+kiszedése nem megbízható (CORS + a logó felismerése bizonytalan), ezért a
+favicon + kezdőbetű a reális megoldás. Kézi logó-feltöltés később adható.
+
+Érintett: app/BoardApp.js (clients-tábla + ClientAvatar + névtisztító),
+app/kunden/page.js (KAvatar + névtisztító). VER: v4.9.42

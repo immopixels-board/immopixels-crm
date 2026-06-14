@@ -7,6 +7,21 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6'
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const norm = s => String(s || '').toLowerCase().trim()
+function cleanName(name) {
+  if (!name) return ''
+  let s = String(name).replace(/\s*(Herr|Frau|Dr\.?|Hr\.?|Fr\.?)\b.*$/i, '').replace(/(Herr|Frau)[A-ZÄÖÜ].*$/, '')
+  return s.trim() || String(name).trim()
+}
+function initialsOf(name) {
+  const c = cleanName(name) || name || ''
+  const w = c.split(/\s+/).filter(Boolean)
+  if (!w.length) return '?'
+  return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).toUpperCase()
+}
+function faviconOf(c) {
+  const m = String(c.www || c.website || c.extra_link || '').match(/^(?:https?:\/\/)?([^\/\s]+)/i)
+  return m ? 'https://www.google.com/s2/favicons?domain=' + m[1] + '&sz=64' : null
+}
 
 function cityOf(addr) {
   // "Straße 1, 67310 Ort" → "Ort"
@@ -36,7 +51,7 @@ export default function KundenPage() {
   }
   async function load() {
     const [{ data: cls }, { data: invs }] = await Promise.all([
-      supabase.from('clients').select('id,name,short_name,kundennr,addr,email,tel,vat_number').order('name'),
+      supabase.from('clients').select('id,name,short_name,kundennr,addr,email,tel,vat_number,extra_link,color').order('name'),
       supabase.from('invoices').select('id,client_id,status,total_gross,storno_of')
     ])
     setClients(cls || [])
@@ -143,7 +158,10 @@ export default function KundenPage() {
           <div key={c.id} onClick={() => { window.location.href = '/kunden/' + c.id }} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 150px 90px 180px 130px', gap: 10, padding: '13px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.background = '#faf8f4'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <div style={{ fontWeight: 600, color: ACC }}>{c.kundennr || '—'}</div>
-            <div style={{ fontWeight: 500, color: DARK, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+            <div style={{ fontWeight: 500, color: DARK, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 9 }}>
+              <KAvatar c={c} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{cleanName(c.name)}</span>
+            </div>
             <div style={{ color: MUT, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.ort || '—'}</div>
             <div style={{ textAlign: 'center' }}>{c.s.count}</div>
             <div style={{ textAlign: 'right' }}><span style={{ fontWeight: 600, color: '#2f7a4f' }}>{eur(c.s.paid)}</span> <span style={{ color: MUT, fontSize: 12 }}>/ {eur(c.s.total)}</span></div>
@@ -160,6 +178,13 @@ export default function KundenPage() {
 }
 
 const btnGhost = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', fontSize: 14, fontWeight: 500, border: '1px solid ' + LINE, borderRadius: 8, background: '#fff', cursor: 'pointer', color: DARK }
+
+function KAvatar({ c }) {
+  const [err, setErr] = useState(false)
+  const fav = faviconOf(c)
+  if (fav && !err) return <img src={fav} onError={() => setErr(true)} style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', background: '#fff', border: '1px solid ' + LINE, flexShrink: 0 }} alt="" />
+  return <div style={{ width: 26, height: 26, borderRadius: 6, background: ACC + '1f', color: ACC, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0, border: '1px solid ' + ACC + '33' }}>{initialsOf(c.name)}</div>
+}
 const btnPrimary = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 14, fontWeight: 600, border: 'none', borderRadius: 8, background: ACC, color: '#fff', cursor: 'pointer' }
 
 function Shell({ children }) {
