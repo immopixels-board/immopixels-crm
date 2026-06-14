@@ -140,7 +140,7 @@ export default function KundenPage() {
           <div>Kd-Nr.</div><div>Name</div><div>Ort</div><div style={{ textAlign: 'center' }}>Rechn.</div><div style={{ textAlign: 'right' }}>Bezahlt / Gesamt</div><div style={{ textAlign: 'right' }}>Aktion</div>
         </div>
         {rows.map(c => (
-          <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 150px 90px 180px 130px', gap: 10, padding: '13px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14 }}
+          <div key={c.id} onClick={() => { window.location.href = '/kunden/' + c.id }} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 150px 90px 180px 130px', gap: 10, padding: '13px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.background = '#faf8f4'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <div style={{ fontWeight: 600, color: ACC }}>{c.kundennr || '—'}</div>
             <div style={{ fontWeight: 500, color: DARK, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>

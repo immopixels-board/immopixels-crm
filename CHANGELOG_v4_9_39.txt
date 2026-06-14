@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.9.39 — Kunde-profil oldal + Kundennummer/összekötés-jelző
+## 2026-06-14
+ÚJ KUNDE-PROFIL OLDAL (/kunden/<id>):
+- A Kunde-listán egy sorra kattintva megnyílik az ügyfél profilja.
+- Szerkeszthető info: név, Kundennummer, Kürzel, USt-ID, cím, email, telefon.
+- Összesítő: Rechnungen (db) / Bezahlt / Offen.
+- Az ügyfél összes számlája (státusz-badge-dzsel, kattintva megnyílik).
+- "Verknüpfte Karten" — a board-kártyák, amik erre az ügyfélre oldódnak fel
+  (client_name alapján): 🔗 verknüpft (pontos) vagy ⚠️ abw. Schreibweise (eltérő).
+- Duplikátum-jelzés: ha hasonló nevű másik ügyfél van, figyelmeztet
+  (a tényleges összevonás/merge egy következő lépés lesz).
+
+BOARD-KÁRTYA Kundennummer-JELZŐ (CardModal):
+- A kártya "Kunde" mezője alatt mostantól látszik:
+  • 🔗 Verknüpft + a Kunde neve + KUNDENNUMMER + "Profil →" link, HA a kártya
+    össze van kötve egy ügyféllel (így látod, hogy a számlázásban kötve van);
+  • ⚠️ Nicht verknüpft, ha a kártya neve nem talál ügyfelet.
+
+A Kunde-lista sor-kattintás újra aktív (a profilra visz).
+
+Érintett: app/kunden/[id]/page.js (új), app/kunden/page.js,
+components/CardModal.js, app/BoardApp.js (VER). VER: v4.9.39

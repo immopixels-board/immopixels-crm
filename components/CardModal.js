@@ -930,7 +930,30 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Kunde</div>
               <EditableField value={localCard.client_name} onSave={v => save('client_name', v)} placeholder="Kunden eingeben..." style={{ fontSize: 13, fontWeight: 600, color: '#1c1a16' }} />
-              {(() => { const cl = clients.find(c => c.short_name === localCard.client_name || c.name === localCard.client_name); return cl && cl.short_name && cl.name && cl.short_name !== cl.name ? <div style={{ fontSize:11, color:'#8a8278', marginTop:3 }}>{cl.name}</div> : null })()}
+              {(() => {
+                const nrm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                const cn = localCard.client_name
+                let cl = clients.find(c => c.short_name === cn || c.name === cn)
+                if (!cl && cn) { const n = nrm(cn); cl = clients.find(c => nrm(c.name) === n || (c.short_name && nrm(c.short_name) === n)) }
+                if (!cn) return null
+                if (cl) return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, padding: '5px 8px', background: '#eef3ee', border: '1px solid #cfe0cf', borderRadius: 6 }}>
+                    <span style={{ fontSize: 13 }}>🔗</span>
+                    <div style={{ flex: 1, fontSize: 11 }}>
+                      <span style={{ color: '#2f6b4f', fontWeight: 700 }}>Verknüpft</span>
+                      <span style={{ color: '#8a8278' }}>{cl.name && cl.name !== cn ? ' · ' + cl.name : ''}{cl.kundennr ? ' · ' : ''}</span>
+                      {cl.kundennr && <b style={{ color: '#6b6b6e' }}>{cl.kundennr}</b>}
+                    </div>
+                    <a href={'/kunden/' + cl.id} style={{ fontSize: 10, color: '#6b6b6e', textDecoration: 'none', whiteSpace: 'nowrap' }}>Profil →</a>
+                  </div>
+                )
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, padding: '5px 8px', background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 6 }}>
+                    <span style={{ fontSize: 13 }}>⚠️</span>
+                    <div style={{ flex: 1, fontSize: 11, color: '#b3402f', fontWeight: 600 }}>Nicht verknüpft — kein Kunde „{cn}"</div>
+                  </div>
+                )
+              })()}
             </div>
             <div style={{ background: '#f4f2ef', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>Makler</div>
