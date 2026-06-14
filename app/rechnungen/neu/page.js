@@ -138,6 +138,7 @@ export default function NeueRechnungPage() {
     }
     addr = addr.replace(/\s*[-–—]?\s*(foto\s*\+\s*reel|foto-?reel|foto-?dron\w*|reel|drohne|drone)\s*$/i, '').trim()
     if (!cd.booking_address && cd.addr && !addr.toLowerCase().includes(String(cd.addr).toLowerCase())) addr = [addr, cd.addr].filter(Boolean).join(', ')
+    addr = shortAddr(addr)
     const title = [dd, clientShort, addr].filter(Boolean).join(' - ')
     const tt = ((cd.card_type || '') + ' ' + (cd.title || '')).toLowerCase()
     const hasReel = /reel/.test(tt), hasDrohne = /drohne|drone|dron/.test(tt), hasMakler = /makler/.test(tt)

@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.9.46 — Tétel-címekből PLZ + ország eltávolítva
+## 2026-06-14
+- A számla tétel-címeiből (a kártyákból generált pozícióknál) mostantól
+  kimarad a PLZ (irányítószám) és az ország (Deutschland/Germany).
+  Csak az utcanév + házszám + város marad.
+  Pl. "Jörg-von-Schauenburg-Str. 3, 68165 Mannheim, Deutschland"
+      → "Jörg-von-Schauenburg-Str. 3, Mannheim"
+- A shortAddr tisztító eddig is létezett, de a tétel-cím képzésekor nem
+  volt alkalmazva — most a buildFromCard ráhúzza.
+
+Érintett: app/rechnungen/neu/page.js (buildFromCard). VER: v4.9.46
