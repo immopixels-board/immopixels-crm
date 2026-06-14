@@ -21,6 +21,8 @@ export default function KundeProfil() {
   const [edit, setEdit] = useState(false)
   const [form, setForm] = useState({})
   const [busy, setBusy] = useState(false)
+  const [mergeTarget, setMergeTarget] = useState(null)
+  const [mergePreview, setMergePreview] = useState(null)
 
   useEffect(() => { if (id) load() }, [id])
   async function load() {
@@ -74,6 +76,39 @@ export default function KundeProfil() {
       if (error) throw error
       setEdit(false); await load()
     } catch (e) { alert('Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
+  // MERGE: a "source" (duplikát) ügyfelet beolvasztjuk EBBE (client) — előnézet
+  async function openMergePreview(source) {
+    setBusy(true)
+    try {
+      const { data: srcInvoices } = await supabase.from('invoices').select('id,invoice_number,total_gross').eq('client_id', source.id)
+      const { data: allCards } = await supabase.from('cards').select('id,client_name').is('deleted_at', null)
+      const srcCards = (allCards || []).filter(c => c.client_name && (c.client_name === source.name || c.client_name === source.short_name || nrm(c.client_name) === nrm(source.name) || (source.short_name && nrm(c.client_name) === nrm(source.short_name))))
+      setMergeTarget(source)
+      setMergePreview({ invoices: srcInvoices || [], cards: srcCards })
+    } catch (e) { alert('Fehler beim Laden der Vorschau: ' + (e.message || e)) }
+    setBusy(false)
+  }
+  async function doMerge() {
+    if (!mergeTarget || !mergePreview) return
+    setBusy(true)
+    try {
+      // 1) a duplikát számláit átkötjük erre az ügyfélre
+      for (const inv of mergePreview.invoices) { const { error } = await supabase.from('invoices').update({ client_id: client.id, client_name: client.name }).eq('id', inv.id); if (error) throw error }
+      // 2) a duplikát kártyáit átírjuk erre az ügyfél nevére
+      for (const cd of mergePreview.cards) { const { error } = await supabase.from('cards').update({ client_name: client.name }).eq('id', cd.id); if (error) throw error }
+      // 3) hiányzó adatokat átveszünk a duplikátumból (csak ha itt üres)
+      const fill = {}
+      for (const k of ['addr', 'email', 'tel', 'vat_number', 'kundennr', 'short_name']) { if (!client[k] && mergeTarget[k]) fill[k] = mergeTarget[k] }
+      if (Object.keys(fill).length) await supabase.from('clients').update(fill).eq('id', client.id)
+      // 4) a duplikát törlése
+      const { error: delErr } = await supabase.from('clients').delete().eq('id', mergeTarget.id); if (delErr) throw delErr
+      setMergeTarget(null); setMergePreview(null)
+      alert('Zusammenführung erfolgreich. ' + mergePreview.invoices.length + ' Rechnung(en) und ' + mergePreview.cards.length + ' Karte(n) übernommen.')
+      await load()
+    } catch (e) { alert('Fehler beim Zusammenführen: ' + (e.message || e)) }
     setBusy(false)
   }
 
@@ -144,8 +179,15 @@ export default function KundeProfil() {
           <div style={{ background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 10, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 18 }}>⚠️</span>
             <div style={{ flex: 1, fontSize: 13, color: DARK }}>
-              Möglicher Doppel-Kunde: {dupes.map(d => <b key={d.id} style={{ marginRight: 8 }}>{d.name}{d.kundennr ? ' (' + d.kundennr + ')' : ''}</b>)}
-              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>Zusammenführen folgt in einem nächsten Schritt — vorerst nur Hinweis.</div>
+              <div style={{ marginBottom: 4 }}>Möglicher Doppel-Kunde gefunden:</div>
+              {dupes.map(d => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                  <b style={{ flex: 1 }}>{d.name}{d.kundennr ? ' (' + d.kundennr + ')' : ''}</b>
+                  <a href={'/kunden/' + d.id} style={{ fontSize: 11, color: MUT, textDecoration: 'none' }}>ansehen</a>
+                  <button onClick={() => openMergePreview(d)} disabled={busy} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: 'none', background: ACC, color: '#fff', cursor: 'pointer' }}>→ hierhin zusammenführen</button>
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>„Zusammenführen" überträgt Rechnungen + Karten auf <b>diesen</b> Kunden und löscht den Doppel-Eintrag.</div>
             </div>
           </div>
         )}
@@ -181,6 +223,27 @@ export default function KundeProfil() {
           </div>
         </div>
       </div>
+
+      {mergePreview && mergeTarget && (
+        <div onClick={() => { if (!busy) { setMergeTarget(null); setMergePreview(null) } }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 200 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 20, width: '100%', maxWidth: 460 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: DARK, marginBottom: 6 }}>Zusammenführen bestätigen</div>
+            <div style={{ fontSize: 13, color: DARK, marginBottom: 14, lineHeight: 1.5 }}>
+              <b>{mergeTarget.name}</b>{mergeTarget.kundennr ? ' (' + mergeTarget.kundennr + ')' : ''} wird in <b>{client.name}</b>{client.kundennr ? ' (' + client.kundennr + ')' : ''} zusammengeführt.
+            </div>
+            <div style={{ background: '#f7f4ee', borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}><span>Rechnungen werden übertragen:</span><b>{mergePreview.invoices.length}</b></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}><span>Karten werden umbenannt:</span><b>{mergePreview.cards.length}</b></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: RED }}><span>Doppel-Eintrag wird gelöscht:</span><b>{mergeTarget.name}</b></div>
+            </div>
+            <div style={{ fontSize: 11, color: MUT, marginBottom: 14 }}>⚠️ Dieser Schritt kann nicht automatisch rückgängig gemacht werden.</div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setMergeTarget(null); setMergePreview(null) }} disabled={busy} style={btnGhost}>Abbrechen</button>
+              <button onClick={doMerge} disabled={busy} style={{ ...btnPrimary, background: RED }}>{busy ? '…' : 'Jetzt zusammenführen'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

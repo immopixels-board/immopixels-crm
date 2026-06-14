@@ -412,6 +412,8 @@ function CardDateTimePicker({ date, time, timeTo, onDateChange, onTimeChange, on
 
 export default function CardModal({ card, cols, staff, supabase, onClose, onUpdate, currentStaff, sendNotification, clients = [], phonebook = [], maklers = {}, onFertig, onSend }) {
   const [saved, setSaved] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignSearch, setAssignSearch] = useState('')
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => {
     const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }
@@ -948,9 +950,26 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                   </div>
                 )
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, padding: '5px 8px', background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 6 }}>
-                    <span style={{ fontSize: 13 }}>⚠️</span>
-                    <div style={{ flex: 1, fontSize: 11, color: '#b3402f', fontWeight: 600 }}>Nicht verknüpft — kein Kunde „{cn}"</div>
+                  <div style={{ marginTop: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 6 }}>
+                      <span style={{ fontSize: 13 }}>⚠️</span>
+                      <div style={{ flex: 1, fontSize: 11, color: '#b3402f', fontWeight: 600 }}>Nicht verknüpft — kein Kunde „{cn}"</div>
+                      <button onClick={() => setAssignOpen(o => !o)} style={{ fontSize: 10, padding: '3px 8px', border: '1px solid #6b6b6e', borderRadius: 5, background: assignOpen ? '#6b6b6e' : '#fff', color: assignOpen ? '#fff' : '#6b6b6e', cursor: 'pointer', whiteSpace: 'nowrap' }}>Kunde zuordnen</button>
+                    </div>
+                    {assignOpen && (
+                      <div style={{ marginTop: 4, border: '1px solid #e6c4ba', borderRadius: 6, padding: 6, background: '#fff' }}>
+                        <input autoFocus value={assignSearch} onChange={e => setAssignSearch(e.target.value)} placeholder="Kunde suchen…" style={{ width: '100%', padding: '5px 8px', border: '1px solid #ece4d6', borderRadius: 5, fontSize: 11, boxSizing: 'border-box', marginBottom: 4 }} />
+                        <div style={{ maxHeight: 140, overflowY: 'auto' }}>
+                          {(clients || []).filter(c => !assignSearch || (c.name || '').toLowerCase().includes(assignSearch.toLowerCase()) || (c.kundennr || '').toLowerCase().includes(assignSearch.toLowerCase())).slice(0, 30).map(c => (
+                            <div key={c.id} onClick={() => { save('client_name', c.name); setAssignOpen(false); setAssignSearch('') }} style={{ padding: '6px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 5, display: 'flex', justifyContent: 'space-between', gap: 6 }} onMouseEnter={e => e.currentTarget.style.background = '#f3f0ea'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <span style={{ fontWeight: 600 }}>{c.name}</span>
+                              {c.kundennr && <span style={{ color: '#8a8278' }}>{c.kundennr}</span>}
+                            </div>
+                          ))}
+                          {(clients || []).length === 0 && <div style={{ padding: 8, fontSize: 11, color: '#8a8278' }}>Keine Kunden geladen.</div>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })()}

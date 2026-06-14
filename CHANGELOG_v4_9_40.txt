@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.9.40 — Kártya-átkötés + ügyfél-összevonás (merge)
+## 2026-06-14
+KÁRTYA-ÁTKÖTÉS (CardModal):
+- A board-kártya "Nicht verknüpft" jelzésénél új "Kunde zuordnen" gomb →
+  kereshető ügyfél-lista (név/Kundennummer) → a választottra állítja a
+  kártya client_name-jét, így összeköti az ügyféllel.
+
+ÜGYFÉL-ÖSSZEVONÁS / MERGE (Kunde-profil):
+- A duplikátum-figyelmeztetésnél "→ hierhin zusammenführen" gomb minden
+  lehetséges duplikátumnál.
+- ELŐNÉZET-MODAL megerősítés előtt: megmutatja, hány Rechnung kerül át,
+  hány Karte lesz átnevezve, és hogy a duplikát törlődik.
+- Végrehajtás: a duplikát számláit átköti erre az ügyfélre (client_id),
+  a kártyáit átírja erre a névre, a hiányzó adatokat (cím/email/stb.)
+  átveszi a duplikátumból (csak ha itt üres), majd törli a duplikátumot.
+- Minden lépés try/catch-csel — hiba esetén látható üzenet, nem csendes.
+
+⚠️ FIGYELEM: a merge élő adatot módosít és töröl, automatikusan nem
+visszavonható. Az előnézet miatt látod, mi fog történni, mielőtt megerősíted.
+
+Érintett: components/CardModal.js, app/kunden/[id]/page.js,
+app/BoardApp.js (VER). VER: v4.9.40
