@@ -54,6 +54,7 @@ export default function NeueRechnungPage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [showAddresses, setShowAddresses] = useState(false)
   const [numberPreview, setNumberPreview] = useState('')
   const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}
   const [shootsOpen, setShootsOpen] = useState({})
@@ -189,7 +190,22 @@ export default function NeueRechnungPage() {
       const rate = num(fahrt.rate) || 0.29
       const ort = addr.split(',')[0]
       const srcTitle = shortAddr(it.title) || ('Fahrtkosten — ' + ort)
-      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: srcTitle, desc: 'Fahrtkosten (Hin- und Rückfahrt)', qty: km, unit_price: rate, unit: 'km', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km }); return { ...p, items: a } })
+      setInv(p => { const a = [...p.items]; a.splice(i + 1, 0, { title: srcTitle, desc: 'Fahrtkosten (Hin- und Rückfahrt)', qty: km, unit_price: rate, unit: 'km', discount: '', vat_rate: seller.kleinunternehmer ? 0 : 19, _km: km, _start: fahrt.start, _ziel: addr }); return { ...p, items: a } })
+    } catch (e) { alert('Fahrtkosten-Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+  async function recalcFahrt(i) {
+    const it = inv.items[i]
+    if (!it._start || !it._ziel) { alert('Start- und Zieladresse nötig.'); return }
+    setBusy(true)
+    try {
+      const r = await fetch('/api/fahrtenbuch/distance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stops: [it._start, it._ziel, it._start] }) })
+      const j = await r.json()
+      if (!j.ok || !j.legs) throw new Error(j.reason || 'Distanz nicht verfügbar')
+      const meters = j.legs.reduce((s, l) => s + (l.distance || 0), 0)
+      if (!meters) throw new Error('Keine Strecke gefunden — Adresse prüfen')
+      const km = Math.round(meters / 1000 * 10) / 10
+      setItem(i, { qty: km, _km: km })
     } catch (e) { alert('Fahrtkosten-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }
@@ -264,9 +280,19 @@ export default function NeueRechnungPage() {
       return Math.round(sum)
     } catch { return 0 }
   }
+  function stripAddr(items) {
+    if (showAddresses) return items
+    // a "Datum - Kürzel - Adresse" formátumból az Adresse (3.+ szegmens) elhagyása
+    return items.map(it => {
+      const desc = it.description || ''
+      const lines = desc.split('\n')
+      lines[0] = lines[0].split(' - ').slice(0, 2).join(' - ')
+      return { ...it, description: lines.join('\n') }
+    })
+  }
   async function makePdfBytes() {
     const clientKmTotal = await fahrtenbuchKmForClient()
-    return await generateZugferdPdf({ inv: toInvoiceObj(), items: itemsForDb('x'), seller, template, clientKmTotal })
+    return await generateZugferdPdf({ inv: toInvoiceObj(), items: stripAddr(itemsForDb('x')), seller, template, clientKmTotal })
   }
   async function delInvoice() {
     if (!inv.id) { window.location.href = '/rechnungen'; return }
@@ -375,11 +401,26 @@ export default function NeueRechnungPage() {
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
                 <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
+                {it.unit === 'km' && (it._start != null || it._ziel != null) && (
+                  <div style={{ marginTop: 6, padding: 8, background: '#faf8f4', border: '1px solid ' + LINE, borderRadius: 7 }}>
+                    <div style={{ fontSize: 10, color: MUT, fontWeight: 700, marginBottom: 4 }}>🚗 BERECHNUNGS-ADRESSEN (bearbeitbar → neu berechnen)</div>
+                    <input value={it._start || ''} onChange={e => setItem(i, { _start: e.target.value })} placeholder="Startadresse" style={{ ...box, width: '100%', marginBottom: 4, fontSize: 12 }} />
+                    <input value={it._ziel || ''} onChange={e => setItem(i, { _ziel: e.target.value })} placeholder="Zieladresse" style={{ ...box, width: '100%', marginBottom: 6, fontSize: 12 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button onClick={() => recalcFahrt(i)} disabled={busy} style={{ ...ghost, fontSize: 11, padding: '4px 10px' }}>↻ km neu berechnen</button>
+                      <span style={{ fontSize: 11, color: MUT }}>aktuell: <b style={{ color: DARK }}>{num(it.qty).toLocaleString('de-DE')} km</b> × {eur(num(it.unit_price))} = <b style={{ color: DARK }}>{eur(num(it.qty) * num(it.unit_price))}</b></span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
           <datalist id="unitopts"><option value="km" /><option value="St." /><option value="Std" /><option value="Datum" /></datalist>
           <button onClick={addItem} style={ghost}>+ Position</button>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 14, fontSize: 12, color: MUT, cursor: 'pointer', userSelect: 'none' }}>
+            <input type="checkbox" checked={showAddresses} onChange={e => setShowAddresses(e.target.checked)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} />
+            Adressen auf der Rechnung anzeigen
+          </label>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22, marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + LINE, fontSize: 13 }}>
             {totalKm > 0 && <span style={{ color: MUT, marginRight: 'auto' }}>🚗 gefahren: <b style={{ color: DARK }}>{totalKm.toLocaleString('de-DE')} km</b></span>}

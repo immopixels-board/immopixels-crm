@@ -166,7 +166,8 @@ export default function RechnungenPage() {
       const clientKmTotal = await fahrtenbuchKmFor(inv)
       const cl0 = (clients || []).find(x => x.id === inv.client_id)
       const invForPdf = { ...inv, buyer: { ...(inv.buyer || {}), kundennr: (inv.buyer && inv.buyer.kundennr) || cl0?.kundennr || '' } }
-      const bytes = await generateZugferdPdf({ inv: invForPdf, items: its || [], seller, template, clientKmTotal })
+      const itemsNoAddr = (its || []).map(it => { const desc = it.description || ''; const lines = desc.split('\n'); lines[0] = lines[0].split(' - ').slice(0, 2).join(' - '); return { ...it, description: lines.join('\n') } })
+      const bytes = await generateZugferdPdf({ inv: invForPdf, items: itemsNoAddr, seller, template, clientKmTotal })
       const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob)
       window.open(u, '_blank')
       setTimeout(() => URL.revokeObjectURL(u), 60000)

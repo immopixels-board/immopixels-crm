@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.9.45 — Fahrtkosten szerkeszthető címek + címek elrejtése
+## 2026-06-14
+1. SZERKESZTHETŐ FAHRTKOSTEN-CÍMEK:
+   - A Fahrtkosten auto-klikk után a tétel alatt megjelenik két szerkeszthető
+     mező: Startadresse + Zieladresse (látod, honnan-hová számol).
+   - "↻ km neu berechnen" gomb: a módosított címekből újraszámolja a km-et,
+     és frissül az összeg is (km × Satz). Élőben látod az aktuális
+     "X km × Y € = Z €" kalkulációt.
+
+2. CÍMEK ELREJTÉSE A SZÁMLÁN (alapból OFF):
+   - A tétel-leírásból a cím (a "Datum - Kürzel - Adresse" 3. szegmense)
+     alapból NEM jelenik meg a PDF-en.
+   - "Adressen auf der Rechnung anzeigen" checkbox a + Position mellett →
+     bepipálva mégis rákerül a cím.
+   - A lista-oldali PDF-letöltés alapból szintén cím nélkül adja.
+   - A tárolt adat (DB) változatlan — csak a PDF-megjelenítést szabályozza.
+
+Érintett: app/rechnungen/neu/page.js (Fahrtkosten-címek + checkbox + stripAddr),
+app/rechnungen/page.js (lista-PDF cím nélkül), app/BoardApp.js (VER). VER: v4.9.45
