@@ -80,6 +80,7 @@ export default function NeueRechnungPage() {
     if (s2?.value) { try { const tpl = { ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }; setTemplate(tpl); setFahrt({ start: tpl.startAddress || DEFAULT_TEMPLATE.startAddress, rate: tpl.kmRate || DEFAULT_TEMPLATE.kmRate }) } catch {} }
 
     const id = new URLSearchParams(window.location.search).get('id')
+    const clientParam = new URLSearchParams(window.location.search).get('client')
     const today = new Date().toISOString().slice(0, 10)
     if (id) {
       const { data: row } = await supabase.from('invoices').select('*').eq('id', id).single()
@@ -93,6 +94,10 @@ export default function NeueRechnungPage() {
         const c = (cls || []).find(x => x.id === pf.client_id || x.name === pf.client_name || x.short_name === pf.client_name)
         setInv({ invoice_date: pf.invoice_date || today, due_date: addDays(pf.invoice_date || today, 14), client_id: c?.id || null, client_name: c?.name || pf.client_name || '', buyer: c ? buyerFromClient(c) : {}, notes: '', invoice_number: '', items: (pf.items && pf.items.length ? pf.items : [emptyItem(sl.kleinunternehmer ? 0 : 19)]).map(splitItem) })
         if (c) loadShoots(c.id, c.name, cls || [])
+      } else if (clientParam) {
+        const c = (cls || []).find(x => x.id === clientParam)
+        if (c) { setInv({ invoice_date: today, due_date: addDays(today, 14), client_id: c.id, client_name: c.name, buyer: buyerFromClient(c), notes: '', invoice_number: '', items: [emptyItem(sl.kleinunternehmer ? 0 : 19)] }); loadShoots(c.id, c.name, cls || []) }
+        else newBlank(today, sl)
       } else newBlank(today, sl)
     }
     setLoading(false)

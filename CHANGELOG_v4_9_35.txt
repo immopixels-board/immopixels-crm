@@ -1,0 +1,22 @@
+# ImmoPixels CRM v4.9.35 — Kunden-Liste oldal (új)
+## 2026-06-14
+ÚJ /kunden OLDAL:
+- Ügyfél-lista, teljes szélességben, Warmgrau designban.
+- Oszlopok: Kd-Nr., Name, Ort, Rechnungen (db), Bezahlt / Gesamt, Aktion.
+  • "Bezahlt" = ténylegesen kifizetett (status=paid) számlák összege
+  • "Gesamt" = összes kiállított (vázlat nélkül)
+- Kereső: név, Kundennummer vagy Ort szerint (azonnali, JS).
+- Sorrend: legtöbbet fizető ügyfél elöl.
+- Export gomb: CSV (Kundennummer, név, cím, Ort, email, tel, USt-ID,
+  Rechnungen, Bezahlt, Gesamt).
+- Import gomb: CSV-feltöltés — név alapján párosít (frissít vagy létrehoz),
+  fejléc-felismeréssel (Kundennummer/Firmenname/Adresse/E-Mail/Telefon/USt-ID).
+- "Neue Rechnung" gomb ügyfelenként → /rechnungen/neu?client=<id>
+  (a számla-szerkesztő most kezeli a ?client= paramétert, előválasztja).
+- Felső menüben új "Kunden" menüpont (can_invoice).
+
+MEGJEGYZÉS: a sorra kattintás → Kundenprofil EGYELŐRE NINCS (következő kör),
+ezért a sor-kattintás most inaktív, csak a Rechnung-gomb és az Export/Import él.
+
+Érintett: app/kunden/page.js (új), app/BoardApp.js (menü+VER),
+app/rechnungen/neu/page.js (?client= param). VER: v4.9.35
