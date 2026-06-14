@@ -1,0 +1,11 @@
+# ImmoPixels CRM v4.9.49 — Kunden-Duplikate prüfen gomb
+## 2026-06-14
+- A board Kunden-tab toolbarjába új gomb: "🔍 Duplikate prüfen".
+- Végignézi az ügyfeleket, és normalizált név alapján (kis/nagybetű, ékezet,
+  írásjel, szóköz, jogi forma GmbH/GbR/eK + Immobilien/Herr/Frau levágva)
+  megtalálja a hasonló nevű, valószínűleg dupla ügyfeleket.
+- Modal listázza a csoportokat; minden találatnál "Profil öffnen →", ahol a
+  már meglévő "zusammenführen" (merge) funkcióval összevonhatók.
+- (Külön a már meglévő kártya-duplikáció-kereső megmaradt, az a fotózásokra van.)
+
+Érintett: app/BoardApp.js. VER: v4.9.49

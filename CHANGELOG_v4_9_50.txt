@@ -1,0 +1,10 @@
+# ImmoPixels CRM v4.9.50 — Chat-ablakok a footer fölé emelve
+## 2026-06-14
+- Mindkét chat-ablak (Team + AI) alja 20px → 64px-re emelve, hogy az
+  alsó footer-sávot (Diese Woche/Monat/Jahr + Chat/Claude gombok) ne
+  takarja az input-mező.
+- maxHeight is igazítva (calc(100vh - 140px)), hogy a tetejük se lógjon ki.
+
+(Élőben, Chrome-mal ellenőrizve a footer-takarás.)
+
+Érintett: app/BoardApp.js (AI-chat), components/TeamChat.js. VER: v4.9.50
