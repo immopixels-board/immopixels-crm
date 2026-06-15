@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import RechnungShell from '../../components/RechnungShell'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -183,25 +184,17 @@ export default function StatsPage() {
     )
   }
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Arial', color: '#8a8278' }}>Wird geladen...</div>
+  if (loading) return <RechnungShell active="umsatz"><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', fontFamily: 'Arial', color: '#8a8278' }}>Wird geladen...</div></RechnungShell>
 
   const umsatzPct = goals.umsatz ? (totalUmsatz / goals.umsatz) * 100 : 0
   const aufnahmenPct = goals.aufnahmen ? (totalAufnahmen / goals.aufnahmen) * 100 : 0
   const igPct = goals.instagram ? (igFollowers / goals.instagram) * 100 : 0
 
   return (
-    <div style={{ fontFamily: 'Arial', background: '#f4f2ef', minHeight: '100vh', color: '#1c1a16' }}>
+    <RechnungShell active="umsatz">
       <style>{`:root{--bg:#f4f2ef;--bg2:#fff;--border:#ddd9d2;--t1:#1c1a16;--t3:#8a8278;--gold:#6b6b6e}`}</style>
 
-      <div style={{ height: 52, background: '#fff', borderBottom: '1px solid #ddd9d2', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 16 }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#8a8278', fontSize: 13 }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: 13 }} /> Board
-        </a>
-        <div style={{ width: 1, height: 16, background: '#ddd9d2' }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#6b6b6e' }}>Kunden Statistik {year}</span>
-      </div>
-
-      <div style={{ padding: '20px 24px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
@@ -328,6 +321,6 @@ export default function StatsPage() {
         </div>
 
       </div>
-    </div>
+    </RechnungShell>
   )
 }

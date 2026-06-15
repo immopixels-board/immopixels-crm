@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { generateZugferdPdf } from '../../lib/invoice/zugferd'
 import { generateMahnungPdf, defaultMahnungText } from '../../lib/invoice/mahnung'
-import TopNav from '../../components/TopNav'
+import RechnungShell from '../../components/RechnungShell'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const GOLD = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
@@ -508,12 +508,7 @@ function ImportTab({ clients, myId, seller, onDone }) {
 }
 
 function Shell({ children }) {
-  return (
-    <div style={{ minHeight: '100dvh', background: CREAM, fontFamily: 'Arial, sans-serif', color: DARK }}>
-      <TopNav active="rechnungen" />
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 20px 90px' }}>{children}</div>
-    </div>
-  )
+  return <RechnungShell active="ausgang">{children}</RechnungShell>
 }
 function Kpi({ label, value, sub, accent }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: '14px 16px' }}><div style={{ fontSize: 11, color: MUT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px' }}>{label}</div><div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#54545a' : DARK, marginTop: 4 }}>{eur(value)}</div><div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{sub}</div></div> }
 function Card({ title, right, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 14, padding: 16, marginBottom: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>{right}</div>{children}</div> }

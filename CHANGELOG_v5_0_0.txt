@@ -1,0 +1,46 @@
+# ImmoPixels CRM v5.0.0 — Rechnung als Hauptbereich mit Menüleiste
+## 2026-06-15
+
+### Große Umstrukturierung: Rechnung-Bereich
+Aus den bisher einzelnen Top-Menüpunkten (Kunden, Rechnungen, Eingangsrechnungen)
+wird EIN Hauptbereich „Rechnung" mit linker Menüleiste. Hier sammeln sich künftig
+alle Erweiterungen rund um Abrechnung.
+
+- TopNav: die 3 separaten Einträge → ein Eintrag „Rechnung" (führt auf /stats = Umsatz)
+- Neue gemeinsame Hülle: components/RechnungShell.js (TopNav + linke Leiste + Inhalt)
+- Linke Leiste (Reihenfolge):
+  1. „Rechnung schreiben"-Button (hervorgehoben, → /rechnungen/neu)
+  2. Umsatz (/stats) — STARTSEITE des Bereichs
+  3. Ausgangsrechnungen (/rechnungen)
+  4. Kunden (/kunden) — von oben in den Bereich verschoben
+  5. Eingangsrechnungen (/eingangsrechnungen)
+  6. Buchhaltung (/buchhaltung) — NEU
+- Aktiver Punkt mit Warmgrau-Markierung (#6b6b6e)
+- Mobil (≤860px): Leiste wird zu horizontal scrollbarer Leiste
+
+### Neuer Bereich: Buchhaltung (Platzhalter)
+- app/buchhaltung/page.js — eigener Abschnitt für Steuerberater-Unterlagen
+  (USt-Voranmeldung, BWA, Summen und Salden). Zählen NICHT zu den Ausgaben.
+- Inhalt (AI-Erkennung + lesbare Auszüge) folgt im nächsten Schritt.
+
+### Changelog im Board
+- Die eingebaute Changelog-Liste (Debug-Panel → Changelog) war stehengeblieben
+  (zuletzt v2.9.4). Ab jetzt wieder geführt — v5.0.0 eingetragen.
+
+### Betroffene Dateien
+- components/TopNav.js (Menü zusammengeführt)
+- components/RechnungShell.js (NEU)
+- components/DebugPanel.js (Changelog-Eintrag)
+- app/stats/page.js, app/rechnungen/page.js, app/kunden/page.js,
+  app/eingangsrechnungen/page.js (in RechnungShell eingebettet)
+- app/buchhaltung/page.js (NEU)
+- app/BoardApp.js (Version v5.0.0)
+
+### Hinweis
+Keine neue SQL. Routen unverändert (/stats, /rechnungen, /kunden,
+/eingangsrechnungen funktionieren weiter wie bisher).
+
+### Nächste Schritte
+- v5.1.0: DKV-Tankrechnungen als Ausgabe erkennen (Footer-Summe, Fahrtkosten,
+  E-Zusammenstellung überspringen)
+- v5.2.0: Buchhaltung-Inhalt (BWA / SuSa / USt-VA auslesen + aufbereiten)

@@ -11,9 +11,7 @@ const MENU = [
   { id: 'phonebook', label: 'Telefonbuch', icon: 'ti-address-book', href: '/?tab=phonebook' },
   { id: 'staff', label: 'Mitarbeiter', icon: 'ti-id-badge', href: '/?tab=staff' },
   { id: 'fahrtenbuch', label: 'Fahrtenbuch', icon: 'ti-car', href: '/?tab=fahrtenbuch' },
-  { id: 'kunden-liste', label: 'Kunden', icon: 'ti-users', href: '/kunden' },
-  { id: 'rechnungen', label: 'Rechnungen', icon: 'ti-file-invoice', href: '/rechnungen' },
-  { id: 'eingangsrechnungen', label: 'Eingangsrechnungen', icon: 'ti-file-download', href: '/eingangsrechnungen' },
+  { id: 'rechnung', label: 'Rechnung', icon: 'ti-file-invoice', href: '/stats' },
 ]
 
 export default function TopNav({ active, children }) {

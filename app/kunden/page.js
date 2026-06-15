@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import TopNav from '../../components/TopNav'
+import RechnungShell from '../../components/RechnungShell'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6'
@@ -188,10 +188,5 @@ function KAvatar({ c }) {
 const btnPrimary = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 14, fontWeight: 600, border: 'none', borderRadius: 8, background: ACC, color: '#fff', cursor: 'pointer' }
 
 function Shell({ children }) {
-  return (
-    <div style={{ minHeight: '100vh', background: '#f7f4ee' }}>
-      <TopNav active="kunden-liste" />
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 20px' }}>{children}</div>
-    </div>
-  )
+  return <RechnungShell active="kunden">{children}</RechnungShell>
 }

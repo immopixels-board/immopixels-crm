@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useParams } from 'next/navigation'
-import TopNav from '../../../components/TopNav'
+import RechnungShell from '../../../components/RechnungShell'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', GREEN = '#2f7a4f', RED = '#b3402f'
@@ -112,16 +112,15 @@ export default function KundeProfil() {
     setBusy(false)
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', background: '#f7f4ee' }}><TopNav active="kunden-liste" /><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></div>
-  if (!client) return <div style={{ minHeight: '100vh', background: '#f7f4ee' }}><TopNav active="kunden-liste" /><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Kunde nicht gefunden. <a href="/kunden" style={{ color: ACC }}>← Zur Liste</a></div></div>
+  if (loading) return <RechnungShell active="kunden"><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></RechnungShell>
+  if (!client) return <RechnungShell active="kunden"><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Kunde nicht gefunden. <a href="/kunden" style={{ color: ACC }}>← Zur Liste</a></div></RechnungShell>
 
   const inp = { width: '100%', padding: '8px 10px', border: '1px solid ' + LINE, borderRadius: 7, fontSize: 14, boxSizing: 'border-box' }
   const lbl = { fontSize: 11, color: MUT, marginBottom: 3, display: 'block', fontWeight: 600 }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f7f4ee' }}>
-      <TopNav active="kunden-liste" />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px' }}>
+    <RechnungShell active="kunden">
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <a href="/kunden" style={{ fontSize: 13, color: MUT, textDecoration: 'none' }}>← Zur Kundenliste</a>
 
         {/* fejléc */}
@@ -244,7 +243,7 @@ export default function KundeProfil() {
           </div>
         </div>
       )}
-    </div>
+    </RechnungShell>
   )
 }
 
