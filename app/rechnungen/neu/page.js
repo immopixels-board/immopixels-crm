@@ -54,7 +54,7 @@ export default function NeueRechnungPage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [showAddresses, setShowAddresses] = useState(false)
+  const [showAddresses, setShowAddresses] = useState(true)
   const [savedMsg, setSavedMsg] = useState('')
   const [numberPreview, setNumberPreview] = useState('')
   const [shoots, setShoots] = useState(null)     // {YYYY-MM: [cards]}

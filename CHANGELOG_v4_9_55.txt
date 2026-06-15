@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.9.55 — Cím visszakerült a tételbe + PDF egy oldalra
+## 2026-06-14
+CÍM (fotózás helye) VISSZA A TÉTELBE:
+- A v4.9.45-ben bevezetett cím-elrejtés alapból LEVÁGTA a tétel-cím 3.+
+  szegmensét (Casalie#012 / Schlüssel / utca-cím) → a számlán csak
+  "Datum - Casalie" maradt. Ez most javítva.
+- A címek MEGJELENÍTÉSE most az ALAPÉRTELMEZETT (showAddresses=true) — a
+  teljes tétel-cím (a fotózás helyével együtt) látszik.
+- "Adressen auf der Rechnung anzeigen" checkbox továbbra is ott van: ha
+  KIVESZED, akkor rejti a cím-részt; alapból be van pipálva.
+- A lista-oldali PDF-letöltés is a teljes címmel adja.
+
+PDF EGY OLDALRA (kevesebb felesleges 2. lap):
+- A lap-tördelés küszöbei lejjebb állítva (tételek 130→120, totals 175→150,
+  link-blokk 150→110) → a tartalom közelebb mehet a lábléchez, az utolsó
+  mondat nem ugrik feleslegesen a 2. lapra.
+
+Érintett: lib/invoice/zugferd.js (küszöbök), app/rechnungen/neu/page.js
+(showAddresses=true), app/rechnungen/page.js (lista-PDF). VER: v4.9.55
