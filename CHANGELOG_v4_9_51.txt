@@ -1,0 +1,13 @@
+# ImmoPixels CRM v4.9.51 — Számla-szerkesztő mobil-reszponzív
+## 2026-06-14
+- A számla-szerkesztő telefonon eddig szétesett (a két oszlop egymásra
+  csúszott). Most reszponzív: szűk képernyőn (<760px) EGY oszlopba rendeződik.
+  • a fő elrendezés (tartalom + oldalsáv) egymás alá kerül
+  • a Kunde / Fälligkeit / Fahrtkosten sáv rendesen, teljes szélességben
+  • az Anschrift-mezők egymás alá
+  • a tétel-sorok mobilon törnek (a fejléc-sor elrejtve)
+  • a Fahrtkosten cím-mezők egymás alá
+- Asztali nézet változatlan.
+
+Érintett: app/globals.css (media query), app/rechnungen/neu/page.js (class-ok).
+VER: v4.9.51

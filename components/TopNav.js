@@ -13,6 +13,7 @@ const MENU = [
   { id: 'fahrtenbuch', label: 'Fahrtenbuch', icon: 'ti-car', href: '/?tab=fahrtenbuch' },
   { id: 'kunden-liste', label: 'Kunden', icon: 'ti-users', href: '/kunden' },
   { id: 'rechnungen', label: 'Rechnungen', icon: 'ti-file-invoice', href: '/rechnungen' },
+  { id: 'eingangsrechnungen', label: 'Eingangsrechnungen', icon: 'ti-file-download', href: '/eingangsrechnungen' },
 ]
 
 export default function TopNav({ active, children }) {

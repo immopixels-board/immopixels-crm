@@ -342,9 +342,9 @@ export default function NeueRechnungPage() {
         <button onClick={() => { window.location.href = '/rechnungen' }} style={ghost}>Schließen</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, maxWidth: 1200, margin: '0 auto', padding: 18, alignItems: 'start' }}>
+      <div className="rech-editor-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, maxWidth: 1200, margin: '0 auto', padding: 18, alignItems: 'start' }}>
         <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="rech-anschrift-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div><Lbl>Rechnungsnummer (änderbar)</Lbl>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input value={inv.invoice_number || ''} onChange={e => set({ invoice_number: e.target.value })} placeholder={numberPreview ? ('vorläufig: ' + numberPreview) : 'Nr. wird vorbereitet…'} disabled={finalized} style={{ ...box, flex: 1 }} />
@@ -386,11 +386,11 @@ export default function NeueRechnungPage() {
           )}
 
           <div style={{ marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 800 }}>Positionen</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
+          <div className="rech-item-head" style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
             <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span>
           </div>
           {inv.items.map((it, i) => (
-            <div key={i}
+            <div key={i} className="rech-item-row"
               onDragOver={e => { if (dragIdx === null) return; e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
               onDrop={e => { if (dragIdx === null) return; e.preventDefault(); dropItem(i) }}
               style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.35 : 1, transform: dragIdx === i ? 'scale(0.98) rotate(-0.6deg)' : 'none', boxShadow: dragIdx === i ? '0 8px 22px rgba(0,0,0,.14)' : 'none', transition: 'transform .15s, box-shadow .15s, margin .15s', marginTop: (dragOver === i && dragIdx !== null && dragIdx !== i) ? 48 : 0, position: 'relative' }}>
@@ -413,7 +413,7 @@ export default function NeueRechnungPage() {
               <div>
                 <input value={it.title} onChange={e => setItem(i, { title: e.target.value })} placeholder="z.B. 01.06.2026 - EV-Da - Adresse" style={{ ...box, width: '100%', marginBottom: 4, fontWeight: 600 }} />
                 {it.unit === 'km' && (it._start != null || it._ziel != null) ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'start' }}>
+                  <div className="rech-fahrt-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignItems: 'start' }}>
                     <div style={{ padding: 8, background: '#faf8f4', border: '1px solid ' + LINE, borderRadius: 7 }}>
                       <div style={{ fontSize: 10, color: MUT, fontWeight: 700, marginBottom: 4 }}>🚗 BERECHNUNGS-ADRESSEN</div>
                       <input value={it._start || ''} onChange={e => setItem(i, { _start: e.target.value })} placeholder="Startadresse" style={{ ...box, width: '100%', marginBottom: 4, fontSize: 12 }} />
@@ -444,7 +444,7 @@ export default function NeueRechnungPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="rech-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Side title="Kunde">
             <input list="clf" value={inv.client_name} onChange={e => onClient(e.target.value)} placeholder="Kunde suchen (voller Name)…" style={{ ...box, width: '100%' }} />
             <datalist id="clf">{clients.map(c => <option key={c.id} value={c.name} />)}</datalist>

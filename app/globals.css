@@ -277,3 +277,13 @@ body{background:var(--bg);font-family:Arial,sans-serif;color:var(--t1)}
   z-index: 100;
 }
 .av-wrap:hover .av-tooltip { opacity: 1; }
+
+/* === Rechnung-Editor reszponzív (mobil) === */
+@media (max-width: 760px) {
+  .rech-editor-grid { grid-template-columns: 1fr !important; }
+  .rech-anschrift-grid { grid-template-columns: 1fr !important; }
+  .rech-item-row { grid-template-columns: 28px 1fr 1fr !important; grid-auto-flow: row; }
+  .rech-item-head { display: none !important; }
+  .rech-fahrt-grid { grid-template-columns: 1fr !important; }
+  .rech-sidebar { order: -1; }
+}

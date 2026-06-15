@@ -1,0 +1,26 @@
+# ImmoPixels CRM v4.9.52 — Eingangsrechnungen modul (1a lépcső)
+## 2026-06-14
+ÚJ MODUL: bejövő számlák / kiadások kezelése (/eingangsrechnungen).
+Ez az ALAP (1a) — a Google Drive és az AI-kiolvasás a következő lépcsők.
+
+Funkciók most:
+- DRAG & DROP feltöltő-zóna (PDF/fotó, telefonról is) — a fájl egyelőre
+  csak megnyitja a rögzítőt a fájlnévvel (a tényleges Drive-feltöltés = 1b).
+- Kézi rögzítés: Lieferant, Rechnungsnr., Datum, Netto/USt-Satz/USt/Brutto
+  (auto-számolással), Kategorie, Status, Notiz.
+- Havi nézet (hónap-választó) + 4 összesítő kártya: Ausgaben (Brutto),
+  Vorsteuer (USt), Zu prüfen, Exportiert.
+- Kategória-szűrő pillek (Ausrüstung, Software, Fahrtkosten, Material/Druck,
+  Büro, Marketing, Versicherung, Reisekosten, Sonstiges).
+- Lista: Lieferant / Datum / Brutto / USt / Kategorie / Status + szerkeszt/töröl.
+- Státuszok: Zu prüfen → Bestätigt → Exportiert.
+- Menüpont a board fejlécében ÉS a TopNav-ban (can_invoice jogosultsággal).
+
+KÖVETKEZŐ LÉPCSŐK: 1b Google Drive feltöltés · 1c Claude AI-kiolvasás ·
+2 Gmail-behúzás (AlphaHost→Gmail-címke) · 3 könyvelői export (DATEV).
+
+‼️ SQL: futtasd az EINGANGSRECHNUNGEN_TABLE.sql-t az ÉLES Supabase-ben
+(a tábla nélkül a modul üres/hibás).
+
+Érintett: app/eingangsrechnungen/page.js (új), components/TopNav.js,
+app/BoardApp.js (menü + VER). VER: v4.9.52
