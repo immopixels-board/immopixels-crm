@@ -72,26 +72,10 @@ export default function EingangsrechnungenPage() {
   }
   const [bulk, setBulk] = useState(null) // {done, total, current}
   async function extractOne(f) {
-    // méret-ellenőrzés: a base64 ~33%-kal nő, az API limitje miatt nagy fájl elbukhat
-    if (f.size > 28 * 1024 * 1024) return { _err: 'Datei zu groß (' + Math.round(f.size / 1024 / 1024) + ' MB, max ~28 MB)' }
     const b64 = await fileToBase64(f)
     const r = await fetch('/api/eingangsrechnung-ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf' }) })
-    let j
-    try { j = await r.json() } catch { return { _err: 'Server-Antwort ungültig (Status ' + r.status + ')' } }
-    if (j.ok && j.data) return j.data
-    return { _err: j.error || ('konnte nicht gelesen werden (Status ' + r.status + ')') }
-  }
-  // duplikátum-kulcs: szállító + számlaszám, vagy szállító + dátum + bruttó
-  function dupKeyOf(o) {
-    const lf = String(o.lieferant || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-    const nr = String(o.rechnungsnr || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-    const dt = o.datum || ''
-    const br = Number(o.brutto || 0).toFixed(2)
-    return nr ? lf + '|nr:' + nr : lf + '|dt:' + dt + '|br:' + br
-  }
-  function isDuplicate(o, existingKeys) {
-    const k = dupKeyOf(o)
-    return (k && existingKeys.has(k)) ? k : null
+    const j = await r.json()
+    return (j.ok && j.data) ? j.data : null
   }
   async function handleFiles(files) {
     if (!files || !files.length) return
@@ -100,36 +84,24 @@ export default function EingangsrechnungenPage() {
     if (arr.length === 1) { return handleSingle(arr[0]) }
     // TÖBB fájl → tömeges: mindegyiket kiolvassa az AI és menti "zu_pruefen"-ként
     setBulk({ done: 0, total: arr.length, current: '' })
-    // meglévő duplikátum-kulcsok (a már mentett számlákból)
-    const existingKeys = new Set((rows || []).map(dupKeyOf).filter(Boolean))
-    let ok = 0
-    const errors = [], dups = []
+    let ok = 0, fail = 0
     for (let i = 0; i < arr.length; i++) {
       const f = arr[i]
       setBulk({ done: i, total: arr.length, current: f.name })
       try {
         const d = await extractOne(f)
-        if (!d || d._err) { errors.push(f.name + ' — ' + (d?._err || 'KI konnte nichts lesen')); continue }
-        const payload = {
+        const payload = d ? {
           lieferant: d.lieferant || null, rechnungsnr: d.rechnungsnr || null, datum: d.datum || new Date().toISOString().slice(0, 10),
           netto: Number(d.netto) || 0, ust: Number(d.ust) || 0, brutto: Number(d.brutto) || 0, ust_satz: Number(d.ust_satz) || 19,
           kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', status: 'zu_pruefen', datei_name: f.name, ki_raw: d
-        }
-        // duplikátum-ellenőrzés (a már létezők ÉS a most feltöltöttek ellen)
-        const dk = isDuplicate(payload, existingKeys)
-        if (dk) { dups.push(f.name + ' (' + (payload.lieferant || '?') + ', ' + (payload.rechnungsnr || payload.brutto + ' €') + ')'); continue }
+        } : { lieferant: null, datum: new Date().toISOString().slice(0, 10), status: 'zu_pruefen', datei_name: f.name, kategorie: 'Sonstiges' }
         const { error } = await supabase.from('eingangsrechnungen').insert(payload)
-        if (error) { errors.push(f.name + ' — DB: ' + error.message); continue }
-        existingKeys.add(dupKeyOf(payload)) // hogy a kötegen belüli duplikátum is kiszűrődjön
-        ok++
-      } catch (e) { errors.push(f.name + ' — ' + (e.message || 'Fehler')) }
+        if (error) fail++; else ok++
+      } catch { fail++ }
     }
     setBulk(null)
     await load()
-    let msg = '✓ ' + ok + ' Beleg(e) gespeichert (alle „Zu prüfen").'
-    if (dups.length) msg += '\n\n⊘ ' + dups.length + ' Duplikat(e) übersprungen (nicht doppelt gezählt):\n• ' + dups.join('\n• ')
-    if (errors.length) msg += '\n\n⚠️ ' + errors.length + ' fehlgeschlagen:\n• ' + errors.join('\n• ')
-    alert(msg)
+    alert('✓ ' + ok + ' Beleg(e) verarbeitet' + (fail ? ', ' + fail + ' fehlgeschlagen' : '') + '.\nAlle stehen auf „Zu prüfen" — bitte einzeln kontrollieren.')
   }
   async function handleSingle(f) {
     const base = { lieferant: '', rechnungsnr: '', datum: new Date().toISOString().slice(0, 10), netto: '', ust: '', brutto: '', ust_satz: 19, kategorie: 'Sonstiges', status: 'zu_pruefen', notiz: '', datei_name: f.name, _new: true, _file: f }
@@ -141,10 +113,7 @@ export default function EingangsrechnungenPage() {
       const j = await r.json()
       if (j.ok && j.data) {
         const d = j.data
-        const cand = { lieferant: d.lieferant, rechnungsnr: d.rechnungsnr, datum: d.datum, brutto: d.brutto }
-        const existingKeys = new Set((rows || []).map(dupKeyOf).filter(Boolean))
-        const dk = isDuplicate(cand, existingKeys)
-        setEditRow(cur => ({ ...cur, lieferant: d.lieferant || cur.lieferant, rechnungsnr: d.rechnungsnr || '', datum: d.datum || cur.datum, netto: d.netto != null ? String(d.netto) : '', ust: d.ust != null ? String(d.ust) : '', brutto: d.brutto != null ? String(d.brutto) : '', ust_satz: d.ust_satz || 19, kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', _konfidenz: d.konfidenz || null, _dup: !!dk }))
+        setEditRow(cur => ({ ...cur, lieferant: d.lieferant || cur.lieferant, rechnungsnr: d.rechnungsnr || '', datum: d.datum || cur.datum, netto: d.netto != null ? String(d.netto) : '', ust: d.ust != null ? String(d.ust) : '', brutto: d.brutto != null ? String(d.brutto) : '', ust_satz: d.ust_satz || 19, kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', _konfidenz: d.konfidenz || null }))
       } else {
         setEditRow(cur => ({ ...cur, _aiError: j.error || 'Konnte nicht gelesen werden' }))
       }
@@ -243,7 +212,6 @@ export default function EingangsrechnungenPage() {
             <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 14 }}>{editRow._new ? 'Neuer Beleg' : 'Beleg bearbeiten'}{editRow.datei_name ? ' · ' + editRow.datei_name : ''}</div>
             {aiBusy && <div style={{ background: '#fdf3e2', border: '1px solid #e8cf9a', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 13, color: AMBER, fontWeight: 600 }}>✨ KI liest den Beleg… einen Moment</div>}
             {!aiBusy && editRow._konfidenz && <div style={{ background: editRow._konfidenz === 'hoch' ? '#eaf3de' : '#fdf3e2', border: '1px solid ' + (editRow._konfidenz === 'hoch' ? '#bcd89a' : '#e8cf9a'), borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: editRow._konfidenz === 'hoch' ? GREEN : AMBER }}>✨ KI-Erkennung: Konfidenz <b>{editRow._konfidenz}</b> — bitte Werte prüfen und ggf. korrigieren.</div>}
-            {!aiBusy && editRow._dup && <div style={{ background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: '#b3402f', fontWeight: 600 }}>⊘ Möglicher Doppel-Beleg! Lieferant + Rechnungsnr./Betrag stimmen mit einem bereits erfassten Beleg überein. Prüfe, ob du ihn wirklich nochmal speichern willst.</div>}
             {!aiBusy && editRow._aiError && <div style={{ background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: '#b3402f' }}>⚠️ KI konnte den Beleg nicht automatisch lesen ({editRow._aiError}). Bitte manuell eintragen.</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Lieferant</label><input value={editRow.lieferant} onChange={e => setEditRow({ ...editRow, lieferant: e.target.value })} style={inp} /></div>
