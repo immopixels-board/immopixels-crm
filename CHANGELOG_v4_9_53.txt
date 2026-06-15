@@ -1,0 +1,18 @@
+# ImmoPixels CRM v4.9.53 — Eingangsrechnungen AI-felismerés (1c lépcső)
+## 2026-06-14
+- A feltöltött bejövő számlát (PDF VAGY fotó) most a Claude AI KIOLVASSA:
+  Lieferant, Rechnungsnr., Datum, Netto/USt/Brutto, USt-Satz és Kategorie.
+- A drag&drop / feltöltés után a rögzítő mezői AUTOMATIKUSAN kitöltődnek,
+  te csak ellenőrzöd és mented (ember a hurokban — jogilag is így kell).
+- Új API-route: /api/eingangsrechnung-ocr — a meglévő ANTHROPIC_API_KEY-t
+  használja (ugyanaz, mint a board AI-asszisztens), Claude Sonnet modellel.
+- A modalban látszik: "✨ KI liest…" olvasás közben, utána a konfidencia
+  (hoch/mittel/niedrig) — alacsonynál figyelmeztet, hogy ellenőrizd.
+- Hibakezelés: ha az AI nem tudja olvasni, kézi bevitelre vált át.
+
+MEGJEGYZÉS: a fájl maga még NEM töltődik Google Drive-ra (az az 1b lépcső) —
+most az AI a böngészőből közvetlenül kapja a fájlt a kiolvasáshoz. A Drive-
+mentés (hogy az eredeti megmaradjon + a könyvelő lássa) a következő lépés.
+
+Érintett: app/eingangsrechnungen/page.js, app/api/eingangsrechnung-ocr/route.js (új),
+app/BoardApp.js (VER). VER: v4.9.53

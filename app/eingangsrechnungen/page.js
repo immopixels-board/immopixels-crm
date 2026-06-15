@@ -66,11 +66,30 @@ export default function EingangsrechnungenPage() {
     return f
   }
 
-  function handleFiles(files) {
+  const [aiBusy, setAiBusy] = useState(false)
+  function fileToBase64(file) {
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(file) })
+  }
+  async function handleFiles(files) {
     if (!files || !files.length) return
-    // 1a: egyelőre csak a fájlnevet vesszük + nyitunk egy üres rögzítőt (Drive-kötés = 1b, AI = 1c)
     const f = files[0]
-    setEditRow({ lieferant: '', rechnungsnr: '', datum: new Date().toISOString().slice(0, 10), netto: '', ust: '', brutto: '', ust_satz: 19, kategorie: 'Sonstiges', status: 'zu_pruefen', notiz: '', datei_name: f.name, _new: true, _file: f })
+    const base = { lieferant: '', rechnungsnr: '', datum: new Date().toISOString().slice(0, 10), netto: '', ust: '', brutto: '', ust_satz: 19, kategorie: 'Sonstiges', status: 'zu_pruefen', notiz: '', datei_name: f.name, _new: true, _file: f }
+    setEditRow(base)
+    setAiBusy(true)
+    try {
+      const b64 = await fileToBase64(f)
+      const r = await fetch('/api/eingangsrechnung-ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf' }) })
+      const j = await r.json()
+      if (j.ok && j.data) {
+        const d = j.data
+        setEditRow(cur => ({ ...cur, lieferant: d.lieferant || cur.lieferant, rechnungsnr: d.rechnungsnr || '', datum: d.datum || cur.datum, netto: d.netto != null ? String(d.netto) : '', ust: d.ust != null ? String(d.ust) : '', brutto: d.brutto != null ? String(d.brutto) : '', ust_satz: d.ust_satz || 19, kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', _konfidenz: d.konfidenz || null }))
+      } else {
+        setEditRow(cur => ({ ...cur, _aiError: j.error || 'Konnte nicht gelesen werden' }))
+      }
+    } catch (e) {
+      setEditRow(cur => ({ ...cur, _aiError: e.message || 'Fehler' }))
+    }
+    setAiBusy(false)
   }
 
   if (loading) return <div style={{ minHeight: '100vh', background: '#f7f4ee' }}><TopNav active="rechnungen" /><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></div>
@@ -103,7 +122,7 @@ export default function EingangsrechnungenPage() {
           style={{ border: '2px dashed ' + (drag ? ACC : LINE), borderRadius: 12, padding: 22, textAlign: 'center', marginBottom: 18, background: drag ? '#f0ede7' : '#faf8f4', cursor: 'pointer', transition: 'all .15s' }}>
           <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: 'none' }} onChange={e => handleFiles(e.target.files)} />
           <div style={{ fontSize: 14, color: MUT }}>☁️ PDF/Foto hierher ziehen oder klicken · auch vom Handy</div>
-          <div style={{ fontSize: 11, color: MUT, marginTop: 4 }}>Die KI liest Lieferant, Datum, Beträge & Kategorie aus (kommt in Kürze) — vorerst Felder manuell.</div>
+          <div style={{ fontSize: 11, color: MUT, marginTop: 4 }}>✨ Die KI liest Lieferant, Datum, Beträge & Kategorie automatisch aus — du prüfst nur noch.</div>
         </div>
 
         {/* összesítő */}
@@ -149,6 +168,9 @@ export default function EingangsrechnungenPage() {
         <div onClick={() => !busy && setEditRow(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 200 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 22, width: 560, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 14 }}>{editRow._new ? 'Neuer Beleg' : 'Beleg bearbeiten'}{editRow.datei_name ? ' · ' + editRow.datei_name : ''}</div>
+            {aiBusy && <div style={{ background: '#fdf3e2', border: '1px solid #e8cf9a', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 13, color: AMBER, fontWeight: 600 }}>✨ KI liest den Beleg… einen Moment</div>}
+            {!aiBusy && editRow._konfidenz && <div style={{ background: editRow._konfidenz === 'hoch' ? '#eaf3de' : '#fdf3e2', border: '1px solid ' + (editRow._konfidenz === 'hoch' ? '#bcd89a' : '#e8cf9a'), borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: editRow._konfidenz === 'hoch' ? GREEN : AMBER }}>✨ KI-Erkennung: Konfidenz <b>{editRow._konfidenz}</b> — bitte Werte prüfen und ggf. korrigieren.</div>}
+            {!aiBusy && editRow._aiError && <div style={{ background: '#fbeeea', border: '1px solid #e6c4ba', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, color: '#b3402f' }}>⚠️ KI konnte den Beleg nicht automatisch lesen ({editRow._aiError}). Bitte manuell eintragen.</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Lieferant</label><input value={editRow.lieferant} onChange={e => setEditRow({ ...editRow, lieferant: e.target.value })} style={inp} /></div>
               <div><label style={lbl}>Rechnungsnr.</label><input value={editRow.rechnungsnr} onChange={e => setEditRow({ ...editRow, rechnungsnr: e.target.value })} style={inp} /></div>
