@@ -1,0 +1,20 @@
+# ImmoPixels CRM v4.9.57 — Eingangsrechnungen: duplikátum-szűrés + hibajelzés
+## 2026-06-15
+DUPLIKÁTUM-FELISMERÉS:
+- Tömeges feltöltésnél a már létező (és a kötegen belüli) számlákat
+  felismeri és KIHAGYJA — nem számolja/menti kétszer.
+- Kulcs: szállító + számlaszám; ha nincs szám, akkor szállító + dátum + bruttó.
+- Egyes feltöltésnél a felismerés után figyelmeztet, ha duplikátum
+  ("⊘ Möglicher Doppel-Beleg!"), de rád bízza a döntést.
+
+RÉSZLETES HIBAJELZÉS (eddig némán elveszett 2/5):
+- A tömeges feltöltő mostantól MINDEN hibát megmutat fájlnévvel + okkal
+  a végén (pl. "rechnung3.pdf — Datei zu groß (31 MB)", "...— nicht lesbar").
+- Az OCR-route hibáit is továbbadja (eddig csendben null lett belőlük).
+- Méret-ellenőrzés: 28 MB fölötti fájlt előre kiszűr érthető üzenettel.
+- A végén külön blokk: hány mentve / hány duplikátum kihagyva / mi bukott el.
+
+FONTOS: a korábban némán elveszett 2 számla NEM hozható vissza (nincs róluk
+adat) — de újrafeltöltve most látni fogod a pontos hibát.
+
+Érintett: app/eingangsrechnungen/page.js. VER: v4.9.57
