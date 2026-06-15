@@ -1,0 +1,17 @@
+# ImmoPixels CRM v4.9.56 — Booking: szigorúbb késés-tűrés (15→5 perc)
+## 2026-06-15
+- A booking utazás-tudatos ellenőrzésében a megengedett késés az ELŐZŐ
+  terminről az újra 15 percről 5 PERCRE csökkentve.
+  Eddig: ha max 15 percet késnél, még engedte (warn-nal). Mostantól 5 perc
+  fölött TILTJA az időpontot.
+- A megerősítő email szövege is igazítva ("um wenige Minuten" a "bis zu 15
+  Minuten" helyett).
+
+MEGJEGYZÉS (fontos, a 17.06/18.06 esetekből): a travel-ellenőrzés CSAK az
+ONLINE foglalásokra fut. A KÉZZEL felvett vagy utólag módosított naptár-
+események ütközéseit (mint a 17.06 EV-Kl, amit kézzel tettél be a Bartz
+fotózásra) a rendszer NEM ellenőrzi — a Google Naptár engedi az átfedést.
+Erre egy külön ÜTKÖZÉS-FIGYELŐ kéne a CRM-ben (még nincs megépítve).
+
+Érintett: lib/booking/slots.js (late > 5), app/api/booking/create/route.js
+(email szöveg), app/BoardApp.js (VER). VER: v4.9.56
