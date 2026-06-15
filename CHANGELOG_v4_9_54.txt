@@ -1,0 +1,19 @@
+# ImmoPixels CRM v4.9.54 — Tömeges feltöltés + Kundennummer-bug VÉGRE megoldva
+## 2026-06-14
+TÖMEGES FELTÖLTÉS (Eingangsrechnungen):
+- A feltöltő-zóna most TÖBB fájlt is fogad egyszerre (drag&drop vagy tallózás).
+- Egy fájl → megnyitja a szerkesztőt jóváhagyásra (mint eddig).
+- Több fájl → mindegyiket az AI kiolvassa és menti "Zu prüfen"-ként,
+  haladásjelzővel (X / Y · fájlnév). Utána tételesen átnézheted.
+
+KUNDENNUMMER A PDF-EN — A VALÓDI OK MEGTALÁLVA (Chrome-mal élőben):
+- A számla-szerkesztő a clients-ből NEM kérte le a 'kundennr' mezőt a
+  betöltéskor → a buyer.kundennr mindig üres volt → a PDF-en (és a
+  KUNDENNUMMER mezőben) sosem jelent meg, hiába volt KD-szám az ügyfélnél.
+- Most a select lekéri a kundennr-t (+ vat_number) → az ügyfél kiválasztásakor
+  kitöltődik a Kundennummer-mező, és a PDF-en is megjelenik a dátum előtt.
+- (A korábbi javítások a PDF-generátort és a toInvoiceObj-ot foltozták, de az
+  adat már a BETÖLTÉSNÉL hiányzott — ezért nem segítettek.)
+
+Érintett: app/rechnungen/neu/page.js (clients select),
+app/eingangsrechnungen/page.js (tömeges), app/BoardApp.js (VER). VER: v4.9.54

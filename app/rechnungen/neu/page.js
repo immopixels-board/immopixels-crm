@@ -70,7 +70,7 @@ export default function NeueRechnungPage() {
     const { data: staff } = await supabase.from('staff').select('*').eq('email', user.email).single()
     if (!staff || (staff.role_level !== 'admin' && !staff.can_invoice)) { window.location.href = '/'; return }
     setMyId(staff.id)
-    const { data: cls } = await supabase.from('clients').select('id,name,short_name,addr,email,tel,contact_firstname,contact_lastname,contact_tel,contact_email,service_prices').order('name')
+    const { data: cls } = await supabase.from('clients').select('id,name,short_name,addr,email,tel,contact_firstname,contact_lastname,contact_tel,contact_email,service_prices,kundennr,vat_number').order('name')
     setClients(cls || [])
     const { data: sp } = await supabase.from('settings').select('value').eq('key', 'service_prices').maybeSingle()
     let savedSp = []; if (sp?.value) { try { savedSp = JSON.parse(sp.value) } catch {} }

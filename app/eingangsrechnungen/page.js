@@ -70,9 +70,40 @@ export default function EingangsrechnungenPage() {
   function fileToBase64(file) {
     return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(file) })
   }
+  const [bulk, setBulk] = useState(null) // {done, total, current}
+  async function extractOne(f) {
+    const b64 = await fileToBase64(f)
+    const r = await fetch('/api/eingangsrechnung-ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf' }) })
+    const j = await r.json()
+    return (j.ok && j.data) ? j.data : null
+  }
   async function handleFiles(files) {
     if (!files || !files.length) return
-    const f = files[0]
+    const arr = Array.from(files)
+    // EGY fájl → megnyitja a szerkesztőt jóváhagyásra (mint eddig)
+    if (arr.length === 1) { return handleSingle(arr[0]) }
+    // TÖBB fájl → tömeges: mindegyiket kiolvassa az AI és menti "zu_pruefen"-ként
+    setBulk({ done: 0, total: arr.length, current: '' })
+    let ok = 0, fail = 0
+    for (let i = 0; i < arr.length; i++) {
+      const f = arr[i]
+      setBulk({ done: i, total: arr.length, current: f.name })
+      try {
+        const d = await extractOne(f)
+        const payload = d ? {
+          lieferant: d.lieferant || null, rechnungsnr: d.rechnungsnr || null, datum: d.datum || new Date().toISOString().slice(0, 10),
+          netto: Number(d.netto) || 0, ust: Number(d.ust) || 0, brutto: Number(d.brutto) || 0, ust_satz: Number(d.ust_satz) || 19,
+          kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', status: 'zu_pruefen', datei_name: f.name, ki_raw: d
+        } : { lieferant: null, datum: new Date().toISOString().slice(0, 10), status: 'zu_pruefen', datei_name: f.name, kategorie: 'Sonstiges' }
+        const { error } = await supabase.from('eingangsrechnungen').insert(payload)
+        if (error) fail++; else ok++
+      } catch { fail++ }
+    }
+    setBulk(null)
+    await load()
+    alert('✓ ' + ok + ' Beleg(e) verarbeitet' + (fail ? ', ' + fail + ' fehlgeschlagen' : '') + '.\nAlle stehen auf „Zu prüfen" — bitte einzeln kontrollieren.')
+  }
+  async function handleSingle(f) {
     const base = { lieferant: '', rechnungsnr: '', datum: new Date().toISOString().slice(0, 10), netto: '', ust: '', brutto: '', ust_satz: 19, kategorie: 'Sonstiges', status: 'zu_pruefen', notiz: '', datei_name: f.name, _new: true, _file: f }
     setEditRow(base)
     setAiBusy(true)
@@ -120,9 +151,9 @@ export default function EingangsrechnungenPage() {
           onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files) }}
           onClick={() => fileRef.current?.click()}
           style={{ border: '2px dashed ' + (drag ? ACC : LINE), borderRadius: 12, padding: 22, textAlign: 'center', marginBottom: 18, background: drag ? '#f0ede7' : '#faf8f4', cursor: 'pointer', transition: 'all .15s' }}>
-          <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: 'none' }} onChange={e => handleFiles(e.target.files)} />
-          <div style={{ fontSize: 14, color: MUT }}>☁️ PDF/Foto hierher ziehen oder klicken · auch vom Handy</div>
-          <div style={{ fontSize: 11, color: MUT, marginTop: 4 }}>✨ Die KI liest Lieferant, Datum, Beträge & Kategorie automatisch aus — du prüfst nur noch.</div>
+          <input ref={fileRef} type="file" accept=".pdf,image/*" multiple style={{ display: 'none' }} onChange={e => handleFiles(e.target.files)} />
+          <div style={{ fontSize: 14, color: MUT }}>☁️ PDF/Foto hierher ziehen oder klicken · auch mehrere auf einmal · vom Handy</div>
+          <div style={{ fontSize: 11, color: MUT, marginTop: 4 }}>✨ Die KI liest Lieferant, Datum, Beträge & Kategorie automatisch aus — du prüfst nur noch. Mehrere Dateien = Massen-Upload.</div>
         </div>
 
         {/* összesítő */}
@@ -162,6 +193,17 @@ export default function EingangsrechnungenPage() {
         </div>
         <div style={{ fontSize: 12, color: MUT, marginTop: 10 }}>Das Original liegt später in Google Drive · „↗" öffnet den Beleg · DATEV-Export folgt.</div>
       </div>
+
+      {bulk && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 250 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 28, width: 360, maxWidth: '90vw', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>✨ KI verarbeitet Belege…</div>
+            <div style={{ fontSize: 13, color: MUT, marginBottom: 14 }}>{bulk.done} / {bulk.total} · {bulk.current}</div>
+            <div style={{ height: 8, background: '#eee', borderRadius: 5, overflow: 'hidden' }}><div style={{ height: '100%', width: (bulk.total ? Math.round(bulk.done / bulk.total * 100) : 0) + '%', background: ACC, transition: 'width .2s' }} /></div>
+            <div style={{ fontSize: 11, color: MUT, marginTop: 12 }}>Bitte warten — nicht schließen.</div>
+          </div>
+        </div>
+      )}
 
       {/* szerkesztő modal */}
       {editRow && (
