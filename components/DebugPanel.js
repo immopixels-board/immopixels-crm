@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.14', date: '2026-06-16', items: ['Keine doppelten Karten mehr bei Terminänderung: Wird ein Termin im Google Kalender verschoben/neu erstellt (neue Event-ID), erkennt der Sync über Adresse + Kunde, dass es dieselbe Aufnahme ist — die Buchungskarte wird auf die neue Zeit aktualisiert und die doppelte GCal-Karte entfernt', 'Board synchronisiert den Google Kalender jetzt automatisch (beim Öffnen + alle 5 Min), damit Kartenzeiten ohne Klick auf „GCal" aktuell bleiben'] },
+  { ver: 'v5.1.13', date: '2026-06-16', items: ['Google-Kalender-Sync aktualisiert jetzt auch die Uhrzeit/Datum von ONLINE-Buchungskarten, wenn der Termin im Google Kalender verschoben wird (vorher wurden Buchungskarten übersprungen). Damit zeigt der öffentliche Kunden-Kalender (/cal) die tatsächlichen Termine. Titel/Adresse der Buchung bleiben unverändert'] },
   { ver: 'v5.1.12', date: '2026-06-16', items: ['Öffentlicher Kunden-Kalender (/cal): Termin-Titel wird jetzt serverseitig einheitlich als „Kunde - Adresse" aufgebaut — korrekt für ALLE Aufnahmen (auch ältere Karten), nicht nur neue Buchungen'] },
   { ver: 'v5.1.11', date: '2026-06-16', items: ['Online-Buchung: Karten- und Google-Kalender-Titel jetzt im Format „Kunde - Straße Hausnr., Ort" (z.B. „Bartz - Forlenweg 4, Heidelberg") statt „Büro — Leistung — Name" — saubere, einheitliche Titel und bessere Erkennung für die Abrechnung'] },
   { ver: 'v5.1.10', date: '2026-06-16', items: ['Karten-Beschreibung: HTML aus E-Mails/Buchungen (z.B. <blockquote>, <p>, <br>) wird jetzt sauber formatiert angezeigt statt als roher Code — auch bei Nicht-GCal-Karten, bleibt bearbeitbar'] },

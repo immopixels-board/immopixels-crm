@@ -134,12 +134,16 @@ async function doSync(opts = {}) {
     // (is_gcal-tól függetlenül) ehhez a fotóshoz, és insert előtt ellenőrizzük.
     const { data: anyRows } = await supabase
       .from('cards')
-      .select('gcal_id, card_team!inner(staff_id)')
+      .select('id, gcal_id, is_gcal, card_date, card_time, booking_end_time, booking_address, addr, client_name, card_team!inner(staff_id)')
       .not('gcal_id', 'is', null)
       .eq('card_team.staff_id', staffMember.id)
     const knownGcalIds = new Set((anyRows || []).map(r => r.gcal_id))
+    const knownMap = {}
+    for (const r of anyRows || []) knownMap[r.gcal_id] = r
 
     const activeIds = new Set()
+    const activeEvents = {}
+    const nrm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
     for (const ev of items) {
       if (ev.status === 'cancelled') continue
@@ -150,6 +154,7 @@ async function doSync(opts = {}) {
       const time = berlinHHMM(ev.start.dateTime)
       const endTime = ev.end && ev.end.dateTime ? berlinHHMM(ev.end.dateTime) : null
       activeIds.add(gcal_id)
+      activeEvents[gcal_id] = { gcal_id, date, time, endTime, location: ev.location || '', client: guessClient(ev.summary || '') || '' }
 
       const ex = existingMap[gcal_id]
       if (ex) {
@@ -180,8 +185,23 @@ async function doSync(opts = {}) {
         }
       } else {
         // v4.1.6: ha ezt a gcal_id-t már egy (pl. is_gcal=false foglalás-) kártya hordozza,
-        // NE hozzunk létre duplikátot.
-        if (knownGcalIds.has(gcal_id)) continue
+        // NE hozzunk létre duplikátot — DE az időpontot szinkronizáljuk a naptárból
+        // (a foglalás címét/ügyfelét NEM írjuk felül, csak a dátum/idő/vég-időt).
+        if (knownGcalIds.has(gcal_id)) {
+          const bk = knownMap[gcal_id]
+          if (bk && !bk.is_gcal) {
+            const bkTime = (bk.card_time || '').slice(0, 5)
+            const bkEnd = (bk.booking_end_time || '').slice(0, 5)
+            if (bk.card_date !== date || bkTime !== time || bkEnd !== (endTime || '').slice(0, 5)) {
+              await supabase.from('cards').update({
+                card_date: date, card_time: time, booking_end_time: endTime,
+                updated_at: new Date().toISOString(),
+              }).eq('id', bk.id)
+              updated++
+            }
+          }
+          continue
+        }
         const ins = await supabase.from('cards').insert({
           column_id: shootingsCol.id,
           title: ev.summary || date,
@@ -198,6 +218,33 @@ async function doSync(opts = {}) {
           created++
         }
       }
+    }
+
+    // Tartalom-alapú dedup: árva foglalás-kártya (is_gcal=false, de a gcal_id-ja már nem él,
+    // mert a naptári esemény id-je megváltozott — pl. törlés+újra létrehozás vagy másik naptárba
+    // húzás) + ugyanarra a CÍMRE+ÜGYFÉLRE egy AKTÍV esemény → ez ugyanaz a fotózás. A foglalás-
+    // kártyát rálinkeljük az új eseményre (új időpont + új gcal_id), és a duplikált GCal-kártyát
+    // (ha létrejött erre az eseményre) töröljük. Így egy kártya marad, a HELYES idővel.
+    const usedEv = new Set()
+    for (const bk of (anyRows || [])) {
+      if (bk.is_gcal || !bk.gcal_id) continue        // csak foglalás-kártya (is_gcal=false)
+      if (activeIds.has(bk.gcal_id)) continue          // még él az eseménye → rendben, nem árva
+      const bkAddr = nrm(bk.booking_address || bk.addr)
+      if (!bkAddr) continue
+      const bkClient = nrm(bk.client_name)
+      const ev2 = Object.values(activeEvents).find(e =>
+        !usedEv.has(e.gcal_id) &&
+        nrm(e.location) === bkAddr &&
+        (!bkClient || !e.client || nrm(e.client) === bkClient))
+      if (!ev2) continue
+      usedEv.add(ev2.gcal_id)
+      await supabase.from('cards').update({
+        card_date: ev2.date, card_time: ev2.time, booking_end_time: ev2.endTime,
+        gcal_id: ev2.gcal_id, updated_at: new Date().toISOString(),
+      }).eq('id', bk.id)
+      // a duplikált is_gcal kártyát erre az eseményre töröljük (a foglalás-kártya viszi tovább)
+      await supabase.from('cards').delete().eq('gcal_id', ev2.gcal_id).eq('is_gcal', true).neq('id', bk.id)
+      updated++; deleted++
     }
 
     for (const gcal_id of Object.keys(existingMap)) {

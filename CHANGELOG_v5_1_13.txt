@@ -1,0 +1,14 @@
+# ImmoPixels CRM v5.1.13 — GCal-Sync aktualisiert Buchungs-Uhrzeiten
+## 2026-06-16
+- Fehler: Wenn ein ONLINE-Buchungstermin im Google Kalender verschoben
+  wurde, übernahm das CRM die neue Uhrzeit NICHT — die Buchungskarte
+  (is_gcal=false, mit gcal_id) wurde beim Sync nur übersprungen
+  (Duplikat-Schutz), aber nie aktualisiert. Dadurch zeigte der
+  öffentliche Kunden-Kalender (/cal/<Kürzel>) die alten Zeiten.
+- Jetzt: Der Sync synchronisiert für Buchungskarten zusätzlich
+  Datum / Uhrzeit / Ende aus dem Google Kalender. Titel, Adresse und
+  Kunde der Buchung bleiben unangetastet (die kommen aus der Buchung).
+- Auslösung: täglicher Cron + GCal-Webhook (Push bei Änderungen). Der
+  /cal aktualisiert sich minütlich und zeigt dann die echten Zeiten.
+- Betroffen: app/api/gcal/sync/route.js
+- Keine SQL-Änderung.

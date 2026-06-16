@@ -1,0 +1,23 @@
+# ImmoPixels CRM v5.1.14 — Keine Doppelkarten + Auto-Sync
+## 2026-06-16
+PROBLEM 1 — Doppelte Karten bei Terminänderung:
+- Wenn ein Termin im Google Kalender verschoben oder neu erstellt wird,
+  ändert sich teils die Event-ID. Der Sync erkannte die Karte dann nicht
+  wieder und legte eine ZWEITE Karte an — keine zeigte den aktuellen
+  Stand.
+- Fix: Inhaltsbasierte Erkennung. Ist die Buchungskarte verwaist (ihr
+  Event existiert nicht mehr) UND gibt es ein aktives Event mit gleicher
+  Adresse + Kunde, wird die Buchungskarte auf die neue Zeit + neue
+  gcal_id aktualisiert und die doppelte GCal-Karte gelöscht. → eine Karte
+  mit der richtigen Zeit.
+- (Zusammen mit v5.1.13: bei unveränderter Event-ID wird die Zeit der
+  Buchungskarte direkt aus dem Kalender übernommen.)
+
+PROBLEM 2 — Karten aktualisieren sich nicht automatisch:
+- Der GCal-Sync lief nur per Tages-Cron (5:00), Webhook und manuellem
+  „GCal"-Button. Beim Öffnen des Boards passierte nichts.
+- Fix: Das Board synchronisiert jetzt automatisch beim Öffnen (nach 3s)
+  und alle 5 Minuten (wenn der Tab sichtbar ist).
+
+- Betroffen: app/api/gcal/sync/route.js, app/BoardApp.js
+- Keine SQL-Änderung.
