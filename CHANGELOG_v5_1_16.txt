@@ -1,0 +1,11 @@
+# ImmoPixels CRM v5.1.16 — Monats-Überschriften in der Rechnungs-Liste
+## 2026-06-16
+- In der Rechnungs-Liste (Rechnungen-Tab) werden die Rechnungen jetzt
+  nach Monat gruppiert. Vor der ersten Rechnung jedes Monats steht eine
+  Überschrift, z.B. „Juni 2026", rechts mit Anzahl der Rechnungen und
+  Monatssumme (brutto).
+- So ist auf einen Blick erkennbar, in welchem Monat die Rechnungen
+  erstellt/datiert wurden. Die Gruppierung folgt dem Rechnungsdatum und
+  respektiert die aktiven Filter (Status, Zeitraum, Suche).
+- Betroffen: app/rechnungen/page.js
+- Keine SQL-Änderung.

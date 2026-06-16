@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { generateZugferdPdf } from '../../lib/invoice/zugferd'
 import { generateMahnungPdf, defaultMahnungText } from '../../lib/invoice/mahnung'
@@ -8,6 +8,8 @@ import RechnungShell from '../../components/RechnungShell'
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const GOLD = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', CREAM = '#faf7f1', LINE = '#ece4d6'
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+const MONTHS_FULL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+const monthLabel = mk => { const [y, m] = String(mk || '').split('-'); const idx = (+m) - 1; return (MONTHS_FULL[idx] || '') + ' ' + (y || '') }
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 const num = v => { if (typeof v === 'number') return v; let s = String(v ?? '').trim(); if (!s) return 0; if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace(/[^\d.\-]/g, ''); const n = parseFloat(s); return isNaN(n) ? 0 : n }
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100
@@ -219,6 +221,9 @@ export default function RechnungenPage() {
     if (fSearch) { const t = fSearch.toLowerCase(); if (!String(i.client_name || '').toLowerCase().includes(t) && !String(i.invoice_number || '').toLowerCase().includes(t)) return false }
     return true
   })
+  // havi összesítés a lista-fejlécekhez (a lista invoice_date szerint csökkenő sorrendben jön)
+  const monthAgg = {}
+  for (const i of filteredInvoices) { const mk = (i.invoice_date || '').slice(0, 7); if (!mk) continue; if (!monthAgg[mk]) monthAgg[mk] = { count: 0, sum: 0 }; monthAgg[mk].count++; monthAgg[mk].sum += (i.total_gross || 0) }
   const monthVals = MONTHS.map((_, m) => sum(inYear(year).filter(i => +(i.invoice_date || '').slice(5, 7) === m + 1)))
   const maxMonth = Math.max(1, ...monthVals)
   const byClient = {}; inYear(year).forEach(i => { const k = i.client_name || '—'; byClient[k] = (byClient[k] || 0) + val(i) })
@@ -303,8 +308,15 @@ export default function RechnungenPage() {
               <div style={{ textAlign: 'center' }}>Status</div><div>Datum</div><div>Nummer</div><div>Kunde</div><div style={{ textAlign: 'right' }}>Betrag</div><div style={{ textAlign: 'right' }}>Aktion</div>
             </div>
             {filteredInvoices.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: MUT }}>Keine Rechnungen gefunden.</div>}
-            {filteredInvoices.map(i => { const st = STATUS[i.status] || STATUS.open; const sel = selected.has(i.id); const clickable = i.status === 'draft'; return (
-              <div key={i.id} style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, background: sel ? '#faf8f4' : 'transparent' }}>
+            {filteredInvoices.map((i, idx) => { const st = STATUS[i.status] || STATUS.open; const sel = selected.has(i.id); const clickable = i.status === 'draft'; const mk = (i.invoice_date || '').slice(0, 7); const prevMk = idx > 0 ? (filteredInvoices[idx - 1].invoice_date || '').slice(0, 7) : null; const showHead = mk && mk !== prevMk; const agg = monthAgg[mk] || { count: 0, sum: 0 }; return (
+              <Fragment key={i.id}>
+              {showHead && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '12px 16px 7px', borderTop: '1px solid ' + LINE, background: '#faf8f4' }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: DARK, textTransform: 'uppercase', letterSpacing: '.4px' }}>{monthLabel(mk)}</span>
+                  <span style={{ fontSize: 11, color: MUT, whiteSpace: 'nowrap' }}>{agg.count} {agg.count === 1 ? 'Rechnung' : 'Rechnungen'} · {eur(agg.sum)}</span>
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, background: sel ? '#faf8f4' : 'transparent' }}>
                 <div><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
                 <div style={{ textAlign: 'center' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>{st.label}</span></div>
                 <div style={{ color: MUT, fontSize: 13, whiteSpace: 'nowrap' }}>{i.invoice_date}</div>
@@ -319,6 +331,7 @@ export default function RechnungenPage() {
                   <button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button>
                 </div>
               </div>
+              </Fragment>
             ) })}
           </div>
         </>
