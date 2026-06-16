@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.8 — Betrag-Spalte pro Position
+## 2026-06-16
+- „Rechnung schreiben": Jede Position zeigt jetzt rechts eine neue
+  Spalte „Betrag" — die Netto-Zeilensumme, berechnet aus
+  Anzahl × Preis × (1 − Rabatt%).
+- So ist sofort sichtbar, was z.B. die km-Menge ergibt und wie sich
+  ein Rabatt auf die Zeile auswirkt.
+- Betroffen: app/rechnungen/neu/page.js (Positions-Tabelle)
+- Keine SQL-Änderung.

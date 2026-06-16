@@ -393,14 +393,14 @@ export default function NeueRechnungPage() {
           )}
 
           <div style={{ marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 800 }}>Positionen</div>
-          <div className="rech-item-head" style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
-            <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span>
+          <div className="rech-item-head" style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr 92px', gap: 6, fontSize: 9, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 4, padding: '0 2px' }}>
+            <span></span><span>Anzahl</span><span>Preis</span><span>Einheit</span><span>Steuer</span><span>Rabatt%</span><span>Titel / Beschreibung</span><span style={{ textAlign: 'right' }}>Betrag</span>
           </div>
           {inv.items.map((it, i) => (
             <div key={i} className="rech-item-row"
               onDragOver={e => { if (dragIdx === null) return; e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
               onDrop={e => { if (dragIdx === null) return; e.preventDefault(); dropItem(i) }}
-              style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.35 : 1, transform: dragIdx === i ? 'scale(0.98) rotate(-0.6deg)' : 'none', boxShadow: dragIdx === i ? '0 8px 22px rgba(0,0,0,.14)' : 'none', transition: 'transform .15s, box-shadow .15s, margin .15s', marginTop: (dragOver === i && dragIdx !== null && dragIdx !== i) ? 48 : 0, position: 'relative' }}>
+              style={{ display: 'grid', gridTemplateColumns: '34px 56px 84px 56px 64px 52px 1fr 92px', gap: 6, marginBottom: 8, alignItems: 'start', background: it._card ? '#fdfaf3' : '#fbfaf7', border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 6px', opacity: dragIdx === i ? 0.35 : 1, transform: dragIdx === i ? 'scale(0.98) rotate(-0.6deg)' : 'none', boxShadow: dragIdx === i ? '0 8px 22px rgba(0,0,0,.14)' : 'none', transition: 'transform .15s, box-shadow .15s, margin .15s', marginTop: (dragOver === i && dragIdx !== null && dragIdx !== i) ? 48 : 0, position: 'relative' }}>
               {dragOver === i && dragIdx !== null && dragIdx !== i && <div style={{ position: 'absolute', top: -44, left: 0, right: 0, height: 38, border: '2px dashed ' + GOLD, borderRadius: 8, background: 'var(--gdbg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: GOLD, fontWeight: 700, pointerEvents: 'none' }}>↓ hier einfügen</div>}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                 <div
@@ -434,6 +434,7 @@ export default function NeueRechnungPage() {
                   <textarea value={it.desc} onChange={e => setItem(i, { desc: e.target.value })} placeholder="Leistung" rows={2} style={{ ...box, width: '100%', resize: 'vertical', fontFamily: 'Arial' }} />
                 )}
               </div>
+              <div style={{ textAlign: 'right', fontWeight: 700, color: DARK, fontSize: 12, paddingTop: 7, whiteSpace: 'nowrap' }}>{eur(round2(num(it.qty) * num(it.unit_price) * (1 - num(it.discount) / 100)))}</div>
             </div>
           ))}
           <datalist id="unitopts"><option value="km" /><option value="St." /><option value="Std" /><option value="Datum" /></datalist>

@@ -39,7 +39,7 @@ export async function POST(req) {
 
   const { serviceId, date, time, address, plz, lat, lng,
           customerName, customerEmail, customerPhone, note,
-          immoOffice, addon360, addonDrone, provider } = body
+          immoOffice, addon360, addonDrone, provider, delayAccepted, delayMin } = body
 
   if (!serviceId || !date || !time || !address || !customerName || !customerEmail)
     return NextResponse.json({ error: 'missing required fields' }, { status: 400, headers: CORS })
@@ -110,6 +110,7 @@ export async function POST(req) {
     note || '',
     resolvedOffice ? `Immobilienbüro: ${resolvedOffice}` : '',
     addons.length ? `Zusätzliche Leistungen: ${addons.join(', ')}` : '',
+    delayAccepted ? `⏱ Verspätung bis ${Math.min(5, Math.max(1, parseInt(delayMin) || 5))} Min akzeptiert (Makler bestätigt)` : '',
   ].filter(Boolean).join('\n')
 
   const mapsLink = `https://maps.google.com/?q=${encodeURIComponent(address)}`

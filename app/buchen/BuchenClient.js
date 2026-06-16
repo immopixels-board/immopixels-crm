@@ -27,6 +27,8 @@ export default function BuchenClient() {
   const [contact, setContact] = useState({ vorname:'', nachname:'', email:'', phone:'', office:'', note:'' })
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(null)
+  const [delayModal, setDelayModal] = useState(false)
+  const [delayAck, setDelayAck] = useState(false)
   const [inIframe] = useState(() => typeof window !== 'undefined' && window.parent !== window)
   const addrRef = useRef(null)
   const mapRef = useRef(null)
@@ -194,7 +196,21 @@ export default function BuchenClient() {
     return () => { alive = false }
   }, [time, slotsFull, addr.address])
 
+  function delayInfo() {
+    if (!time) return { delay: 0 }
+    const sf = slotsFull.find(s => s.time === time)
+    const infos = sf?.infos && Object.keys(sf.infos).length ? sf.infos : (sf?.info && sf?.auto ? { [sf.auto]: sf.info } : null)
+    if (!infos) return { delay: 0 }
+    const inits = Object.keys(infos)
+    const acting = (provider && infos[provider]) ? provider : (sf?.auto && infos[sf.auto] ? sf.auto : inits[0])
+    const inf = infos[acting]
+    const delay = inf?.delayMin || 0
+    const actName = (providers.find(p => p.init === acting)?.name || acting || '').split(' ')[0]
+    return { delay, inf, actName }
+  }
+
   async function submit() {
+    const di = delayInfo()
     setSubmitting(true)
     try {
       const res = await fetch('/api/booking/create', {
@@ -207,6 +223,7 @@ export default function BuchenClient() {
           immoOffice:contact.office, note:contact.note,
           addon360: is360Available && addon360, addonDrone: isDroneAvailable && addonDrone,
           provider: provider || undefined,
+          delayAccepted: di.delay > 0, delayMin: di.delay || undefined,
         })
       })
       const d = await res.json()
@@ -216,7 +233,7 @@ export default function BuchenClient() {
           vorname:contact.vorname, nachname:contact.nachname, email:contact.email, phone:contact.phone, office:contact.office,
         }))
       } catch {}
-      setDone(d)
+      setDone(d); setDelayModal(false)
     } catch(e) { alert(e.message) }
     finally { setSubmitting(false) }
   }
@@ -717,7 +734,36 @@ export default function BuchenClient() {
                     </div>
                   )}
 
-          <Nav onBack={()=>setStep(2)} onNext={submit} canNext={can.submit&&!submitting} nextLabel={submitting?'Wird gebucht…':'Verbindlich buchen'} />
+          <Nav onBack={()=>setStep(2)} onNext={()=>{ const di=delayInfo(); if(di.delay>0){ setDelayAck(false); setDelayModal(true) } else submit() }} canNext={can.submit&&!submitting} nextLabel={submitting?'Wird gebucht…':'Verbindlich buchen'} />
+
+          {delayModal && (() => {
+            const di = delayInfo(); const inf = di.inf || {}
+            return (
+              <div onClick={()=>!submitting&&setDelayModal(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:1000}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:14,maxWidth:420,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,.25)',overflow:'hidden'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12,padding:'18px 20px 14px'}}>
+                    <div style={{width:40,height:40,borderRadius:'50%',background:'#FAEEDA',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:22}}>⏱</div>
+                    <div style={{fontSize:18,fontWeight:700,lineHeight:1.3,color:DARK}}>Start evtl. bis zu {di.delay} Min später</div>
+                  </div>
+                  <div style={{padding:'0 20px 14px',fontSize:14,color:'#6b6b66',lineHeight:1.6}}>Direkt vor diesem Termin hat {di.actName||'unser Fotograf'} einen Einsatz in der Nähe. Durch die Anfahrt kann der Beginn ein paar Minuten später als gebucht sein.</div>
+                  {inf.prevEnd && <div style={{margin:'0 20px 14px',background:'#FAEEDA',borderRadius:8,padding:'10px 12px',fontSize:13,color:'#633806',display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:16}}>🚗</span><span>Voriger Termin{inf.from?(' in '+inf.from):''} endet {inf.prevEnd}{inf.travelMin!=null?(' · Anfahrt ~'+inf.travelMin+' Min'):''}{inf.eta?(' · Ankunft ca. '):''}{inf.eta?<b>{inf.eta}</b>:null}</span></div>}
+                  <div style={{margin:'0 20px 14px',border:'1px solid #ece4d6',borderRadius:8,padding:'12px 14px',fontSize:13,color:'#6b6b66',lineHeight:1.7}}>
+                    <div style={{fontWeight:700,color:DARK}}>{fmtDate(date,{weekday:'short',day:'numeric',month:'long',year:'numeric'})} · {time} Uhr</div>
+                    {service&&<div>{service.name}</div>}
+                    {addr.address&&<div>{addr.address}{addr.plz?(', '+addr.plz):''}</div>}
+                  </div>
+                  <label style={{display:'flex',alignItems:'flex-start',gap:10,margin:'0 20px 16px',cursor:'pointer'}}>
+                    <input type="checkbox" checked={delayAck} onChange={e=>setDelayAck(e.target.checked)} style={{width:18,height:18,marginTop:1,accentColor:GOLD,flexShrink:0}} />
+                    <span style={{fontSize:13,color:DARK,lineHeight:1.5}}>Ich akzeptiere eine mögliche Verspätung von bis zu {di.delay} Minuten.</span>
+                  </label>
+                  <div style={{display:'flex',gap:10,padding:'0 20px 20px'}}>
+                    <button onClick={()=>{ setDelayModal(false); setStep(2) }} disabled={submitting} style={{flex:1,height:42,fontSize:13,fontWeight:700,background:'#fff',color:DARK,border:'1px solid #ddd6c9',borderRadius:8,cursor:'pointer'}}>Anderen Termin wählen</button>
+                    <button onClick={()=>submit()} disabled={!delayAck||submitting} style={{flex:1,height:42,fontSize:13,fontWeight:700,background:(!delayAck||submitting)?'#c7c7c4':GOLD,color:'#fff',border:'none',borderRadius:8,cursor:(!delayAck||submitting)?'default':'pointer'}}>{submitting?'Wird gebucht…':'Termin bestätigen'}</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 

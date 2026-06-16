@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.8', date: '2026-06-16', items: ['Rechnung schreiben: neue Spalte „Betrag" pro Position — zeigt die Nettosumme der Zeile (inkl. km-Menge × Preis und Rabatt) direkt neben jeder Position'] },
+  { ver: 'v5.1.7', date: '2026-06-16', items: ['Buchung: Bei einem Termin mit möglicher Verspätung (bis 5 Min wegen Anfahrt) erscheint vor der Buchung ein Bestätigungsdialog — der Makler muss die Verspätung aktiv akzeptieren', 'Akzeptierte Verspätung wird auf der Karte vermerkt'] },
   { ver: 'v5.1.6', date: '2026-06-16', items: ['Makler-Termine importieren: liest jetzt standardmäßig ALLE Kalender des immopixels-Kontos (nicht nur einen) — kein Fototermin wird mehr übersehen', 'Neue Option „⭐ Alle Kalender"; einzelne Kalender weiterhin wählbar; nicht erreichbare Kalender werden übersprungen'] },
   { ver: 'v5.1.5', date: '2026-06-16', items: ['Kunden: „Makler-Termine"-Button jetzt auch direkt neben „Duplikate prüfen" (zusätzlich zur bisherigen Stelle)'] },
   { ver: 'v5.1.4', date: '2026-06-16', items: ['Neue Rechnung: Kundenliste ist jetzt ein festes, scrollbares Listenfenster (kein Dropdown mehr) — Höhe 325px, nach unten ziehbar (größer)', 'Suchfeld filtert die Liste; ausgewählter Kunde wird hervorgehoben'] },

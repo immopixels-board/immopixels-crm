@@ -1,0 +1,17 @@
+# ImmoPixels CRM v5.1.7 — Verspätungs-Bestätigung bei der Buchung
+## 2026-06-16
+- Wenn ein gewählter Termin nur mit kurzer Verspätung machbar ist
+  (1–5 Min, weil der Fotograf von einem vorherigen Termin in der Nähe
+  anreist), erscheint jetzt VOR der verbindlichen Buchung ein Dialog:
+  - Zeigt die konkrete Verzögerung (z.B. „bis zu 4 Min später"),
+    voriger Termin / Anfahrt / voraussichtliche Ankunft.
+  - Termin-Zusammenfassung (Datum, Uhrzeit, Service, Adresse).
+  - Pflicht-Checkbox: „Ich akzeptiere eine mögliche Verspätung…".
+    „Termin bestätigen" ist erst nach dem Häkchen aktiv.
+  - „Anderen Termin wählen" → zurück zur Zeitauswahl.
+- Termine ohne Verspätung (delayMin=0) buchen direkt wie bisher;
+  Slots mit >5 Min sind weiterhin gesperrt.
+- Die akzeptierte Verspätung wird in der Kartenbeschreibung vermerkt:
+  „⏱ Verspätung bis X Min akzeptiert (Makler bestätigt)".
+- Betroffen: app/buchen/BuchenClient.js, app/api/booking/create/route.js
+- Keine SQL-Änderung (nutzt vorhandenes description-Feld).
