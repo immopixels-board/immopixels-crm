@@ -572,6 +572,21 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
     })
   }
 
+  // HTML-es leírás (pl. e-mailből/foglalásból: <blockquote>, <p>, <br>) felismerése + biztonságos tisztítása
+  function looksHtml(s) { const t = String(s || ''); return /<\/?[a-z][\s\S]*>/i.test(t) || /&lt;\/?[a-z]/i.test(t) }
+  function decodeEnt(s) { return String(s || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&') }
+  function safeHtml(s) {
+    let t = String(s || '')
+    if (/&lt;\/?[a-z]/i.test(t) && !/<[a-z]/i.test(t)) t = decodeEnt(t)
+    return t
+      .replace(/<\s*(script|style|iframe|object|embed)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+      .replace(/<\s*(script|style|iframe|object|embed)[^>]*>/gi, '')
+      .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+      .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+      .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+      .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1="#"')
+  }
+
   async function gcalSyncCard(updatedCard) {
     if (!updatedCard?.addr || !updatedCard?.card_date) return
     if (updatedCard.is_gcal) return // GCal-ból importált kártyát nem írjuk vissza
@@ -1055,11 +1070,11 @@ export default function CardModal({ card, cols, staff, supabase, onClose, onUpda
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#aaa8a0', textTransform: 'uppercase', letterSpacing: '.5px' }}>Beschreibung</div>
                 {dragOver && <div style={{ fontSize: 10, fontWeight: 700, color: '#6b6b6e' }}>📎 Datei hierher ziehen</div>}
               </div>
-              {localCard.is_gcal && localCard.description?.includes('<') ? (
+              {localCard.is_gcal && looksHtml(localCard.description) ? (
                 <div style={{ fontSize: 13, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word' }}
-                  dangerouslySetInnerHTML={{ __html: localCard.description }} />
+                  dangerouslySetInnerHTML={{ __html: safeHtml(localCard.description) }} />
               ) : (
-                <EditableField value={localCard.description} onSave={saveDescription} staff={staff} multiline placeholder="Beschreibung hinzufügen oder Datei hierher ziehen... (@name zum Taggen)" style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => renderCommentText(v)} />
+                <EditableField value={localCard.description} onSave={saveDescription} staff={staff} multiline placeholder="Beschreibung hinzufügen oder Datei hierher ziehen... (@name zum Taggen)" style={{ fontSize: 14, fontWeight: 500, color: '#1c1a16', lineHeight: 1.65, wordBreak: 'break-word', overflowWrap: 'break-word' }} renderValue={v => looksHtml(v) ? <span style={{ display: 'block' }} dangerouslySetInnerHTML={{ __html: safeHtml(v) }} /> : renderCommentText(v)} />
               )}
             </div>
           </div>

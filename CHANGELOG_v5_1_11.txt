@@ -1,0 +1,12 @@
+# ImmoPixels CRM v5.1.11 — Buchungs-Titel „Kunde - Adresse"
+## 2026-06-16
+- Online-Buchung erzeugt Karten- und Google-Kalender-Titel jetzt im
+  Format: „<Kunde> - <Adresse>", z.B. „Bartz - Forlenweg 4, Heidelberg"
+  (vorher: „<Büro> — <Leistung> — <Name>").
+- Kalender: Status bleibt über das Präfix sichtbar
+  ([AUSSTEHEND] → [BESTÄTIGT] nach Bestätigung).
+- Vorteil: einheitliche, lesbare Titel UND zuverlässige Erkennung von
+  Kunde + Adresse für die (bereits vorhandene) Monatsabrechnung, die pro
+  Kunde Sammelrechnungs-Entwürfe erstellt.
+- Betroffen: app/api/booking/create/route.js
+- Keine SQL-Änderung.

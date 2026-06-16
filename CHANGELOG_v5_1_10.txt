@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.10 — HTML in Karten-Beschreibung
+## 2026-06-16
+- Karten mit HTML-Beschreibung (z.B. aus Buchungen/E-Mails: <blockquote>,
+  <p>, <br>) zeigten den rohen Tag-Code an, wenn die Karte NICHT aus
+  Google Calendar importiert war.
+- Jetzt:
+  - Im Kartendialog wird die HTML-Beschreibung sauber formatiert
+    angezeigt (nicht mehr als roher Code) und bleibt bearbeitbar.
+  - Auf der Board-Karte wird die Beschreibung als sauberer Text
+    (ohne Tags) angezeigt — für ALLE Karten, nicht nur GCal.
+  - Auch HTML-codierte Inhalte (&lt;p&gt; …) werden erkannt und
+    korrekt gerendert.
+- Betroffen: components/CardModal.js (looksHtml/safeHtml), app/BoardApp.js
+  (Board-Karten-Vorschau)
+- Keine SQL-Änderung. Nach dem Deploy ggf. hart neu laden (Cmd+Shift+R).

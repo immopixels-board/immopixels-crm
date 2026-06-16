@@ -121,7 +121,7 @@ export async function POST(req) {
   const { data: col } = await supabase.from('columns').select('id').ilike('title', '%booking%').limit(1).maybeSingle()
   // Core mezők (ezek nélkül nincs használható foglalás-kártya)
   const baseCard = {
-    title: resolvedOffice ? `${resolvedOffice} — ${svc.name} — ${customerName}` : `${svc.name} — ${customerName}`,
+    title: `${resolvedOffice || customerName} - ${address}`,
     card_type: cardType,
     card_date: date,
     card_time: time,
@@ -194,7 +194,7 @@ export async function POST(req) {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summary: `[AUSSTEHEND] ${resolvedOffice ? resolvedOffice + ' — ' : ''}${svc.name}${addonSuffix ? ' + ' + addonSuffix : ''} — ${customerName}`,
+            summary: `[AUSSTEHEND] ${resolvedOffice || customerName} - ${address}`,
             location: address,
             description: desc,
             start: { dateTime: startISO, timeZone: 'Europe/Berlin' },
