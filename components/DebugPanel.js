@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.17', date: '2026-06-16', items: ['Rechnungs-PDF zeigt jetzt die gefahrenen km als Info: „Für Ihre Aufträge gefahren (gesamt): X km" — berechnet aus den Adressen der berechneten Aufnahmen (Hin- und Rückfahrt ab Firmen-/Startadresse). Bisher blieb die Zeile leer, weil der Wert 0 war (Fahrtenbuch ohne Treffer)'] },
   { ver: 'v5.1.16', date: '2026-06-16', items: ['Rechnungs-Liste: Monats-Überschriften — die Rechnungen sind jetzt nach Monat gruppiert (z.B. „Juni 2026") mit Anzahl + Summe pro Monat, damit sofort sichtbar ist, in welchem Monat sie erstellt wurden'] },
   { ver: 'v5.1.15', date: '2026-06-16', items: ['Öffentlicher Kunden-Kalender (/cal): synchronisiert beim Laden selbst mit dem Google Kalender (max. 1×/Min.) — zeigt jetzt die tatsächlichen Termin-Zeiten, auch wenn das Board nicht geöffnet ist'] },
   { ver: 'v5.1.14', date: '2026-06-16', items: ['Keine doppelten Karten mehr bei Terminänderung: Wird ein Termin im Google Kalender verschoben/neu erstellt (neue Event-ID), erkennt der Sync über Adresse + Kunde, dass es dieselbe Aufnahme ist — die Buchungskarte wird auf die neue Zeit aktualisiert und die doppelte GCal-Karte entfernt', 'Board synchronisiert den Google Kalender jetzt automatisch (beim Öffnen + alle 5 Min), damit Kartenzeiten ohne Klick auf „GCal" aktuell bleiben'] },

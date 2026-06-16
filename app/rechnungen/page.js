@@ -161,11 +161,25 @@ export default function RechnungenPage() {
       return Math.round(sum)
     } catch { return 0 }
   }
+  async function clientKmFromItems(its, inv) {
+    const base = [seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+    const addrs = (its || [])
+      .filter(it => it.unit !== 'km' && !/fahrtkosten|übernachtung/i.test(it.description || ''))
+      .map(it => { const first = String(it.description || '').split('\n')[0]; const parts = first.split(' - '); return parts.length >= 3 ? parts.slice(2).join(' - ').trim() : '' })
+      .filter(a => a && a.includes(','))
+    if (!base || !addrs.length) return await fahrtenbuchKmFor(inv)
+    try {
+      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, addresses: addrs }) })
+      const j = await r.json()
+      const km = j.ok ? (j.km || 0) : 0
+      return km || await fahrtenbuchKmFor(inv)
+    } catch { return await fahrtenbuchKmFor(inv) }
+  }
   async function downloadPdf(inv) {
     setBusy(true)
     try {
       const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
-      const clientKmTotal = await fahrtenbuchKmFor(inv)
+      const clientKmTotal = await clientKmFromItems(its || [], inv)
       const cl0 = (clients || []).find(x => x.id === inv.client_id)
       const invForPdf = { ...inv, buyer: { ...(inv.buyer || {}), kundennr: (inv.buyer && inv.buyer.kundennr) || cl0?.kundennr || '' } }
       const bytes = await generateZugferdPdf({ inv: invForPdf, items: its || [], seller, template, clientKmTotal })

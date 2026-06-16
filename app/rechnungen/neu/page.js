@@ -307,8 +307,22 @@ export default function NeueRechnungPage() {
       return { ...it, description: lines.join('\n') }
     })
   }
+  async function clientKmFromShoots() {
+    // tájékoztató km: a bázisból MINDEN számlázott fotózás címéhez oda-vissza (Hin- und Rückfahrt)
+    const base = (fahrt.start || '').trim() || [seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+    const addrs = (inv.items || [])
+      .filter(it => it.unit !== 'km' && !/fahrtkosten|übernachtung/i.test((it.desc || '') + ' ' + (it.title || '')))
+      .map(it => addrOf(it)).filter(a => a && a.includes(','))
+    if (!base || !addrs.length) return 0
+    try {
+      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, addresses: addrs }) })
+      const j = await r.json()
+      return j.ok ? (j.km || 0) : 0
+    } catch { return 0 }
+  }
   async function makePdfBytes() {
-    const clientKmTotal = await fahrtenbuchKmForClient()
+    let clientKmTotal = await clientKmFromShoots()
+    if (!clientKmTotal) clientKmTotal = await fahrtenbuchKmForClient()
     return await generateZugferdPdf({ inv: toInvoiceObj(), items: stripAddr(itemsForDb('x')), seller, template, clientKmTotal })
   }
   async function delInvoice() {

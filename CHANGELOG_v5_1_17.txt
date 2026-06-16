@@ -1,0 +1,18 @@
+# ImmoPixels CRM v5.1.17 — Gefahrene km als Info auf der Rechnung
+## 2026-06-16
+- Problem: Die Info-Zeile „Für Ihre Aufträge gefahren (gesamt): X km"
+  erschien nie auf der Rechnung. Ursache: Die Verdrahtung war korrekt
+  (zugferd.js übernimmt clientKmTotal in inv), aber der WERT kam aus dem
+  localStorage-Fahrtenbuch und war meist 0 (kein Treffer für den Kunden).
+- Fix: Der Wert wird jetzt aus den ADRESSEN der berechneten Aufnahmen
+  berechnet — Hin- und Rückfahrt von der Start-/Firmenadresse zu jeder
+  Aufnahme, summiert. Neuer Endpoint /api/invoice/client-km macht das mit
+  EINEM Distance-Matrix-Aufruf (gebündelt, bis 25 Adressen/Aufruf).
+  Fällt der Wert aus (kein Schlüssel/Adresse), wird wie bisher das
+  Fahrtenbuch als Fallback genutzt.
+- Basis-Adresse: im Editor die im Fahrtkosten-Feld eingetragene
+  Startadresse, sonst die Firmenadresse (Gartenstr. 2, Hettenleidelheim);
+  in der Rechnungsliste die Firmenadresse.
+- Betroffen: app/api/invoice/client-km/route.js (neu),
+  app/rechnungen/neu/page.js, app/rechnungen/page.js
+- Keine SQL-Änderung.
