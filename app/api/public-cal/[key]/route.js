@@ -38,18 +38,22 @@ export async function GET(req, { params }) {
   const { data: staff } = await supabase.from('staff').select('id, name, init')
   const staffById = Object.fromEntries((staff || []).map(s => [s.id, s]))
 
+  const clientLabel = client.short_name || client.name || ''
   const shoots = (cards || [])
     .filter(c => c.card_type !== 'todo')
     .map(c => {
       const people = (c.card_team || []).map(t => staffById[t.staff_id]).filter(Boolean)
       const photographer = people.map(p => p.name || p.init).join(', ')
+      const addr = c.booking_address || c.addr || ''
+      // egységes, helyes cím MINDEN fotózásra (régi és új kártya is): "Kunde - Adresse"
+      const cleanTitle = addr ? (clientLabel ? `${clientLabel} - ${addr}` : addr) : (c.title || '')
       return {
         id: c.id,
-        title: c.title || '',
+        title: cleanTitle,
         date: c.card_date,
         time: (c.card_time || '').slice(0, 5),
         timeTo: (c.card_time_to || c.booking_end_time || '').slice(0, 5),
-        address: c.booking_address || c.addr || '',
+        address: addr,
         type: c.card_type || '',
         photographer,
         photographerShort: people.map(p => (p.name || p.init || '').split(' ')[0]).join(', '),

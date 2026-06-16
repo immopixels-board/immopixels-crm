@@ -1,0 +1,11 @@
+# ImmoPixels CRM v5.1.12 — Öffentlicher Kalender: Titel „Kunde - Adresse"
+## 2026-06-16
+- Der öffentliche Kunden-Kalender (/cal/<Kürzel>) baut den Termin-Titel
+  jetzt SERVERSEITIG einheitlich aus „<Kunde> - <Adresse>" auf
+  (aus booking_address/addr), statt den rohen Kartentitel zu zeigen.
+- Vorteil: Alle Aufnahmen werden korrekt angezeigt — auch ältere Karten
+  mit altem Titelformat, nicht nur neue Online-Buchungen (v5.1.11).
+- Der Auto-Refresh des Kalenders (minütlich / bei Fokus) bleibt
+  unverändert — er lädt nun einfach die bereits korrekten Titel.
+- Betroffen: app/api/public-cal/[key]/route.js
+- Keine SQL-Änderung.

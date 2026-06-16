@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.12', date: '2026-06-16', items: ['Öffentlicher Kunden-Kalender (/cal): Termin-Titel wird jetzt serverseitig einheitlich als „Kunde - Adresse" aufgebaut — korrekt für ALLE Aufnahmen (auch ältere Karten), nicht nur neue Buchungen'] },
   { ver: 'v5.1.11', date: '2026-06-16', items: ['Online-Buchung: Karten- und Google-Kalender-Titel jetzt im Format „Kunde - Straße Hausnr., Ort" (z.B. „Bartz - Forlenweg 4, Heidelberg") statt „Büro — Leistung — Name" — saubere, einheitliche Titel und bessere Erkennung für die Abrechnung'] },
   { ver: 'v5.1.10', date: '2026-06-16', items: ['Karten-Beschreibung: HTML aus E-Mails/Buchungen (z.B. <blockquote>, <p>, <br>) wird jetzt sauber formatiert angezeigt statt als roher Code — auch bei Nicht-GCal-Karten, bleibt bearbeitbar'] },
   { ver: 'v5.1.9', date: '2026-06-16', items: ['Rechnungs-PDF: Schlusstext (Gefahrene Strecke, Dank, Zahlung, Online buchen) rutscht bei nicht voller letzter Seite ins untere Drittel', 'Mehr Abstand zwischen den Trennlinien und den Positionen', 'Kleiner Abstand nach der Spaltenüberschrift (Pos/Beschreibung…)', 'PDF-Download heißt jetzt immer „Rechnung <Nr>.pdf" (kein Zufallsname mehr) — auch der PDF-Button im Editor lädt direkt herunter'] },
