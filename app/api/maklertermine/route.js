@@ -81,20 +81,43 @@ export async function POST(req) {
 
   const timeMin = encodeURIComponent(y + '-01-01T00:00:00Z')
   const timeMax = encodeURIComponent(y + '-12-31T23:59:59Z')
-  let items = [], pageToken = null, guard = 0
-  do {
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?singleEvents=true&orderBy=startTime&maxResults=2500&timeMin=${timeMin}&timeMax=${timeMax}` + (pageToken ? '&pageToken=' + pageToken : '')
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } })
-    const j = await r.json()
-    if (j.error) return NextResponse.json({ ok: false, error: j.error?.message || 'events Fehler' }, { status: 502 })
-    items.push(...(j.items || []))
-    pageToken = j.nextPageToken; guard++
-  } while (pageToken && guard < 20)
 
-  const events = items.filter(ev => ev.status !== 'cancelled' && (ev.start?.dateTime || ev.start?.date)).map(ev => {
+  // melyik naptárak? '*' → az immopixels-fiók ÖSSZES olvasható naptára (így egyik fotózás sem marad ki)
+  let calIds = [calendarId]
+  if (calendarId === '*') {
+    const { GCAL_IDS } = await import('@/lib/booking/slots')
+    const rl = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250&minAccessRole=reader', { headers: { Authorization: 'Bearer ' + token } })
+    const jl = await rl.json()
+    calIds = (jl.items || []).map(c => c.id)
+    if (!calIds.length) calIds = Object.values(GCAL_IDS || {})
+    if (!calIds.length) return NextResponse.json({ ok: false, error: 'Keine Kalender gefunden (Google-Verbindung prüfen)' }, { status: 502 })
+  }
+
+  async function fetchCal(cid) {
+    let out = [], pageToken = null, guard = 0
+    do {
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cid)}/events?singleEvents=true&orderBy=startTime&maxResults=2500&timeMin=${timeMin}&timeMax=${timeMax}` + (pageToken ? '&pageToken=' + pageToken : '')
+      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } })
+      const j = await r.json()
+      if (j.error) { if (calendarId === '*') return out; throw new Error(j.error?.message || 'events Fehler') }
+      out.push(...(j.items || []))
+      pageToken = j.nextPageToken; guard++
+    } while (pageToken && guard < 20)
+    return out
+  }
+
+  let items = []
+  try { for (const cid of calIds) items.push(...await fetchCal(cid)) }
+  catch (e) { return NextResponse.json({ ok: false, error: e.message || 'events Fehler' }, { status: 502 }) }
+
+  const mapped = items.filter(ev => ev.status !== 'cancelled' && (ev.start?.dateTime || ev.start?.date)).map(ev => {
     const dt = ev.start.dateTime || null
     return { gid: ev.id, date: dt ? dt.slice(0, 10) : ev.start.date, time: dt ? dt.slice(11, 16) : null, summary: ev.summary || '(ohne Titel)', location: ev.location || '', description: (ev.description || '').slice(0, 500) }
   })
+  // több naptárnál ugyanaz az esemény (dátum+idő+cím) ne jelenjen meg kétszer
+  const seenEv = new Set(); const events = []
+  for (const e of mapped) { const k = e.date + '|' + (e.time || '') + '|' + e.summary; if (seenEv.has(k)) continue; seenEv.add(k); events.push(e) }
+  events.sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))
 
   if (!create) return NextResponse.json({ ok: true, count: events.length, events: events.slice(0, 1000) })
 

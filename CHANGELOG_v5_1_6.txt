@@ -1,0 +1,14 @@
+# ImmoPixels CRM v5.1.6 — Makler-Termine aus ALLEN Kalendern
+## 2026-06-16
+- „Makler-Termine importieren" las bisher nur EINEN ausgewählten Kalender
+  (z.B. nur deinen oder Danis) → Fototermine in anderen Kalendern konnten
+  fehlen.
+- Jetzt: Standard ist „⭐ Alle Kalender" — der Import sammelt die Events
+  aus ALLEN für das immopixels-Konto lesbaren Kalendern, dedupliziert
+  identische Termine (Datum+Uhrzeit+Titel) und sortiert chronologisch.
+- Einzelne Kalender bleiben wählbar; nicht erreichbare Kalender werden
+  übersprungen (statt den ganzen Import abzubrechen).
+- Hinweis: Setzt die Google-Kalender-Verbindung mit Leserecht voraus.
+  Bei „alte Verbindung"-Warnung: im Kalender-Tab neu „Mit Google verbinden".
+- Betroffen: app/api/maklertermine/route.js, app/BoardApp.js (Modal)
+- Keine SQL-Änderung.

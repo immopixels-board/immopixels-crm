@@ -1,0 +1,7 @@
+# ImmoPixels CRM v5.1.5 — Makler-Termine neben Duplikate prüfen
+## 2026-06-16
+- Kunden-Tab: Der „🗓️ Makler-Termine"-Button erscheint jetzt zusätzlich
+  direkt neben „🔍 Duplikate prüfen" (gleiche Sichtbarkeit: Admin/Subadmin).
+  Der bisherige Button bleibt erhalten.
+- Betroffen: app/BoardApp.js
+- Keine SQL-Änderung.
