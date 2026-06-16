@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.3 — Kunden-Vorschlagsliste sichtbar
+## 2026-06-16
+- Fix: In „Neue Rechnung" wurde die Kunden-Vorschlagsliste nicht
+  angezeigt. Ursache: die Karte (Side) hatte overflow:hidden und
+  schnitt das aufklappende Dropdown ab.
+- Lösung: Die Kunde-Karte erlaubt jetzt overflow (overflow="visible"),
+  Header-Ecken bleiben dank borderTopRadius rund. Dropdown z-index erhöht.
+- Betroffen: app/rechnungen/neu/page.js (Side-Komponente + Kunde-Block)
+- Keine SQL-Änderung.

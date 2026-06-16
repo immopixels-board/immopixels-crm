@@ -452,7 +452,7 @@ export default function NeueRechnungPage() {
         </div>
 
         <div className="rech-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Side title="Kunde">
+          <Side title="Kunde" overflow="visible">
             <div style={{ position: 'relative' }}>
               <input value={inv.client_name} autoComplete="off" onChange={e => { onClient(e.target.value); setClientOpen(true) }} onFocus={() => setClientOpen(true)} onBlur={() => setTimeout(() => setClientOpen(false), 150)} placeholder="Kunde suchen (Name)…" style={{ ...box, width: '100%', paddingRight: 30 }} />
               {inv.client_name && <button onMouseDown={e => e.preventDefault()} onClick={() => { clearClient(); setClientOpen(true) }} title="Kunde entfernen" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: MUT, fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>}
@@ -461,7 +461,7 @@ export default function NeueRechnungPage() {
                 const list = clients.filter(c => !q || (c.name || '').toLowerCase().includes(q) || (c.short_name || '').toLowerCase().includes(q)).slice(0, 8)
                 if (!list.length) return null
                 return (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, background: '#fff', border: '1px solid ' + LINE, borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.10)', zIndex: 30, maxHeight: 240, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, background: '#fff', border: '1px solid ' + LINE, borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.10)', zIndex: 50, maxHeight: 240, overflowY: 'auto' }}>
                     {list.map(c => (
                       <div key={c.id} onMouseDown={e => { e.preventDefault(); onClient(c.name); setClientOpen(false) }} style={{ padding: '7px 10px', fontSize: 12, cursor: 'pointer', color: DARK }} onMouseEnter={e => e.currentTarget.style.background = '#f6f3ec'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <span style={{ fontWeight: 600 }}>{c.name}</span>{c.short_name ? <span style={{ color: MUT }}> · {c.short_name}</span> : null}
@@ -552,7 +552,7 @@ function EmailModal({ inv, seller, template, makePdfBytes, ensureSaved, onClose 
 function parseKm(desc) { const m = String(desc || '').match(/([\d.,]+)\s*km/i); if (!m) return 0; const n = parseFloat(m[1].replace(/\./g, '').replace(',', '.')); return isNaN(n) ? 0 : n }
 function fmt(d) { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}.${m[2]}.${m[1]}` : (d || '') }
 function Lbl({ children }) { return <div style={{ fontSize: 10, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>{children}</div> }
-function Side({ title, children }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: 'hidden' }}><div style={{ background: DARK, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.5px', padding: '8px 12px', textTransform: 'uppercase' }}>{title}</div><div style={{ padding: 12 }}>{children}</div></div> }
+function Side({ title, children, overflow }) { return <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: overflow || 'hidden' }}><div style={{ background: DARK, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.5px', padding: '8px 12px', textTransform: 'uppercase', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>{title}</div><div style={{ padding: 12 }}>{children}</div></div> }
 function Field({ label, v, on }) { return <div style={{ marginBottom: 8 }}><Lbl>{label}</Lbl><input value={v || ''} onChange={e => on(e.target.value)} style={{ ...box, width: '100%' }} /></div> }
 const box = { border: '1.5px solid ' + LINE, borderRadius: 6, padding: '7px 8px', fontSize: 12, color: DARK, fontFamily: 'Arial', outline: 'none', boxSizing: 'border-box', background: '#fff' }
 const primary = { background: GOLD, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
