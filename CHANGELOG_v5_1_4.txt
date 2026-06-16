@@ -1,0 +1,11 @@
+# ImmoPixels CRM v5.1.4 — Kundenliste als festes Listenfenster
+## 2026-06-16
+- „Neue Rechnung": Die Kundenauswahl ist jetzt KEIN Dropdown mehr,
+  sondern ein festes, scrollbares Listenfenster direkt unter dem Suchfeld.
+  - Standardhöhe 325px, am unteren Rand nach unten ziehbar (resize: vertical).
+  - Suchfeld filtert die Liste live (Name/Kürzel).
+  - Der ausgewählte Kunde wird in der Liste hervorgehoben.
+  - „✕ entfernen" hebt die Auswahl auf; Suche-✕ leert nur die Suche.
+  - Nicht-gelistete Kunden: „… als freien Kunden übernehmen".
+- Betroffen: app/rechnungen/neu/page.js
+- Keine SQL-Änderung.

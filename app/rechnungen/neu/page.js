@@ -50,7 +50,7 @@ export default function NeueRechnungPage() {
   const [loading, setLoading] = useState(true)
   const [myId, setMyId] = useState(null)
   const [clients, setClients] = useState([])
-  const [clientOpen, setClientOpen] = useState(false)
+  const [clientQuery, setClientQuery] = useState('')
   const [seller, setSeller] = useState(DEFAULT_SELLER)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
@@ -452,25 +452,32 @@ export default function NeueRechnungPage() {
         </div>
 
         <div className="rech-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Side title="Kunde" overflow="visible">
+          <Side title="Kunde">
             <div style={{ position: 'relative' }}>
-              <input value={inv.client_name} autoComplete="off" onChange={e => { onClient(e.target.value); setClientOpen(true) }} onFocus={() => setClientOpen(true)} onBlur={() => setTimeout(() => setClientOpen(false), 150)} placeholder="Kunde suchen (Name)…" style={{ ...box, width: '100%', paddingRight: 30 }} />
-              {inv.client_name && <button onMouseDown={e => e.preventDefault()} onClick={() => { clearClient(); setClientOpen(true) }} title="Kunde entfernen" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: MUT, fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>}
-              {clientOpen && (() => {
-                const q = (inv.client_name || '').toLowerCase().trim()
-                const list = clients.filter(c => !q || (c.name || '').toLowerCase().includes(q) || (c.short_name || '').toLowerCase().includes(q)).slice(0, 8)
-                if (!list.length) return null
-                return (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, background: '#fff', border: '1px solid ' + LINE, borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.10)', zIndex: 50, maxHeight: 240, overflowY: 'auto' }}>
-                    {list.map(c => (
-                      <div key={c.id} onMouseDown={e => { e.preventDefault(); onClient(c.name); setClientOpen(false) }} style={{ padding: '7px 10px', fontSize: 12, cursor: 'pointer', color: DARK }} onMouseEnter={e => e.currentTarget.style.background = '#f6f3ec'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <span style={{ fontWeight: 600 }}>{c.name}</span>{c.short_name ? <span style={{ color: MUT }}> · {c.short_name}</span> : null}
-                      </div>
-                    ))}
+              <input value={clientQuery} autoComplete="off" onChange={e => setClientQuery(e.target.value)} placeholder="Kunde suchen…" style={{ ...box, width: '100%', paddingRight: 30 }} />
+              {clientQuery && <button onMouseDown={e => e.preventDefault()} onClick={() => setClientQuery('')} title="Suche leeren" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: MUT, fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>}
+            </div>
+            <div style={{ marginTop: 8, height: 325, minHeight: 120, resize: 'vertical', overflowY: 'auto', border: '1px solid ' + LINE, borderRadius: 8, background: '#fff' }}>
+              {(() => {
+                const q = clientQuery.toLowerCase().trim()
+                const list = clients.filter(c => !q || (c.name || '').toLowerCase().includes(q) || (c.short_name || '').toLowerCase().includes(q))
+                if (!list.length) return (
+                  <div style={{ padding: 12, fontSize: 12, color: MUT }}>
+                    Keine Treffer.
+                    {q && <div onClick={() => { onClient(clientQuery); setClientQuery('') }} style={{ marginTop: 8, color: GOLD, fontWeight: 700, cursor: 'pointer' }}>„{clientQuery}" als freien Kunden übernehmen</div>}
                   </div>
                 )
+                return list.map(c => {
+                  const sel = inv.client_id === c.id
+                  return (
+                    <div key={c.id} onClick={() => onClient(c.name)} style={{ padding: '8px 10px', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid #f3f0ea', background: sel ? '#f1ede4' : 'transparent', color: DARK }} onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#f8f6f1' }} onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent' }}>
+                      <span style={{ fontWeight: sel ? 800 : 600 }}>{c.name}</span>{c.short_name ? <span style={{ color: MUT }}> · {c.short_name}</span> : null}
+                    </div>
+                  )
+                })
               })()}
             </div>
+            {inv.client_name && <div style={{ marginTop: 8, fontSize: 11, color: MUT }}>Ausgewählt: <b style={{ color: DARK }}>{inv.client_name}</b> <span onClick={clearClient} style={{ color: GOLD, fontWeight: 700, cursor: 'pointer', marginLeft: 4 }}>✕ entfernen</span></div>}
             {inv.buyer?.company && (
               <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
                 {inv.buyer.kundennr && <div style={{ color: GOLD, fontWeight: 700 }}>[{inv.buyer.kundennr}]</div>}

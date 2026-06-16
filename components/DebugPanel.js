@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.4', date: '2026-06-16', items: ['Neue Rechnung: Kundenliste ist jetzt ein festes, scrollbares Listenfenster (kein Dropdown mehr) — Höhe 325px, nach unten ziehbar (größer)', 'Suchfeld filtert die Liste; ausgewählter Kunde wird hervorgehoben'] },
   { ver: 'v5.1.3', date: '2026-06-16', items: ['Neue Rechnung: Kunden-Vorschlagsliste wird wieder angezeigt (wurde durch overflow der Karte abgeschnitten)'] },
   { ver: 'v5.1.2', date: '2026-06-16', items: ['Rechnungs-PDF wird jetzt mit sinnvollem Dateinamen heruntergeladen: Rechnung_<Nr>_<Kürzel>.pdf (kein Umbenennen mehr nötig)', 'Lange Firmennamen brechen im PDF jetzt sauber auf mehrere Zeilen um (Rechnung & Mahnung)'] },
   { ver: 'v5.1.1', date: '2026-06-15', items: ['Neue Rechnung: Kundenauswahl als eigenes Suchfeld (kein Browser-Datalist mehr) — Kunde lässt sich jetzt problemlos löschen und wechseln', 'Kein „hängenbleibender" Kunde mehr beim Umschalten'] },
