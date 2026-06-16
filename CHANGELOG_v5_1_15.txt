@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.15 — Öffentlicher Kalender synct selbst
+## 2026-06-16
+- Problem: Der öffentliche Kunden-Kalender (/cal/<Kürzel>) liest aus der
+  cards-Tabelle. Diese wird nur aktualisiert, wenn der GCal-Sync läuft —
+  und der lief bisher nur auf dem Board / per Cron / Webhook. War das
+  Board nicht offen, zeigte /cal alte Zeiten.
+- Fix: Die /cal-API stößt beim Laden selbst einen GCal-Sync an
+  (gedrosselt: max. 1× pro Minute pro Server-Instanz), BEVOR sie die
+  Karten liest. Dadurch zeigt /cal die tatsächlichen Kalender-Zeiten,
+  auch wenn niemand das Board offen hat. Fehler beim Sync brechen die
+  Seite nicht ab.
+- Betroffen: app/api/public-cal/[key]/route.js (importiert doSync aus
+  app/api/gcal/sync/route.js — doSync ist jetzt exportiert),
+  maxDuration=30.
+- Keine SQL-Änderung.

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { doSync } from '../../gcal/sync/route'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
+// Throttle: a publikus /cal max. percenként indít GCal-syncet (warm instance-onként)
+let lastPublicSync = 0
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -23,6 +29,15 @@ export async function GET(req, { params }) {
     .limit(1)
   const client = clients && clients[0]
   if (!client) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 })
+
+  // Élő frissítés a Google Naptárból betöltéskor (throttle: max 60 mp), hogy a /cal a TÉNYLEGES
+  // naptári időpontokat mutassa akkor is, ha a board nincs nyitva. Hiba nem törheti el az oldalt.
+  try {
+    if (Date.now() - lastPublicSync > 60000) {
+      lastPublicSync = Date.now()
+      await doSync()
+    }
+  } catch (e) { console.error('[public-cal] sync skip:', e?.message) }
 
   const names = [client.short_name, client.name].filter(Boolean).map(clean)
   const orExpr = names.map(n => `client_name.ilike.${n}`).join(',')

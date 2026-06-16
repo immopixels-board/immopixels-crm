@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.15', date: '2026-06-16', items: ['Öffentlicher Kunden-Kalender (/cal): synchronisiert beim Laden selbst mit dem Google Kalender (max. 1×/Min.) — zeigt jetzt die tatsächlichen Termin-Zeiten, auch wenn das Board nicht geöffnet ist'] },
   { ver: 'v5.1.14', date: '2026-06-16', items: ['Keine doppelten Karten mehr bei Terminänderung: Wird ein Termin im Google Kalender verschoben/neu erstellt (neue Event-ID), erkennt der Sync über Adresse + Kunde, dass es dieselbe Aufnahme ist — die Buchungskarte wird auf die neue Zeit aktualisiert und die doppelte GCal-Karte entfernt', 'Board synchronisiert den Google Kalender jetzt automatisch (beim Öffnen + alle 5 Min), damit Kartenzeiten ohne Klick auf „GCal" aktuell bleiben'] },
   { ver: 'v5.1.13', date: '2026-06-16', items: ['Google-Kalender-Sync aktualisiert jetzt auch die Uhrzeit/Datum von ONLINE-Buchungskarten, wenn der Termin im Google Kalender verschoben wird (vorher wurden Buchungskarten übersprungen). Damit zeigt der öffentliche Kunden-Kalender (/cal) die tatsächlichen Termine. Titel/Adresse der Buchung bleiben unverändert'] },
   { ver: 'v5.1.12', date: '2026-06-16', items: ['Öffentlicher Kunden-Kalender (/cal): Termin-Titel wird jetzt serverseitig einheitlich als „Kunde - Adresse" aufgebaut — korrekt für ALLE Aufnahmen (auch ältere Karten), nicht nur neue Buchungen'] },

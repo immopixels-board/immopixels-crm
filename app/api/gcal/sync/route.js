@@ -62,7 +62,7 @@ async function getFreshToken(supabase) {
   return j.access_token
 }
 
-async function doSync(opts = {}) {
+export async function doSync(opts = {}) {
   const supabase = sb()
   const token = await getFreshToken(supabase)
   if (!token) return { ok: false, reason: 'token refresh failed' }
