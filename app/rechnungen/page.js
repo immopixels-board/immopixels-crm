@@ -168,7 +168,9 @@ export default function RechnungenPage() {
       const invForPdf = { ...inv, buyer: { ...(inv.buyer || {}), kundennr: (inv.buyer && inv.buyer.kundennr) || cl0?.kundennr || '' } }
       const bytes = await generateZugferdPdf({ inv: invForPdf, items: its || [], seller, template, clientKmTotal })
       const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob)
-      window.open(u, '_blank')
+      const abk = ((cl0?.short_name || (inv.client_name || '').trim().split(/\s+/)[0] || '')).replace(/[\/:*?"<>|]+/g, '').replace(/\s+/g, '-')
+      const fname = 'Rechnung_' + (inv.invoice_number || 'Entwurf') + (abk ? '_' + abk : '') + '.pdf'
+      const a = document.createElement('a'); a.href = u; a.download = fname; a.click()
       setTimeout(() => URL.revokeObjectURL(u), 60000)
     } catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
     setBusy(false)

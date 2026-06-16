@@ -1,0 +1,22 @@
+# ImmoPixels CRM v5.1.2 — PDF-Dateiname + Firmenname-Umbruch
+## 2026-06-16
+
+### PDF-Download mit richtigem Dateinamen
+- In der Rechnungsliste lädt der „PDF"-Button die Datei jetzt direkt
+  mit sinnvollem Namen herunter (statt nur im Tab zu öffnen, wo der
+  Browser eine zufällige UUID als Namen vergab).
+- Format: Rechnung_<Rechnungsnummer>_<Kunden-Kürzel>.pdf
+  Beispiel: Rechnung_20-0726_EV-Lbh.pdf
+- Kein manuelles Umbenennen mehr nötig.
+- Betroffen: app/rechnungen/page.js (downloadPdf)
+
+### Lange Firmennamen brechen sauber um
+- Sehr lange Empfänger-Firmennamen (z.B. „Landhaus-Pfalz
+  Immobilienservices GmbH Lizenzpartner der Engel & Völkers
+  Residential GmbH") liefen bisher in EINER Zeile über den Rand.
+- Jetzt werden sie wortweise auf mehrere Zeilen umgebrochen
+  (max. ~300pt Breite) — wie in der Kundenkarten-Ansicht.
+- Gilt für Rechnung UND Mahnung.
+- Betroffen: lib/invoice/zugferd.js, lib/invoice/mahnung.js
+
+### Keine SQL-Änderung nötig.
