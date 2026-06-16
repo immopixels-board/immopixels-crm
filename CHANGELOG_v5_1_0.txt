@@ -1,0 +1,51 @@
+# ImmoPixels CRM v5.1.0 — DKV als Ausgabe, Buchhaltung funktioniert, Dateien sichtbar
+## 2026-06-15
+
+### OCR: Dokumenttyp-Erkennung
+/api/eingangsrechnung-ocr klassifiziert jetzt zuerst den Dokumenttyp:
+- "eingangsrechnung" → echte Ausgabe (zählt)
+- "sammelbeleg" → Begleitbeleg ohne Vorsteuerabzug (zählt NICHT)
+- "buchhaltung" → Steuerberater-Auswertung (BWA/SuSa/USt-VA, zählt NICHT)
+
+### DKV-Tankrechnungen
+- Werden als Ausgabe erkannt, Kategorie Fahrtkosten.
+- Beträge kommen aus der GESAMTSUMME (TOTAL / Umsatzsteuerstatistik),
+  nicht aus den einzelnen Tankvorgängen → keine Fehlsummen mehr.
+- Anzahl Tankvorgänge wird als "Sammelrechnung · N Pos." angezeigt.
+- Die DKV "E-Zusammenstellung" wird als Sammelbeleg erkannt (Hinweis
+  "kein Vorsteuerabzug") und NICHT als zweite Ausgabe gezählt — sie
+  erscheint ausgegraut mit Badge "Sammelbeleg".
+
+### Buchhaltung-Bereich funktioniert jetzt
+- Eigener Upload (BWA / SuSa / USt-VA), Massen-Upload möglich.
+- BWA/SuSa/USt-VA, die im Eingangsrechnungen-Upload erkannt werden,
+  wandern automatisch hierher (nicht in die Ausgaben).
+- Lesbare Auszüge je Dokument: Belegart-Badge, Zeitraum, Kurz-Zusammen-
+  fassung und Kennzahlen (z.B. USt-Vorauszahlung + Fälligkeit; BWA:
+  Ergebnis Monat / kumuliert / Erlöse).
+- Zählt NICHT zu den Ausgaben (eigener Bereich).
+
+### Hochgeladene Dateien sind sichtbar
+- Dateien werden jetzt gespeichert (privater Supabase-Storage-Bucket
+  "belege", serverseitig per Service-Role).
+- Über „↗" / „Original" wird der Beleg per zeitlich begrenztem
+  Signed-Link geöffnet.
+- Dateiname wird in der Liste angezeigt.
+- HINWEIS: Dies ist eine Zwischenlösung. Sobald die Google-Drive-
+  Anbindung (OAuth-Scope) steht, kann auf Drive umgestellt werden.
+
+### Betroffene Dateien
+- app/api/eingangsrechnung-ocr/route.js (Typ-Klassifizierung)
+- app/api/beleg-upload/route.js (NEU — Datei-Upload in Storage)
+- app/api/beleg-file/route.js (NEU — Signed-URL-Redirect zum Öffnen)
+- app/eingangsrechnungen/page.js (Typ-Routing, Summen, Datei-Upload, Liste)
+- app/buchhaltung/page.js (Platzhalter → voll funktionsfähig)
+- components/DebugPanel.js (Changelog), app/BoardApp.js (v5.1.0)
+
+### SQL (separat ausführen — in ÉLES UND Demo)
+ALTER TABLE eingangsrechnungen ADD COLUMN IF NOT EXISTS typ text DEFAULT 'eingangsrechnung';
+(Datei: SQL_v5_1_0_typ.sql — NICHT im ZIP enthalten.)
+
+### Hinweis zur bestehenden DKV-Zeile
+Falls bereits eine fehlerhafte DKV-Zeile existiert (alte Erkennung):
+einmal löschen und neu hochladen — dann greift die neue Logik.

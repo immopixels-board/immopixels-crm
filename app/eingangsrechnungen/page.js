@@ -6,6 +6,7 @@ import RechnungShell from '../../components/RechnungShell'
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', GREEN = '#2f7a4f', AMBER = '#a36a1f'
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+function kiOf(r) { const x = r && r.ki_raw; if (!x) return {}; if (typeof x === 'string') { try { return JSON.parse(x) } catch { return {} } } return x }
 const KATEGORIEN = ['Ausrüstung', 'Software', 'Fahrtkosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Reisekosten', 'Sonstiges']
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 const STATUS = { zu_pruefen: { label: 'Zu prüfen', c: AMBER, bg: '#fdf3e2' }, bestaetigt: { label: 'Bestätigt', c: GREEN, bg: '#eaf3de' }, exportiert: { label: 'Exportiert', c: '#185fa5', bg: '#e6f1fb' } }
@@ -32,14 +33,14 @@ export default function EingangsrechnungenPage() {
   }
 
   const [y, m] = ym.split('-').map(Number)
-  const monthRows = useMemo(() => rows.filter(r => { if (!r.datum) return false; const d = new Date(r.datum); return d.getFullYear() === y && d.getMonth() + 1 === m }), [rows, y, m])
+  const monthRows = useMemo(() => rows.filter(r => { if (r.typ === 'buchhaltung') return false; if (!r.datum) return false; const d = new Date(r.datum); return d.getFullYear() === y && d.getMonth() + 1 === m }), [rows, y, m])
   const filtered = useMemo(() => katFilter === 'all' ? monthRows : monthRows.filter(r => r.kategorie === katFilter), [monthRows, katFilter])
-  const sum = useMemo(() => ({
-    brutto: monthRows.reduce((s, r) => s + (Number(r.brutto) || 0), 0),
-    ust: monthRows.reduce((s, r) => s + (Number(r.ust) || 0), 0),
+  const sum = useMemo(() => { const exp = monthRows.filter(r => r.typ !== 'sammelbeleg'); return ({
+    brutto: exp.reduce((s, r) => s + (Number(r.brutto) || 0), 0),
+    ust: exp.reduce((s, r) => s + (Number(r.ust) || 0), 0),
     pruefen: monthRows.filter(r => r.status === 'zu_pruefen').length,
     exportiert: monthRows.filter(r => r.status === 'exportiert').length
-  }), [monthRows])
+  }) }, [monthRows])
 
   function newBlank() {
     setEditRow({ lieferant: '', rechnungsnr: '', datum: new Date().toISOString().slice(0, 10), netto: '', ust: '', brutto: '', ust_satz: 19, kategorie: 'Sonstiges', status: 'zu_pruefen', notiz: '', _new: true })
@@ -48,7 +49,9 @@ export default function EingangsrechnungenPage() {
     if (!editRow) return
     setBusy(true)
     try {
-      const payload = { lieferant: editRow.lieferant || null, rechnungsnr: editRow.rechnungsnr || null, datum: editRow.datum || null, netto: Number(editRow.netto) || 0, ust: Number(editRow.ust) || 0, brutto: Number(editRow.brutto) || 0, ust_satz: Number(editRow.ust_satz) || 19, kategorie: editRow.kategorie || 'Sonstiges', status: editRow.status || 'zu_pruefen', notiz: editRow.notiz || null, updated_at: new Date().toISOString() }
+      let dateiUrl = editRow.datei_url || null
+      if (editRow._file && !dateiUrl) dateiUrl = await uploadFile(editRow._file, 'eingang')
+      const payload = { typ: 'eingangsrechnung', lieferant: editRow.lieferant || null, rechnungsnr: editRow.rechnungsnr || null, datum: editRow.datum || null, netto: Number(editRow.netto) || 0, ust: Number(editRow.ust) || 0, brutto: Number(editRow.brutto) || 0, ust_satz: Number(editRow.ust_satz) || 19, kategorie: editRow.kategorie || 'Sonstiges', status: editRow.status || 'zu_pruefen', notiz: editRow.notiz || null, datei_name: editRow.datei_name || null, datei_url: dateiUrl, updated_at: new Date().toISOString() }
       if (editRow._new) { const { error } = await supabase.from('eingangsrechnungen').insert(payload); if (error) throw error }
       else { const { error } = await supabase.from('eingangsrechnungen').update(payload).eq('id', editRow.id); if (error) throw error }
       setEditRow(null); await load()
@@ -69,6 +72,15 @@ export default function EingangsrechnungenPage() {
   const [aiBusy, setAiBusy] = useState(false)
   function fileToBase64(file) {
     return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(file) })
+  }
+  // fájl feltöltése privát Storage-ba; visszaadja a megnyitó URL-t (best-effort, hiba esetén null)
+  async function uploadFile(f, folder) {
+    try {
+      const b64 = await fileToBase64(f)
+      const r = await fetch('/api/beleg-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf', name: f.name, folder }) })
+      const j = await r.json()
+      return j?.ok ? j.url : null
+    } catch { return null }
   }
   const [bulk, setBulk] = useState(null) // {done, total, current}
   async function extractOne(f) {
@@ -102,7 +114,7 @@ export default function EingangsrechnungenPage() {
     setBulk({ done: 0, total: arr.length, current: '' })
     // meglévő duplikátum-kulcsok (a már mentett számlákból)
     const existingKeys = new Set((rows || []).map(dupKeyOf).filter(Boolean))
-    let ok = 0
+    let ok = 0, bh = 0, sb = 0
     const errors = [], dups = []
     for (let i = 0; i < arr.length; i++) {
       const f = arr[i]
@@ -110,23 +122,32 @@ export default function EingangsrechnungenPage() {
       try {
         const d = await extractOne(f)
         if (!d || d._err) { errors.push(f.name + ' — ' + (d?._err || 'KI konnte nichts lesen')); continue }
+        const typ = d.typ || 'eingangsrechnung'
+        const isBuch = typ === 'buchhaltung'
         const payload = {
-          lieferant: d.lieferant || null, rechnungsnr: d.rechnungsnr || null, datum: d.datum || new Date().toISOString().slice(0, 10),
-          netto: Number(d.netto) || 0, ust: Number(d.ust) || 0, brutto: Number(d.brutto) || 0, ust_satz: Number(d.ust_satz) || 19,
-          kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', status: 'zu_pruefen', datei_name: f.name, ki_raw: d
+          typ,
+          lieferant: isBuch ? (d.belegart || 'Buchhaltung') : (d.lieferant || null),
+          rechnungsnr: d.rechnungsnr || null,
+          datum: d.datum || new Date().toISOString().slice(0, 10),
+          netto: isBuch ? 0 : (Number(d.netto) || 0), ust: isBuch ? 0 : (Number(d.ust) || 0), brutto: isBuch ? 0 : (Number(d.brutto) || 0), ust_satz: Number(d.ust_satz) || 19,
+          kategorie: isBuch ? null : (KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges'),
+          status: 'zu_pruefen', datei_name: f.name, ki_raw: d
         }
         // duplikátum-ellenőrzés (a már létezők ÉS a most feltöltöttek ellen)
         const dk = isDuplicate(payload, existingKeys)
         if (dk) { dups.push(f.name + ' (' + (payload.lieferant || '?') + ', ' + (payload.rechnungsnr || payload.brutto + ' €') + ')'); continue }
+        payload.datei_url = await uploadFile(f, isBuch ? 'buchhaltung' : 'eingang')
         const { error } = await supabase.from('eingangsrechnungen').insert(payload)
         if (error) { errors.push(f.name + ' — DB: ' + error.message); continue }
         existingKeys.add(dupKeyOf(payload)) // hogy a kötegen belüli duplikátum is kiszűrődjön
-        ok++
+        if (isBuch) bh++; else if (typ === 'sammelbeleg') sb++; else ok++
       } catch (e) { errors.push(f.name + ' — ' + (e.message || 'Fehler')) }
     }
     setBulk(null)
     await load()
-    let msg = '✓ ' + ok + ' Beleg(e) gespeichert (alle „Zu prüfen").'
+    let msg = '✓ ' + ok + ' Rechnung(en) gespeichert (alle „Zu prüfen").'
+    if (bh) msg += '\n📊 ' + bh + ' → Buchhaltung verschoben (zählt nicht zu den Ausgaben).'
+    if (sb) msg += '\n⊘ ' + sb + ' Sammelbeleg(e) erkannt (kein Vorsteuerabzug, nicht gezählt).'
     if (dups.length) msg += '\n\n⊘ ' + dups.length + ' Duplikat(e) übersprungen (nicht doppelt gezählt):\n• ' + dups.join('\n• ')
     if (errors.length) msg += '\n\n⚠️ ' + errors.length + ' fehlgeschlagen:\n• ' + errors.join('\n• ')
     alert(msg)
@@ -141,10 +162,23 @@ export default function EingangsrechnungenPage() {
       const j = await r.json()
       if (j.ok && j.data) {
         const d = j.data
+        const typ = d.typ || 'eingangsrechnung'
+        if (typ === 'buchhaltung' || typ === 'sammelbeleg') {
+          // nem kiadás → automatikus mentés (Buchhaltung ill. Sammelbeleg), szerkesztő nélkül
+          const isBuch = typ === 'buchhaltung'
+          const url = await uploadFile(f, isBuch ? 'buchhaltung' : 'eingang')
+          const payload = { typ, lieferant: isBuch ? (d.belegart || 'Buchhaltung') : (d.lieferant || null), rechnungsnr: d.rechnungsnr || null, datum: d.datum || new Date().toISOString().slice(0, 10), netto: 0, ust: 0, brutto: isBuch ? 0 : (Number(d.brutto) || 0), ust_satz: Number(d.ust_satz) || 19, kategorie: null, status: 'zu_pruefen', datei_name: f.name, ki_raw: d, datei_url: url }
+          const existingKeys = new Set((rows || []).map(dupKeyOf).filter(Boolean))
+          if (isDuplicate(payload, existingKeys)) { setEditRow(null); setAiBusy(false); alert('Bereits vorhanden (Duplikat) — nicht erneut gespeichert.'); return }
+          const { error } = await supabase.from('eingangsrechnungen').insert(payload)
+          setEditRow(null); await load(); setAiBusy(false)
+          alert(error ? ('Fehler: ' + error.message) : (isBuch ? '📊 Als Buchhaltung gespeichert (zählt nicht zu den Ausgaben).' : '⊘ Als Sammelbeleg erkannt (kein Vorsteuerabzug, nicht gezählt).'))
+          return
+        }
         const cand = { lieferant: d.lieferant, rechnungsnr: d.rechnungsnr, datum: d.datum, brutto: d.brutto }
         const existingKeys = new Set((rows || []).map(dupKeyOf).filter(Boolean))
         const dk = isDuplicate(cand, existingKeys)
-        setEditRow(cur => ({ ...cur, lieferant: d.lieferant || cur.lieferant, rechnungsnr: d.rechnungsnr || '', datum: d.datum || cur.datum, netto: d.netto != null ? String(d.netto) : '', ust: d.ust != null ? String(d.ust) : '', brutto: d.brutto != null ? String(d.brutto) : '', ust_satz: d.ust_satz || 19, kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', _konfidenz: d.konfidenz || null, _dup: !!dk }))
+        setEditRow(cur => ({ ...cur, lieferant: d.lieferant || cur.lieferant, rechnungsnr: d.rechnungsnr || '', datum: d.datum || cur.datum, netto: d.netto != null ? String(d.netto) : '', ust: d.ust != null ? String(d.ust) : '', brutto: d.brutto != null ? String(d.brutto) : '', ust_satz: d.ust_satz || 19, kategorie: KATEGORIEN.includes(d.kategorie) ? d.kategorie : 'Sonstiges', _konfidenz: d.konfidenz || null, _dup: !!dk, _sammel: !!d.sammelrechnung, _pos: d.positionen || null }))
       } else {
         setEditRow(cur => ({ ...cur, _aiError: j.error || 'Konnte nicht gelesen werden' }))
       }
@@ -206,13 +240,16 @@ export default function EingangsrechnungenPage() {
             <div>Lieferant</div><div>Datum</div><div style={{ textAlign: 'right' }}>Brutto</div><div style={{ textAlign: 'right' }}>USt</div><div>Kategorie</div><div>Status</div><div></div>
           </div>
           {filtered.length === 0 && <div style={{ padding: 36, textAlign: 'center', color: MUT, fontSize: 14 }}>Keine Belege in diesem Monat.</div>}
-          {filtered.map(r => { const st = STATUS[r.status] || STATUS.zu_pruefen; return (
-            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 90px 1fr 120px 80px', gap: 8, padding: '11px 14px', borderTop: '1px solid ' + LINE, fontSize: 13, alignItems: 'center' }}>
-              <div style={{ fontWeight: 600 }}>{r.lieferant || '—'}{r.datei_url && <a href={r.datei_url} target="_blank" rel="noreferrer" style={{ marginLeft: 6, color: ACC, textDecoration: 'none' }} title="Original öffnen">↗</a>}</div>
+          {filtered.map(r => { const st = STATUS[r.status] || STATUS.zu_pruefen; const ki = kiOf(r); const isSb = r.typ === 'sammelbeleg'; return (
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 90px 1fr 120px 80px', gap: 8, padding: '11px 14px', borderTop: '1px solid ' + LINE, fontSize: 13, alignItems: 'center', opacity: isSb ? 0.62 : 1 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600 }}>{r.lieferant || '—'}{r.datei_url && <a href={r.datei_url} target="_blank" rel="noreferrer" style={{ marginLeft: 6, color: ACC, textDecoration: 'none' }} title="Original öffnen">↗</a>}</div>
+                {(ki.sammelrechnung || r.datei_name) && <div style={{ fontSize: 11, color: MUT, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ki.sammelrechnung ? ('Sammelrechnung · ' + (ki.positionen || '?') + ' Pos.') : ''}{ki.sammelrechnung && r.datei_name ? ' · ' : ''}{r.datei_name || ''}</div>}
+              </div>
               <div style={{ color: MUT }}>{r.datum ? new Date(r.datum).toLocaleDateString('de-DE') : '—'}</div>
-              <div style={{ textAlign: 'right', fontWeight: 600 }}>{eur(r.brutto)}</div>
-              <div style={{ textAlign: 'right', color: MUT }}>{eur(r.ust)}</div>
-              <div><span style={{ background: '#f3f0ea', fontSize: 11, padding: '2px 8px', borderRadius: 20 }}>{r.kategorie}</span></div>
+              <div style={{ textAlign: 'right', fontWeight: 600 }}>{isSb ? '—' : eur(r.brutto)}</div>
+              <div style={{ textAlign: 'right', color: MUT }}>{isSb ? '' : eur(r.ust)}</div>
+              <div>{isSb ? <span style={{ background: '#f1efe8', color: '#5f5e5a', fontSize: 11, padding: '2px 8px', borderRadius: 20 }}>Sammelbeleg</span> : <span style={{ background: '#f3f0ea', fontSize: 11, padding: '2px 8px', borderRadius: 20 }}>{r.kategorie}</span>}</div>
               <div><span style={{ background: st.bg, color: st.c, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{st.label}</span></div>
               <div style={{ textAlign: 'right' }}>
                 <button onClick={() => setEditRow({ ...r })} style={miniBtn} title="Bearbeiten">✎</button>
@@ -221,7 +258,7 @@ export default function EingangsrechnungenPage() {
             </div>
           ) })}
         </div>
-        <div style={{ fontSize: 12, color: MUT, marginTop: 10 }}>Das Original liegt später in Google Drive · „↗" öffnet den Beleg · DATEV-Export folgt.</div>
+        <div style={{ fontSize: 12, color: MUT, marginTop: 10 }}>„↗" öffnet das Original (im Storage gespeichert) · Sammelbelege zählen nicht zu den Ausgaben · DATEV-Export folgt.</div>
       </div>
 
       {bulk && (
@@ -256,7 +293,7 @@ export default function EingangsrechnungenPage() {
               <div><label style={lbl}>Status</label><select value={editRow.status} onChange={e => setEditRow({ ...editRow, status: e.target.value })} style={inp}><option value="zu_pruefen">Zu prüfen</option><option value="bestaetigt">Bestätigt</option><option value="exportiert">Exportiert</option></select></div>
               <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Notiz</label><input value={editRow.notiz} onChange={e => setEditRow({ ...editRow, notiz: e.target.value })} style={inp} /></div>
             </div>
-            {editRow._file && <div style={{ fontSize: 11, color: AMBER, marginTop: 8 }}>⚠️ Datei „{editRow.datei_name}" wird vorerst nicht hochgeladen (Google-Drive-Anbindung folgt im nächsten Schritt).</div>}
+            {editRow._file && <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>📎 „{editRow.datei_name}" wird beim Speichern hochgeladen und ist danach über „↗" abrufbar.</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={() => setEditRow(null)} disabled={busy} style={{ border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 14px', background: '#fff', cursor: 'pointer' }}>Abbrechen</button>
               <button onClick={saveRow} disabled={busy} style={{ border: 'none', borderRadius: 8, padding: '8px 16px', background: ACC, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>{busy ? '…' : 'Speichern'}</button>

@@ -11,32 +11,49 @@ export async function POST(req) {
   const { data, mediaType } = body || {}
   if (!data || !mediaType) return NextResponse.json({ ok: false, error: 'data + mediaType required' }, { status: 400 })
 
-  // a fájl típusa: PDF → document blokk, kép → image blokk
   const isPdf = mediaType === 'application/pdf'
   const fileBlock = isPdf
     ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
     : { type: 'image', source: { type: 'base64', media_type: mediaType, data } }
 
-  const prompt = `Du bist ein Buchhaltungs-Assistent. Analysiere diese EINGANGSRECHNUNG (eine Rechnung, die ImmoPixels e.K. von einem Lieferanten erhalten hat) und extrahiere die Daten.
+  const prompt = `Du bist ein Buchhaltungs-Assistent für ImmoPixels e.K. (Immobilienfotografie). Analysiere das hochgeladene Dokument und gib AUSSCHLIESSLICH ein JSON-Objekt zurück (ohne Markdown, ohne Erklärung).
 
-Gib AUSSCHLIESSLICH ein JSON-Objekt zurück, ohne Markdown, ohne Erklärung, in genau diesem Format:
+Bestimme zuerst den Dokumenttyp ("typ"):
+- "eingangsrechnung" = eine echte Lieferantenrechnung, die ImmoPixels bezahlen muss (Ausgabe). Auch Tankkarten-Sammelrechnungen (z.B. DKV, UTA) gehören hierher.
+- "sammelbeleg" = ein Begleit-/Zahlungsbeleg OHNE Vorsteuerabzug (z.B. DKV "E-Zusammenstellung", auf dem steht "berechtigt nicht zum Vorsteuerabzug" oder "gilt nicht als Umsatzsteuererstattungsbeleg"). KEINE eigene Ausgabe — nur Begleitpapier.
+- "buchhaltung" = Auswertung/Unterlage vom Steuerberater, KEINE Ausgabe. Dazu zählen: BWA (Betriebswirtschaftliche Auswertung), SuSa (Summen und Salden), USt-Voranmeldung / Übermittlungsprotokoll, Lohnauswertungen.
+
+Format:
 {
-  "lieferant": "Name des Lieferanten/Absenders der Rechnung",
-  "rechnungsnr": "Rechnungsnummer des Lieferanten",
+  "typ": "eingangsrechnung" | "sammelbeleg" | "buchhaltung",
+
+  // bei typ "eingangsrechnung" oder "sammelbeleg":
+  "lieferant": "Name des Absenders (NICHT ImmoPixels)",
+  "rechnungsnr": "Rechnungsnummer",
   "datum": "YYYY-MM-DD (Rechnungsdatum)",
-  "netto": Zahl (Nettobetrag, Punkt als Dezimaltrennzeichen),
-  "ust": Zahl (USt-/MwSt-Betrag),
-  "brutto": Zahl (Bruttobetrag/Gesamtbetrag),
-  "ust_satz": Zahl (USt-Satz in Prozent, meist 19 oder 7),
-  "kategorie": "eine aus dieser Liste: ${KATEGORIEN.join(', ')}",
+  "netto": Zahl, "ust": Zahl, "brutto": Zahl, "ust_satz": Zahl (19 oder 7),
+  "kategorie": "eine aus: ${KATEGORIEN.join(', ')}",
+  "sammelrechnung": true|false,   // true bei Tankkarten o.ä. mit mehreren Positionen
+  "positionen": Zahl,             // Anzahl Einzelposten (sonst 1)
+
+  // bei typ "buchhaltung":
+  "belegart": "BWA" | "SuSa" | "USt-VA" | "Lohn" | "Sonstiges",
+  "zeitraum": "z.B. April 2026",
+  "kennzahlen": { ... die wichtigsten Werte als Key-Value, siehe unten ... },
+
+  "zusammenfassung": "ein kurzer, lesbarer deutscher Satz, was das Dokument ist",
   "konfidenz": "hoch" | "mittel" | "niedrig"
 }
 
 Regeln:
-- "lieferant" ist NICHT ImmoPixels, sondern der ABSENDER der Rechnung (z.B. Adobe, Aral, Calumet).
-- Wähle die "kategorie" sinnvoll: Software (Adobe, Abos), Ausrüstung (Kameras, Technik), Fahrtkosten (Tankstelle, Sprit), Material / Druck (Drucke, Prints), Büro (Bürobedarf), Marketing (Werbung, Ads), Versicherung, Reisekosten (Hotel, Bahn), sonst Sonstiges.
-- Wenn ein Wert nicht lesbar ist, nutze null (bei Zahlen 0).
-- "konfidenz" niedrig, wenn der Beleg schlecht lesbar oder unklar ist.`
+- TANKKARTEN-SAMMELRECHNUNG (z.B. DKV): typ="eingangsrechnung", kategorie="Fahrtkosten", sammelrechnung=true. WICHTIG: netto/ust/brutto NICHT aus einzelnen Tankvorgängen rechnen, sondern aus der GESAMTSUMME unten (Felder "TOTAL", "Gesamtwert", "Umsatzsteuerstatistik" / "Gesamtsumme"). positionen = Anzahl der Tankvorgänge.
+- "lieferant" ist der Absender (z.B. DKV Euro Service, Adobe, Calumet) — niemals ImmoPixels.
+- Kategorie sinnvoll wählen: Software (Adobe/Abos), Ausrüstung (Kameras/Technik), Fahrtkosten (Tanken/Sprit/Tankkarte), Material / Druck, Büro, Marketing, Versicherung, Reisekosten (Hotel/Bahn), sonst Sonstiges.
+- USt-Voranmeldung/Übermittlungsprotokoll: belegart="USt-VA", kennzahlen z.B. {"ust_vorauszahlung": Zahl, "faelligkeit": "YYYY-MM-DD"}.
+- BWA: belegart="BWA", kennzahlen z.B. {"ergebnis_monat": Zahl, "ergebnis_kumuliert": Zahl, "erloese_monat": Zahl}.
+- SuSa: belegart="SuSa", kennzahlen kann leer sein {}.
+- Bei typ "buchhaltung" sind netto/ust/brutto NICHT relevant — gib sie als 0 zurück.
+- Unlesbare Werte: null (bei Zahlen 0). "konfidenz" niedrig bei schlechter Lesbarkeit.`
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -54,6 +71,7 @@ Regeln:
     const clean = txt.replace(/```json|```/g, '').trim()
     let parsed
     try { parsed = JSON.parse(clean) } catch { return NextResponse.json({ ok: false, error: 'parse', raw: txt }, { status: 200 }) }
+    if (!parsed.typ) parsed.typ = 'eingangsrechnung'
     return NextResponse.json({ ok: true, data: parsed, raw: parsed })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message || 'fetch error' }, { status: 500 })
