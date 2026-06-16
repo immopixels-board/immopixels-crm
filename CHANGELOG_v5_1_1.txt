@@ -1,0 +1,21 @@
+# ImmoPixels CRM v5.1.1 — Kundenauswahl in neuer Rechnung
+## 2026-06-15
+
+### Fix: Kunde wechseln in „Neue Rechnung"
+- Das Kunde-Feld nutzt jetzt ein eigenes Suchfeld mit Vorschlagsliste
+  (statt des nativen Browser-<datalist>). Dadurch:
+  - „✕" löscht den Kunden zuverlässig.
+  - Man kann danach problemlos einen ANDEREN Kunden eintippen/auswählen
+    — es springt nicht mehr immer derselbe Kunde zurück.
+  - autoComplete="off": keine störende Browser-Auto-Befüllung mehr.
+- Betroffen: app/rechnungen/neu/page.js
+
+### Hinweis Board-Menü „Eingangsrechnungen"
+- Im aktuellen Code gibt es im Board-Hauptmenü KEINEN Eintrag
+  „Eingangsrechnungen" (nur Board/Kalender/Buchungen/Kunden/Telefonbuch/
+  Mitarbeiter/Fahrtenbuch + Kunden/Rechnungen/Widgets). Der Eintrag
+  existiert nur in der LINKEN Leiste des Rechnung-Bereichs (RechnungShell)
+  — wie abgestimmt. Falls im Board noch sichtbar: alte/gecachte Version,
+  bitte nach Deploy hart neu laden (Cmd+Shift+R).
+
+### Keine SQL-Änderung nötig.

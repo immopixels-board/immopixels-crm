@@ -50,6 +50,7 @@ export default function NeueRechnungPage() {
   const [loading, setLoading] = useState(true)
   const [myId, setMyId] = useState(null)
   const [clients, setClients] = useState([])
+  const [clientOpen, setClientOpen] = useState(false)
   const [seller, setSeller] = useState(DEFAULT_SELLER)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [inv, setInv] = useState(null)
@@ -212,7 +213,13 @@ export default function NeueRechnungPage() {
     setBusy(false)
   }
   const onDate = v => set({ invoice_date: v, due_date: addDays(v, 14) })
-  const onClient = name => { const c = clients.find(x => x.name === name || x.short_name === name); set({ client_name: c?.name || name, client_id: c?.id || null, buyer: c ? buyerFromClient(c) : (inv.buyer || {}) }); if (c) loadShoots(c.id, c.name, clients); else setShoots(null) }
+  const onClient = name => {
+    if (!name) { set({ client_name: '', client_id: null, buyer: {} }); setShoots(null); return }
+    const c = clients.find(x => x.name === name || x.short_name === name)
+    if (c) { set({ client_name: c.name, client_id: c.id, buyer: buyerFromClient(c) }); loadShoots(c.id, c.name, clients) }
+    else { set({ client_name: name, client_id: null, buyer: {} }); setShoots(null) }
+  }
+  const clearClient = () => { set({ client_name: '', client_id: null, buyer: {} }); setShoots(null) }
 
   function shootChecked(cardId) { return (inv?.items || []).some(it => it._card === cardId) }
   function toggleShoot(cd, on) {
@@ -446,8 +453,24 @@ export default function NeueRechnungPage() {
 
         <div className="rech-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Side title="Kunde">
-            <input list="clf" value={inv.client_name} onChange={e => onClient(e.target.value)} placeholder="Kunde suchen (voller Name)…" style={{ ...box, width: '100%' }} />
-            <datalist id="clf">{clients.map(c => <option key={c.id} value={c.name} />)}</datalist>
+            <div style={{ position: 'relative' }}>
+              <input value={inv.client_name} autoComplete="off" onChange={e => { onClient(e.target.value); setClientOpen(true) }} onFocus={() => setClientOpen(true)} onBlur={() => setTimeout(() => setClientOpen(false), 150)} placeholder="Kunde suchen (Name)…" style={{ ...box, width: '100%', paddingRight: 30 }} />
+              {inv.client_name && <button onMouseDown={e => e.preventDefault()} onClick={() => { clearClient(); setClientOpen(true) }} title="Kunde entfernen" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: MUT, fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>}
+              {clientOpen && (() => {
+                const q = (inv.client_name || '').toLowerCase().trim()
+                const list = clients.filter(c => !q || (c.name || '').toLowerCase().includes(q) || (c.short_name || '').toLowerCase().includes(q)).slice(0, 8)
+                if (!list.length) return null
+                return (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 2, background: '#fff', border: '1px solid ' + LINE, borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.10)', zIndex: 30, maxHeight: 240, overflowY: 'auto' }}>
+                    {list.map(c => (
+                      <div key={c.id} onMouseDown={e => { e.preventDefault(); onClient(c.name); setClientOpen(false) }} style={{ padding: '7px 10px', fontSize: 12, cursor: 'pointer', color: DARK }} onMouseEnter={e => e.currentTarget.style.background = '#f6f3ec'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span style={{ fontWeight: 600 }}>{c.name}</span>{c.short_name ? <span style={{ color: MUT }}> · {c.short_name}</span> : null}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
             {inv.buyer?.company && (
               <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
                 {inv.buyer.kundennr && <div style={{ color: GOLD, fontWeight: 700 }}>[{inv.buyer.kundennr}]</div>}
