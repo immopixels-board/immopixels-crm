@@ -1,0 +1,18 @@
+# ImmoPixels CRM v5.1.9 — Rechnungs-PDF Layout + Dateiname
+## 2026-06-16
+- Schlusstext ins untere Drittel: Wenn die letzte Seite nicht voll ist,
+  rutscht der Block „Gefahrene Strecke / Vielen Dank / Bitte überweisen /
+  Online buchen" ans untere Drittel der Seite (statt direkt unter die
+  Positionen). Bei voller Seite bleibt alles wie gehabt.
+  Die Summen (Zwischensumme/USt/Gesamt brutto) bleiben direkt unter den
+  Positionen.
+- Trennlinien: mehr Abstand zu den Positionen (Zeilenhöhe +, Linie höher
+  zwischen den Zeilen).
+- Spaltenüberschrift: kleiner Abstand nach „Pos Beschreibung …".
+- PDF-Dateiname: immer „Rechnung <Nr>.pdf" (z.B. „Rechnung 20-0724.pdf"),
+  ohne Kürzel, kein zufälliger UUID-Name mehr. Gilt für den „PDF"-Button
+  in der Rechnungsliste UND den PDF-Button im Editor (lädt jetzt direkt
+  herunter statt im neuen Tab zu öffnen).
+- Betroffen: lib/invoice/zugferd.js, app/rechnungen/page.js,
+  app/rechnungen/neu/page.js
+- Keine SQL-Änderung.

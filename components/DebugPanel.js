@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.9', date: '2026-06-16', items: ['Rechnungs-PDF: Schlusstext (Gefahrene Strecke, Dank, Zahlung, Online buchen) rutscht bei nicht voller letzter Seite ins untere Drittel', 'Mehr Abstand zwischen den Trennlinien und den Positionen', 'Kleiner Abstand nach der Spaltenüberschrift (Pos/Beschreibung…)', 'PDF-Download heißt jetzt immer „Rechnung <Nr>.pdf" (kein Zufallsname mehr) — auch der PDF-Button im Editor lädt direkt herunter'] },
   { ver: 'v5.1.8', date: '2026-06-16', items: ['Rechnung schreiben: neue Spalte „Betrag" pro Position — zeigt die Nettosumme der Zeile (inkl. km-Menge × Preis und Rabatt) direkt neben jeder Position'] },
   { ver: 'v5.1.7', date: '2026-06-16', items: ['Buchung: Bei einem Termin mit möglicher Verspätung (bis 5 Min wegen Anfahrt) erscheint vor der Buchung ein Bestätigungsdialog — der Makler muss die Verspätung aktiv akzeptieren', 'Akzeptierte Verspätung wird auf der Karte vermerkt'] },
   { ver: 'v5.1.6', date: '2026-06-16', items: ['Makler-Termine importieren: liest jetzt standardmäßig ALLE Kalender des immopixels-Kontos (nicht nur einen) — kein Fototermin wird mehr übersehen', 'Neue Option „⭐ Alle Kalender"; einzelne Kalender weiterhin wählbar; nicht erreichbare Kalender werden übersprungen'] },

@@ -325,7 +325,7 @@ export default function NeueRechnungPage() {
   }
   async function pdf() {
     setBusy(true)
-    try { const bytes = await makePdfBytes(); const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 60000) }
+    try { const bytes = await makePdfBytes(); const blob = new Blob([bytes], { type: 'application/pdf' }); const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = 'Rechnung ' + (inv.invoice_number || 'Entwurf') + '.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 60000) }
     catch (e) { alert('PDF-Fehler: ' + (e.message || e)) }
     setBusy(false)
   }
@@ -341,7 +341,7 @@ export default function NeueRechnungPage() {
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#fff', borderBottom: '1px solid ' + LINE, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{finalized ? 'Rechnung ' + inv.invoice_number : (inv.id ? 'Entwurf bearbeiten' : 'Neue Rechnung')}</div>
         <button onClick={() => setEmailModal(true)} disabled={busy} style={ghost}>📧 Per E-Mail</button>
-        <button onClick={pdf} disabled={busy} style={ghost}>PDF (neuer Tab)</button>
+        <button onClick={pdf} disabled={busy} style={ghost}>PDF herunterladen</button>
         {!finalized && <button onClick={async () => { const r = await save(false, false); if (r) { setBusy(false); setSavedMsg('✓ Entwurf gespeichert'); setTimeout(() => setSavedMsg(''), 2500) } }} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
         {savedMsg && <span style={{ fontSize: 13, color: '#2f7a4f', fontWeight: 600 }}>{savedMsg}</span>}
         {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
