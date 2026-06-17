@@ -308,14 +308,16 @@ export default function NeueRechnungPage() {
     })
   }
   async function clientKmFromShoots() {
-    // tájékoztató km: a bázisból MINDEN számlázott fotózás címéhez oda-vissza (Hin- und Rückfahrt)
+    // tájékoztató km: aznapi fotózások LÁNCOLVA (otthon → termin → termin → otthon)
     const base = (fahrt.start || '').trim() || [seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
-    const addrs = (inv.items || [])
+    const dkey = it => it._date || ((String(it.title || '').match(/(\d{2})\.(\d{2})\.(\d{4})/) || []).slice(1).reverse().join('-'))
+    const items = (inv.items || [])
       .filter(it => it.unit !== 'km' && !/fahrtkosten|übernachtung/i.test((it.desc || '') + ' ' + (it.title || '')))
-      .map(it => addrOf(it)).filter(a => a && a.includes(','))
-    if (!base || !addrs.length) return 0
+      .map(it => ({ address: it._addr || addrOf(it), date: dkey(it) }))
+      .filter(x => x.address && x.address.includes(','))
+    if (!base || !items.length) return 0
     try {
-      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, addresses: addrs }) })
+      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, items }) })
       const j = await r.json()
       return j.ok ? (j.km || 0) : 0
     } catch { return 0 }

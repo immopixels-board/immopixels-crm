@@ -163,13 +163,20 @@ export default function RechnungenPage() {
   }
   async function clientKmFromItems(its, inv) {
     const base = [seller.street, [seller.zip, seller.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
-    const addrs = (its || [])
+    const items = (its || [])
       .filter(it => it.unit !== 'km' && !/fahrtkosten|übernachtung/i.test(it.description || ''))
-      .map(it => { const first = String(it.description || '').split('\n')[0]; const parts = first.split(' - '); return parts.length >= 3 ? parts.slice(2).join(' - ').trim() : '' })
-      .filter(a => a && a.includes(','))
-    if (!base || !addrs.length) return await fahrtenbuchKmFor(inv)
+      .map(it => {
+        const first = String(it.description || '').split('\n')[0]
+        const parts = first.split(' - ')
+        const address = parts.length >= 3 ? parts.slice(2).join(' - ').trim() : ''
+        const dm = first.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+        const date = dm ? dm[3] + '-' + dm[2] + '-' + dm[1] : ''
+        return { address, date }
+      })
+      .filter(x => x.address && x.address.includes(','))
+    if (!base || !items.length) return await fahrtenbuchKmFor(inv)
     try {
-      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, addresses: addrs }) })
+      const r = await fetch('/api/invoice/client-km', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, items }) })
       const j = await r.json()
       const km = j.ok ? (j.km || 0) : 0
       return km || await fahrtenbuchKmFor(inv)

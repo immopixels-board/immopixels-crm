@@ -1,0 +1,32 @@
+# ImmoPixels CRM v5.1.20 — Rechnung: Adresse, Fuß-Text, km-Verkettung
+## 2026-06-17
+1) Doppelte Adresse im Positions-Titel behoben
+   - Vorher: "22.05.2026. - KI - KI#018 - Schönauer Str. 20, HD, Schönauer
+     Str. 20, Heidelberg"
+   - buildInvoiceItem entfernt jetzt: führenden Referenzcode (z.B.
+     "KI#018 - ", "Riegel#061 - ") und kollabiert eine doppelt genannte
+     Adresse ("Str, HD, Str, Stadt" -> "Str, Stadt").
+   - Gilt für NEUE Entwürfe; bereits gespeicherte Rechnungen ggf. neu
+     erzeugen oder den Titel manuell kürzen.
+
+2) Fuß-Text der gefahrenen km umformuliert
+   - Neu: "Wir haben für Ihre Aufträge insgesamt X km zurückgelegt —
+     überwiegend nicht berechnet." (lib/invoice/zugferd.js)
+
+3) km realistischer berechnet (Verkettung pro Tag)
+   - Vorher: jede Aufnahme als eigene Hin- und Rückfahrt ab Zuhause ->
+     bei mehreren Terminen am selben Tag deutlich zu viel.
+   - Jetzt: Aufnahmen am SELBEN Tag werden als EINE Fahrt verkettet:
+     Zuhause -> Termin1 -> Termin2 -> ... -> Zuhause. Pro Tag eine Runde,
+     über die Tage summiert.
+   - Editor und Rechnungsliste senden jetzt {address, date} pro Position;
+     /api/invoice/client-km gruppiert nach Tag und summiert die
+     Streckenabschnitte (parallele Distance-Matrix-Abfragen, maxDuration
+     60s).
+   - Hinweis: Reihenfolge innerhalb eines Tages = Positions-Reihenfolge;
+     eine etwaige „Heimfahrt bei großer Lücke" wird (noch) nicht
+     berücksichtigt — die Zahl ist eher konservativ.
+- Betroffen: app/BoardApp.js, lib/invoice/zugferd.js,
+  app/rechnungen/neu/page.js, app/rechnungen/page.js,
+  app/api/invoice/client-km/route.js
+- Keine SQL-Änderung.
