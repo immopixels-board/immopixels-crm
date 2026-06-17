@@ -1,0 +1,25 @@
+# ImmoPixels CRM v5.1.18 — Doppelte Buchungskarten endgültig zusammenführen
+## 2026-06-17
+- Problem: Eine Online-Buchung erzeugt eine Buchungskarte. Beim Ändern
+  des Termins im Google Kalender entstand eine ZWEITE (GCal-)Karte statt
+  die Originalkarte zu ändern. Ursache meist: die alte Buchungskarte hatte
+  KEINE gcal_id (oder eine veraltete) — der Sync erkannte das Event nicht
+  wieder und legte eine Kopie an. Der bisherige Dedup (v5.1.14) griff nur
+  bei „verwaisten" Karten mit gcal_id und scheiterte zudem, wenn die
+  Event-location ≠ Buchungsadresse war.
+- Fix: Nach dem Sync werden die Karten des Fotografen nach Adresse + Kunde
+  gruppiert. Gibt es in einer Gruppe eine Buchungskarte UND eine
+  GCal-Karte:
+  - Es wird die passende Buchungskarte gewählt (gleiches Datum ODER eine
+    Buchung ohne eigenes lebendes Event = gcal_id null/verwaist).
+  - Die Buchungskarte übernimmt Datum/Uhrzeit/Ende UND die Event-ID der
+    GCal-Karte (sie „besitzt" das Event jetzt) — die GCal-Kopie wird
+    gelöscht.
+  - Folge: Beim nächsten Ändern im Kalender wird die ORIGINAL-Buchungs-
+    karte aktualisiert, keine neue Kopie. Titel/Adresse/Kunde der Buchung
+    bleiben erhalten.
+  - Getrennte Aufnahmen (andere Adresse oder anderes Datum mit eigenem
+    lebendem Event) werden NICHT zusammengeführt.
+- Betroffen: app/api/gcal/sync/route.js
+- Keine SQL-Änderung. Nach dem Deploy einmal „GCal" synchronisieren (oder
+  Board öffnen) — dann werden bestehende Doppel automatisch bereinigt.

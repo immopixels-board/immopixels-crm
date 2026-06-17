@@ -220,31 +220,49 @@ export async function doSync(opts = {}) {
       }
     }
 
-    // Tartalom-alapú dedup: árva foglalás-kártya (is_gcal=false, de a gcal_id-ja már nem él,
-    // mert a naptári esemény id-je megváltozott — pl. törlés+újra létrehozás vagy másik naptárba
-    // húzás) + ugyanarra a CÍMRE+ÜGYFÉLRE egy AKTÍV esemény → ez ugyanaz a fotózás. A foglalás-
-    // kártyát rálinkeljük az új eseményre (új időpont + új gcal_id), és a duplikált GCal-kártyát
-    // (ha létrejött erre az eseményre) töröljük. Így egy kártya marad, a HELYES idővel.
-    const usedEv = new Set()
-    for (const bk of (anyRows || [])) {
-      if (bk.is_gcal || !bk.gcal_id) continue        // csak foglalás-kártya (is_gcal=false)
-      if (activeIds.has(bk.gcal_id)) continue          // még él az eseménye → rendben, nem árva
-      const bkAddr = nrm(bk.booking_address || bk.addr)
-      if (!bkAddr) continue
-      const bkClient = nrm(bk.client_name)
-      const ev2 = Object.values(activeEvents).find(e =>
-        !usedEv.has(e.gcal_id) &&
-        nrm(e.location) === bkAddr &&
-        (!bkClient || !e.client || nrm(e.client) === bkClient))
-      if (!ev2) continue
-      usedEv.add(ev2.gcal_id)
-      await supabase.from('cards').update({
-        card_date: ev2.date, card_time: ev2.time, booking_end_time: ev2.endTime,
-        gcal_id: ev2.gcal_id, updated_at: new Date().toISOString(),
-      }).eq('id', bk.id)
-      // a duplikált is_gcal kártyát erre az eseményre töröljük (a foglalás-kártya viszi tovább)
-      await supabase.from('cards').delete().eq('gcal_id', ev2.gcal_id).eq('is_gcal', true).neq('id', bk.id)
-      updated++; deleted++
+    // Duplikátum-összevonás: ugyanarra a CÍMRE+ÜGYFÉLRE egy foglalás-kártya (is_gcal=false)
+    // ÉS egy GCal-kártya (is_gcal=true) → ugyanaz a fotózás. Ez akkor keletkezik, ha a naptári
+    // esemény id-je megváltozott (átírás/áthelyezés). A foglalás-kártya az "igazi" (booking-adatokkal),
+    // a GCal-másolatot töröljük. Két eset:
+    //  (a) AZONOS dátum → valódi duplikátum → a GCal-kártyát töröljük (a foglalás megmarad).
+    //  (b) ELTÉRŐ dátum, de a foglalás ÁRVA (eseménye eltűnt) → áthelyezés: a friss időt az aktív
+    //      GCal-kártyáról átvisszük a foglalás-kártyára, majd a GCal-másolatot töröljük.
+    // Külön (eltérő dátumú, nem árva) fotózásokat NEM von össze.
+    {
+      const { data: post } = await supabase
+        .from('cards')
+        .select('id, gcal_id, is_gcal, card_date, card_time, booking_end_time, booking_address, addr, client_name, card_team!inner(staff_id)')
+        .eq('card_team.staff_id', staffMember.id)
+        .not('gcal_id', 'is', null)
+      const groups = {}
+      for (const c of (post || [])) {
+        const a = nrm(c.booking_address || c.addr)
+        if (!a) continue
+        const key = a + '|' + nrm(c.client_name)
+        ;(groups[key] = groups[key] || []).push(c)
+      }
+      for (const key of Object.keys(groups)) {
+        const grp = groups[key]
+        const bookings = grp.filter(c => !c.is_gcal)
+        const gcals = grp.filter(c => c.is_gcal)
+        if (!bookings.length || !gcals.length) continue
+        for (const gc of gcals) {
+          // azonos dátumú foglalás → valódi duplikátum; különben olyan foglalás, aminek NINCS élő
+          // saját eseménye (gcal_id null VAGY már nem él) → ez az ő be-nem-linkelt/áthelyezett eseménye
+          let target = bookings.find(b => b.card_date === gc.card_date)
+          if (!target) target = bookings.find(b => !b.gcal_id || !activeIds.has(b.gcal_id))
+          if (!target) continue
+          // a friss időt ÉS az esemény-id-t átvisszük a foglalás-kártyára → ő "birtokolja" az eseményt,
+          // így a következő sync már frissítésnek látja és NEM hoz létre újabb duplikátot
+          await supabase.from('cards').update({
+            card_date: gc.card_date, card_time: gc.card_time, booking_end_time: gc.booking_end_time,
+            gcal_id: gc.gcal_id, updated_at: new Date().toISOString(),
+          }).eq('id', target.id)
+          target.gcal_id = gc.gcal_id; target.card_date = gc.card_date  // in-memory a további iterációkhoz
+          await supabase.from('cards').delete().eq('id', gc.id)
+          updated++; deleted++
+        }
+      }
     }
 
     for (const gcal_id of Object.keys(existingMap)) {
