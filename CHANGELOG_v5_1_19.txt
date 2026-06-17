@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.19 — Auto-Dedup auch für alte Karten ohne gcal_id
+## 2026-06-17
+- Korrektur zu v5.1.18: Die Zusammenführung las nur Karten MIT gcal_id neu
+  ein — genau die alten Buchungskarten haben aber oft KEINE gcal_id, und
+  wurden so übersehen.
+- Jetzt lädt der Dedup zusätzlich alle Online-Buchungskarten
+  (booking_source='online'), auch ohne gcal_id. Dadurch werden auch
+  bestehende/alte Doppel automatisch beim Sync bereinigt:
+  Buchungskarte behält Infos + übernimmt Event-ID, GCal-Kopie wird
+  gelöscht.
+- Greift bei Karten, deren Adresse + Kunde übereinstimmen. Für Sonderfälle
+  (z.B. unterschiedlich geschriebene Adressen) bleibt der manuelle
+  „Duplikate"-Button (Admin) als Sicherheitsnetz.
+- Betroffen: app/api/gcal/sync/route.js
+- Keine SQL-Änderung. Nach Deploy einmal „GCal" synchronisieren.

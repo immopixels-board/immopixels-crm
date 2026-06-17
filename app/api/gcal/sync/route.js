@@ -231,9 +231,9 @@ export async function doSync(opts = {}) {
     {
       const { data: post } = await supabase
         .from('cards')
-        .select('id, gcal_id, is_gcal, card_date, card_time, booking_end_time, booking_address, addr, client_name, card_team!inner(staff_id)')
+        .select('id, gcal_id, is_gcal, card_date, card_time, booking_end_time, booking_address, addr, client_name, booking_source, card_team!inner(staff_id)')
         .eq('card_team.staff_id', staffMember.id)
-        .not('gcal_id', 'is', null)
+        .or('gcal_id.not.is.null,booking_source.eq.online')
       const groups = {}
       for (const c of (post || [])) {
         const a = nrm(c.booking_address || c.addr)
