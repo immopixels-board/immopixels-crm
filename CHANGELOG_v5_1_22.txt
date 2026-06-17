@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.22 — Kurze Adresse im Buchungskarten-Namen
+## 2026-06-17
+- Der beim Sync gesetzte Karten-Name "Kunde - Adresse" nutzt jetzt eine
+  KURZE Adresse: PLZ, Bundesland in Klammern ("(Pfalz)") und
+  "Deutschland"/"Germany" werden entfernt.
+- Beispiel: "Bartz - Holzhof 2, 76768 Berg (Pfalz), Deutschland"
+  -> "Bartz - Holzhof 2, Berg"
+- Betroffen: app/api/gcal/sync/route.js
+- Keine SQL-Änderung. Nach Deploy einmal "GCal" synchronisieren.

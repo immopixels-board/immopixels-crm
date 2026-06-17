@@ -265,11 +265,18 @@ export async function doSync(opts = {}) {
       }
 
       // Foglalás-kártyák nevének egységesítése "Kunde - Adresse" formátumra (régi formátumú
-      // nevek, pl. "Foto + Reel — Alina Doberstein" javítása). Pontosan úgy, ahogy az új
-      // foglalás (booking/create) generálja: `${client_name} - ${booking_address}`.
+      // nevek, pl. "Foto + Reel — Alina Doberstein" javítása). Rövid cím: PLZ, "(...)" (megye)
+      // és "Deutschland"/"Germany" kimarad → pl. "Bartz - Holzhof 2, Berg".
+      const shortAddr = (a) => {
+        let s = String(a || '').replace(/,?\s*(deutschland|germany)\s*$/i, '')   // ország
+        s = s.replace(/\(([^)]*)\)/g, ' ')                                          // (Pfalz) stb.
+        s = s.replace(/\b\d{5}\b/g, ' ')                                            // PLZ
+        s = s.split(',').map(x => x.replace(/\s{2,}/g, ' ').trim()).filter(Boolean).join(', ')
+        return s.trim()
+      }
       for (const c of (post || [])) {
         if (c.is_gcal || c.booking_source !== 'online') continue
-        const addr = (c.booking_address || '').trim()
+        const addr = shortAddr(c.booking_address)
         const cl = (c.client_name || '').trim()
         if (!addr || !cl) continue
         const want = cl + ' - ' + addr
