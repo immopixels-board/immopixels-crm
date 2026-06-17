@@ -231,7 +231,7 @@ export async function doSync(opts = {}) {
     {
       const { data: post } = await supabase
         .from('cards')
-        .select('id, gcal_id, is_gcal, card_date, card_time, booking_end_time, booking_address, addr, client_name, booking_source, card_team!inner(staff_id)')
+        .select('id, gcal_id, is_gcal, title, card_date, card_time, booking_end_time, booking_address, addr, client_name, booking_source, card_team!inner(staff_id)')
         .eq('card_team.staff_id', staffMember.id)
         .or('gcal_id.not.is.null,booking_source.eq.online')
       const groups = {}
@@ -261,6 +261,21 @@ export async function doSync(opts = {}) {
           target.gcal_id = gc.gcal_id; target.card_date = gc.card_date  // in-memory a további iterációkhoz
           await supabase.from('cards').delete().eq('id', gc.id)
           updated++; deleted++
+        }
+      }
+
+      // Foglalás-kártyák nevének egységesítése "Kunde - Adresse" formátumra (régi formátumú
+      // nevek, pl. "Foto + Reel — Alina Doberstein" javítása). Pontosan úgy, ahogy az új
+      // foglalás (booking/create) generálja: `${client_name} - ${booking_address}`.
+      for (const c of (post || [])) {
+        if (c.is_gcal || c.booking_source !== 'online') continue
+        const addr = (c.booking_address || '').trim()
+        const cl = (c.client_name || '').trim()
+        if (!addr || !cl) continue
+        const want = cl + ' - ' + addr
+        if ((c.title || '') !== want) {
+          await supabase.from('cards').update({ title: want, updated_at: new Date().toISOString() }).eq('id', c.id)
+          updated++
         }
       }
     }

@@ -1,0 +1,18 @@
+# ImmoPixels CRM v5.1.21 — Buchungskarten-Namen auf "Kunde - Adresse"
+## 2026-06-17
+- Problem: Nach dem Zusammenführen blieb die Buchungskarte erhalten — die
+  trägt aber bei ALTEN Buchungen noch den alten Namen
+  ("Foto + Reel — Alina Doberstein") statt "Kunde - Adresse".
+- Fix: Der Sync vereinheitlicht jetzt die Namen aller
+  Online-Buchungskarten (booking_source='online', is_gcal=false) auf
+  genau das Format, das neue Buchungen erzeugen:
+  `${client_name} - ${booking_address}`  (z.B. "Bartz - Holzhof 2, 76768
+  Berg (Pfalz), Deutschland"). Karten, die schon korrekt heißen, werden
+  nicht angefasst.
+- Läuft im selben Durchgang wie die Duplikat-Zusammenführung.
+- Betroffen: app/api/gcal/sync/route.js
+- Keine SQL-Änderung. Nach Deploy einmal "GCal" synchronisieren (oder
+  Board öffnen) — dann werden bestehende Namen korrigiert.
+- Hinweis: Die Adresse wird in voller Form übernommen (wie bei neuen
+  Buchungen). Falls eine KÜRZERE Form gewünscht ist ("Bartz - Holzhof 2,
+  Berg"), kurz Bescheid geben.
