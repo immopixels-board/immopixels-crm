@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.26', date: '2026-06-17', items: ['Dani-Buffer von 30 auf 15 Min reduziert (pro Aufnahme zusätzlich reservierte Zeit).'] },
+  { ver: 'v5.1.25', date: '2026-06-17', items: ['Buchung: (1) Dani (DB) bekommt mehr Buffer — pro Aufnahme werden 30 Min mehr reserviert, da er langsamer arbeitet (Wert einstellbar). (2) Anfahrt-Ort wird zusätzlich aus dem Termin-TITEL gelesen, falls das Kalender-Event kein Adressfeld hat (Kunde - Adresse) — so wird die vorige Station auch dann erkannt, wenn die Adresse nur im Titel steht.'] },
+  { ver: 'v5.1.24', date: '2026-06-17', items: ['Buchungs-Verfügbarkeit rechnet jetzt vom RICHTIGEN Ort: Hat ein Kalendertermin keine Adresse im Event, wird sie aus der CRM-Karte (booking_address) ergänzt — so wird die Anfahrt vom vorherigen Termin (z.B. Landau) statt fälschlich von Zuhause berechnet. Ist der Ort gar nicht bekannt, wird der Slot als eng markiert statt frei angeboten.'] },
   { ver: 'v5.1.23', date: '2026-06-17', items: ['Buchhaltung komplett überarbeitet: Übersicht statt Zahlenwüste — Ergebnis-Banner (Plus/Minus + Vorjahresvergleich), Kennzahlen-Kacheln (Einnahmen, Ausgaben, Bank, Forderungen, Verbindlichkeiten, Personal, USt), 2025-vs-2026-Vergleich und eine Steuer-Rücklage-Schätzung (Einkommensteuer §32a 2026 auf den hochgerechneten Gewinn). Hochgeladene Unterlagen jetzt als einklappbares Archiv.'] },
   { ver: 'v5.1.22', date: '2026-06-17', items: ['Buchungskarten-Name jetzt mit KURZER Adresse: PLZ, Bundesland-Klammer „(Pfalz)" und „Deutschland" entfallen — z.B. „Bartz - Holzhof 2, Berg".'] },
   { ver: 'v5.1.21', date: '2026-06-17', items: ['Buchungskarten-Namen werden beim Sync auf „Kunde - Adresse" vereinheitlicht (alte Namen wie „Foto + Reel — Alina Doberstein" werden korrigiert) — genau wie neue Buchungen es erzeugen. Nach Deploy einmal „GCal" synchronisieren'] },

@@ -1,0 +1,17 @@
+# ImmoPixels CRM v5.1.25 — Dani-Buffer + Anfahrt-Ort aus Termin-Titel
+## 2026-06-17
+1) Mehr Buffer für Dani (DB)
+   - Dani arbeitet langsamer → für seine Buchungen werden pro Aufnahme
+     30 Min mehr reserviert (DANI_EXTRA_MIN, oben in slots.js einstellbar).
+   - Wirkt auf: reserviertes Zeitfenster (weniger enge Folgetermine),
+     Arbeits-Ende (Fahrzeit zum nächsten Termin strenger) und das
+     letzte mögliche Slot des Tages. Nur Provider-Init 'DB'.
+2) Anfahrt-Ort robuster (Anschluss an v5.1.24)
+   - Hat ein Kalender-Event kein Adressfeld, wird die Adresse jetzt auch
+     aus dem TITEL gelesen ("[STATUS] Kunde - Adresse" -> Adresse).
+   - Reihenfolge der Ortsbestimmung: Event-location -> Titel-Adresse ->
+     CRM-Karte (booking_address per gcal_id). So wird der vorherige Ort
+     (z.B. Landau) zuverlässig erkannt, auch wenn die Adresse beim
+     Eintragen nur im Titel landete.
+- Betroffen: lib/booking/slots.js
+- Keine SQL-Änderung.

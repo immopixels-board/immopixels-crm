@@ -1,0 +1,25 @@
+# ImmoPixels CRM v5.1.24 — Buchung: Anfahrt vom richtigen Ort (nicht Zuhause)
+## 2026-06-17
+- Problem: Ein 14:00-Slot in Dunzweiler (66916) wurde freigegeben, obwohl
+  der Fotograf an dem Tag in Landau ist (~1,5 h Fahrt). Ursache: Der
+  vorherige Termin (Landau) hatte im Google-Kalender-Event KEINE Adresse
+  (location leer). Dadurch konnte die Verfügbarkeits-Logik nicht sehen,
+  woher gefahren wird, und fiel auf "Start von Zuhause" zurück bzw.
+  übersprang die Fahrzeit-Prüfung.
+- Fix (lib/booking/slots.js):
+  1. Fehlende Event-Adresse wird aus der CRM-Karte ergänzt: zu jedem
+     Termin ohne location wird per gcal_id die Karte gesucht und deren
+     booking_address (bzw. addr) verwendet. -> Anfahrt wird vom echten
+     vorherigen Ort (Landau) berechnet -> unmöglicher 14:00-Slot wird
+     blockiert.
+  2. Bleibt der Ort trotzdem unbekannt (manueller Kalendertermin ohne
+     Adresse und ohne Karte), wird NICHT mehr "von Zuhause" angenommen —
+     der Slot wird als eng/zu prüfen markiert statt einfach frei
+     angeboten.
+  3. "Von Zuhause" gilt nur noch, wenn an dem Tag wirklich KEIN
+     vorheriger Termin existiert (erste Aufnahme des Tages).
+- Hinweis: Die bereits in "In Prüfung" liegende 23.06-Buchung muss noch
+  manuell korrigiert/abgelehnt werden — der Fix verhindert solche Slots
+  künftig.
+- Keine SQL-Änderung. Travel-Prüfung greift weiterhin nur bei
+  Online-Buchungen.

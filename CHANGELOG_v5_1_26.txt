@@ -1,0 +1,6 @@
+# ImmoPixels CRM v5.1.26 — Dani-Buffer auf 15 Min
+## 2026-06-17
+- DANI_EXTRA_MIN von 30 auf 15 Minuten gesenkt (Start-Wert). 30 war zu
+  viel. Weiterhin oben in lib/booking/slots.js einstellbar.
+- Betroffen: lib/booking/slots.js
+- Keine SQL-Änderung.
