@@ -15,7 +15,7 @@ export async function GET() {
     .select('id, name, category, duration_min, buffer_min, position, active, image_url, description')
     .order('position')
   const { data: providers } = await supabase.from('booking_providers')
-    .select('id, staff_init, name, active').order('staff_init')
+    .select('id, staff_init, name, active, extra_buffer_min').order('staff_init')
   const { data: links } = await supabase.from('booking_provider_services').select('service_id, provider_id')
   const { data: staffRows } = await supabase.from('staff').select('init, avatar_url, color')
 
@@ -83,6 +83,15 @@ export async function POST(req) {
     const { provider_id, active } = body
     if (!provider_id) return NextResponse.json({ error:'provider_id required' }, { status:400 })
     const { error } = await supabase.from('booking_providers').update({ active: !!active }).eq('id', provider_id)
+    if (error) return NextResponse.json({ error:error.message }, { status:500 })
+    return NextResponse.json({ ok:true })
+  }
+
+  if (action === 'set_provider_buffer') {
+    const { provider_id, extra_buffer_min } = body
+    if (!provider_id) return NextResponse.json({ error:'provider_id required' }, { status:400 })
+    const v = Math.max(0, parseInt(extra_buffer_min, 10) || 0)
+    const { error } = await supabase.from('booking_providers').update({ extra_buffer_min: v }).eq('id', provider_id)
     if (error) return NextResponse.json({ error:error.message }, { status:500 })
     return NextResponse.json({ ok:true })
   }

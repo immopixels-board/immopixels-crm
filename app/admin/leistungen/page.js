@@ -80,6 +80,13 @@ export default function AdminLeistungen() {
     catch(e){ alert(e.message); load() }
   }
 
+  function setProviderBuffer(id, val) { setProviders(ps=>ps.map(p=>p.id===id?{...p,extra_buffer_min:val,_bufDirty:true}:p)) }
+  async function saveProviderBuffer(prov) {
+    if (!prov._bufDirty) return
+    try { await api({ action:'set_provider_buffer', provider_id:prov.id, extra_buffer_min: parseInt(prov.extra_buffer_min,10)||0 }); setProviders(ps=>ps.map(p=>p.id===prov.id?{...p,_bufDirty:false}:p)) }
+    catch(e){ alert(e.message); load() }
+  }
+
   async function createService() {
     if (!nf.name || !nf.category) { alert('Name und Kategorie erforderlich'); return }
     setSaving('new')
@@ -153,11 +160,22 @@ export default function AdminLeistungen() {
         </div>
         <p style={{fontSize:13,color:'#8a8278',marginBottom:20}}>Name, Kategorie, Beschreibung (mit Formatierung), Reihenfolge, Bild und zugeordnete Mitarbeiter bearbeiten.</p>
 
-        {/* Mitarbeiter aktiv */}
+        {/* Mitarbeiter aktiv + Puffer */}
         <div style={{background:'#fff',border:'1px solid #e6ddc9',borderRadius:12,padding:'14px 16px',marginBottom:18}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#999',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:10}}>Mitarbeiter (für Buchungen aktiv)</div>
-          <div style={{display:'flex',gap:22,flexWrap:'wrap'}}>
-            {providers.map(p=><Avatar key={p.id} p={p} on={!!p.active} onClick={()=>toggleProviderActive(p)} size={46} />)}
+          <div style={{fontSize:11,fontWeight:700,color:'#999',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:4}}>Mitarbeiter (für Buchungen aktiv)</div>
+          <div style={{fontSize:12,color:'#8a8278',marginBottom:12}}>Puffer = zusätzlich reservierte Zeit pro Aufnahme (z.&nbsp;B. für langsamere Fotografen). 0 = kein Extra-Puffer.</div>
+          <div style={{display:'flex',gap:26,flexWrap:'wrap'}}>
+            {providers.map(p=>(
+              <div key={p.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:7}}>
+                <Avatar p={p} on={!!p.active} onClick={()=>toggleProviderActive(p)} size={46} />
+                <div style={{display:'flex',alignItems:'center',gap:4}}>
+                  <input type="number" min="0" step="5" value={p.extra_buffer_min ?? 0}
+                    onChange={e=>setProviderBuffer(p.id, e.target.value)} onBlur={()=>saveProviderBuffer(p)}
+                    style={{width:46,padding:'3px 4px',fontSize:12,border:'1px solid #e6ddc9',borderRadius:6,textAlign:'center'}} title="Puffer in Minuten" />
+                  <span style={{fontSize:11,color:'#8a8278'}}>Min</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

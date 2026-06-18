@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.27 — Puffer pro Fotograf im System einstellbar
+## 2026-06-17
+- Statt fest verdrahtetem Dani-Wert: jeder Buchungs-Mitarbeiter hat jetzt
+  einen eigenen Puffer (Minuten), der pro Aufnahme zusätzlich reserviert
+  wird (mehr Zeit für langsamere Fotografen, weniger enge Folgetermine).
+- Einstellbar in /admin/leistungen → Abschnitt „Mitarbeiter": Zahlenfeld
+  „Min" pro Person (Speichern beim Verlassen des Feldes).
+- Technik: booking_providers.extra_buffer_min; slots.js liest es je
+  Provider (pExtra) statt der Konstante; services-admin GET liefert es,
+  POST-Action set_provider_buffer speichert es.
+- Betroffen: lib/booking/slots.js, app/api/booking/services-admin/route.js,
+  app/admin/leistungen/page.js
+- ERFORDERT DB-MIGRATION (separat ausführen, ÉLES + DEMO):
+    ALTER TABLE booking_providers ADD COLUMN IF NOT EXISTS extra_buffer_min int NOT NULL DEFAULT 0;
+    UPDATE booking_providers SET extra_buffer_min = 15 WHERE staff_init = 'DB';
