@@ -1,0 +1,26 @@
+# ImmoPixels CRM v5.1.23 — Buchhaltung: Übersicht + Steuer-Rücklage
+## 2026-06-17
+Die /buchhaltung-Seite war eine flache Zahlenwüste — man sah nicht, ob
+man im Plus oder Minus ist. Komplett überarbeitet:
+
+- Konsolidierung: Aus den frei extrahierten Kennzahlen aller Dokumente
+  werden kanonische Kennzahlen gezogen (Regex auf die Schlüssel) — neuste
+  BWA für Ergebnis/Erlöse/Vorjahr, neuste SuSa für Bank/Forderungen/
+  Verbindlichkeiten/USt. Aktuelles Jahr = größtes Jahr in den BWA-Keys.
+- Ergebnis-Banner: kumuliertes Ergebnis groß, grün (Plus) / rot (Minus),
+  inkl. Vergleich zum Vorjahr.
+- Kennzahlen-Kacheln: Einnahmen, Ausgaben, Bank-Saldo (amber wenn <5.000),
+  offene Forderungen, Verbindlichkeiten, Personalkosten, USt-Schuld,
+  Ergebnis letzter Monat.
+- Vergleich Vorjahr vs aktuell: Erlöse + Ergebnis als Balken
+  (dependency-frei, kein Chart.js).
+- Steuer-Rücklage (Schätzung): hochgerechneter Jahresgewinn ->
+  Einkommensteuer nach §32a EStG 2026 (exakte Tarifformel) -> effektiver
+  Satz -> empfohlene Rücklage bis zum aktuellen Monat. Mit klarem
+  Hinweis: grobe Schätzung (e.K., ohne Splitting/Sonderausgaben/Vorauszahl./
+  GewSt) — kein Steuerbescheid, finale Berechnung beim Steuerberater.
+- Breiteres Layout (maxWidth 1180), responsive Kachel-Grid.
+- Hochgeladene Unterlagen jetzt als EINKLAPPBARES Archiv (Klick öffnet die
+  Roh-Kennzahlen). Upload + Löschen unverändert.
+- Betroffen: app/buchhaltung/page.js
+- Keine SQL-Änderung, keine neue Abhängigkeit.

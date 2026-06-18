@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.23', date: '2026-06-17', items: ['Buchhaltung komplett überarbeitet: Übersicht statt Zahlenwüste — Ergebnis-Banner (Plus/Minus + Vorjahresvergleich), Kennzahlen-Kacheln (Einnahmen, Ausgaben, Bank, Forderungen, Verbindlichkeiten, Personal, USt), 2025-vs-2026-Vergleich und eine Steuer-Rücklage-Schätzung (Einkommensteuer §32a 2026 auf den hochgerechneten Gewinn). Hochgeladene Unterlagen jetzt als einklappbares Archiv.'] },
   { ver: 'v5.1.22', date: '2026-06-17', items: ['Buchungskarten-Name jetzt mit KURZER Adresse: PLZ, Bundesland-Klammer „(Pfalz)" und „Deutschland" entfallen — z.B. „Bartz - Holzhof 2, Berg".'] },
   { ver: 'v5.1.21', date: '2026-06-17', items: ['Buchungskarten-Namen werden beim Sync auf „Kunde - Adresse" vereinheitlicht (alte Namen wie „Foto + Reel — Alina Doberstein" werden korrigiert) — genau wie neue Buchungen es erzeugen. Nach Deploy einmal „GCal" synchronisieren'] },
   { ver: 'v5.1.20', date: '2026-06-17', items: ['Rechnung: (1) Adresse erscheint nicht mehr doppelt im Positions-Titel (Referenzcode wie „KI#018 -" + doppelte Adresse werden bereinigt). (2) Fuß-Text neu: „Wir haben für Ihre Aufträge insgesamt X km zurückgelegt — überwiegend nicht berechnet." (3) gefahrene km realistischer: Aufnahmen am SELBEN Tag werden als EINE Fahrt verkettet (Zuhause → Termin → Termin → Zuhause) statt je Termin Hin- und Rückfahrt'] },
