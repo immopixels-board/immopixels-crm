@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.28', date: '2026-06-17', items: ['Neues Widget „Fahrten": zeigt pro Fotograf die zu fahrenden km — Tag (mit Route Zuhause→Termine→Zuhause), Woche und Monat. Aufnahmen am selben Tag werden zu einer Tour verkettet, Distanzen via Google, Start = hinterlegte Adresse je Fotograf. Hinzufügen über das Widget-Menü (🧩). Werte werden täglich gecacht.'] },
   { ver: 'v5.1.27', date: '2026-06-17', items: ['Puffer pro Fotograf jetzt im System einstellbar: unter Leistungen-Admin hat jeder Mitarbeiter ein „Puffer (Min.)"-Feld — diese Zeit wird pro Aufnahme zusätzlich reserviert. Ersetzt den fest verdrahteten Dani-Wert (erfordert einmalige DB-Spalte extra_buffer_min).'] },
   { ver: 'v5.1.26', date: '2026-06-17', items: ['Dani-Buffer von 30 auf 15 Min reduziert (pro Aufnahme zusätzlich reservierte Zeit).'] },
   { ver: 'v5.1.25', date: '2026-06-17', items: ['Buchung: (1) Dani (DB) bekommt mehr Buffer — pro Aufnahme werden 30 Min mehr reserviert, da er langsamer arbeitet (Wert einstellbar). (2) Anfahrt-Ort wird zusätzlich aus dem Termin-TITEL gelesen, falls das Kalender-Event kein Adressfeld hat (Kunde - Adresse) — so wird die vorige Station auch dann erkannt, wenn die Adresse nur im Titel steht.'] },

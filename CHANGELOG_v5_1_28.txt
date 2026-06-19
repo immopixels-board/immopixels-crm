@@ -1,0 +1,24 @@
+# ImmoPixels CRM v5.1.28 — Widget „Fahrten" (km pro Fotograf)
+## 2026-06-17
+- Neues bewegliches/anpassbares Widget wie die anderen (🧩-Menü →
+  „Fahrten-Übersicht hinzufügen").
+- Zeigt pro Fotograf die gefahrenen km mit Umschalter Tag / Woche / Monat:
+  - Tag: aufklappbare Route (Zuhause → Termin → Termin → Zuhause) +
+    km & Fahrzeit.
+  - Woche / Monat: Summen je Fotograf (Balken) + Gesamt.
+- Berechnung wie auf der Rechnung: Aufnahmen am SELBEN Tag werden zu EINER
+  Tour verkettet (nicht je Termin Hin-/Rückfahrt). Distanzen via Google
+  Distance Matrix; Start = staff.address je Fotograf.
+- Caching: pro (Fotograf, Tag) in Tabelle fahrten_log gespeichert; bei
+  geänderten Stops (Hash) automatisch neu berechnet. Erstes Laden eines
+  Monats kann etwas dauern, danach schnell.
+- Technik: app/api/fahrten/route.js (Berechnung+Cache),
+  components/FahrtenWidget.js (UI), Registrierung in app/BoardApp.js.
+- ERFORDERT DB-MIGRATION (separat, ÉLES + DEMO):
+    CREATE TABLE IF NOT EXISTS fahrten_log (
+      staff_init text NOT NULL, day date NOT NULL,
+      km int NOT NULL DEFAULT 0, minutes int NOT NULL DEFAULT 0,
+      stops_hash text, stops jsonb, updated_at timestamptz DEFAULT now(),
+      PRIMARY KEY (staff_init, day));
+- Voraussetzung: bei den Fotografen (Team) muss eine Start-/Privatadresse
+  (staff.address) hinterlegt sein, sonst 0 km.
