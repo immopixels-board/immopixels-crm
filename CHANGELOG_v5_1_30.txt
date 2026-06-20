@@ -1,0 +1,25 @@
+# ImmoPixels CRM v5.1.30 — Billomat-Rechnungsimport (API, laufendes Jahr)
+## 2026-06-17
+Rechnungen → Tab „Import" → neuer Block ② „Rechnungen aus Billomat (API)".
+
+- Holt alle Rechnungen des laufenden Jahres DIREKT aus Billomat (API):
+  bezahlte UND Entwürfe, inkl. Positionen (invoice-items).
+- Rechnungsnummern bleiben erhalten (kein Neu-Nummerieren) — Entwürfe ohne
+  Nummer kommen als Entwurf rein und bekommen erst beim Abschluss hier eine.
+- Status-Mapping: DRAFT→Entwurf, OPEN→Offen, OVERDUE→Überfällig,
+  PAID→Bezahlt (+ paid_at aus den Zahlungen), CANCELED→Storniert.
+- Kundenzuordnung über billomat_client_id (Kundennummer-Import).
+- Idempotent: jede Rechnung trägt billomat_id; bereits importierte werden
+  übersprungen → beliebig oft wiederholbar.
+- Zukünftige Rechnungen werden weiterhin hier im CRM erstellt.
+
+Dateien:
+- app/api/billomat/invoices/import/route.js  (neuer Importer)
+- app/rechnungen/page.js                      (Button + Ergebnis im Import-Tab)
+
+ERFORDERT DB-MIGRATION (separat, ÉLES + DEMO):
+  ALTER TABLE invoices ADD COLUMN IF NOT EXISTS billomat_id text;
+  CREATE UNIQUE INDEX IF NOT EXISTS invoices_billomat_id_uniq
+    ON invoices(billomat_id) WHERE billomat_id IS NOT NULL;
+Hinweis: paid_at-Spalte stammt aus v5.1.29 (Zahlungseingänge) — falls noch
+nicht ausgeführt, auch diese Migration einspielen.

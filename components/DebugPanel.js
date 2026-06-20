@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.30', date: '2026-06-17', items: ['Billomat-Rechnungsimport (API) für das laufende Jahr: Rechnungen → Import → „Rechnungen importieren (API)". Holt bezahlte UND Entwürfe inkl. Positionen direkt aus Billomat, Rechnungsnummern bleiben erhalten, Kunden über Kundennummer zugeordnet, bereits importierte werden übersprungen (wiederholbar).'] },
   { ver: 'v5.1.29', date: '2026-06-17', items: ['Neu: Zahlungseingänge (Rechnungen \u2192 Zahlungseingänge). Sparkasse-Umsatzdatei (CAMT.053 oder CSV) importieren \u2014 offene Rechnungen werden automatisch abgeglichen: Rechnungs-Nr. + Betrag im Verwendungszweck \u2192 automatisch bezahlt; nur Betrag/Absender passend \u2192 Vorschlag zum Bestätigen. Kein Drittanbieter, keine Bank-Zugangsdaten gespeichert.'] },
   { ver: 'v5.1.28', date: '2026-06-17', items: ['Neues Widget „Fahrten": zeigt pro Fotograf die zu fahrenden km — Tag (mit Route Zuhause→Termine→Zuhause), Woche und Monat. Aufnahmen am selben Tag werden zu einer Tour verkettet, Distanzen via Google, Start = hinterlegte Adresse je Fotograf. Hinzufügen über das Widget-Menü (🧩). Werte werden täglich gecacht.'] },
   { ver: 'v5.1.27', date: '2026-06-17', items: ['Puffer pro Fotograf jetzt im System einstellbar: unter Leistungen-Admin hat jeder Mitarbeiter ein „Puffer (Min.)"-Feld — diese Zeit wird pro Aufnahme zusätzlich reserviert. Ersetzt den fest verdrahteten Dani-Wert (erfordert einmalige DB-Spalte extra_buffer_min).'] },

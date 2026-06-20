@@ -489,6 +489,18 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
 function ImportTab({ clients, myId, seller, onDone }) {
   const [rows, setRows] = useState(null); const [head, setHead] = useState([]); const [map, setMap] = useState({}); const [busy, setBusy] = useState(false); const [done, setDone] = useState(null)
   const [bz, setBz] = useState(false); const [bdone, setBdone] = useState(null)
+  const [iz, setIz] = useState(false); const [idone, setIdone] = useState(null)
+  async function billomatInvoices() {
+    if (!confirm('Alle Rechnungen aus ' + new Date().getFullYear() + ' aus Billomat importieren (bezahlte + Entwürfe, mit Positionen)? Rechnungsnummern bleiben erhalten, bereits importierte werden übersprungen.')) return
+    setIz(true); setIdone(null)
+    try {
+      const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: myId, year: new Date().getFullYear() }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'API-Fehler')
+      setIdone(j); onDone && onDone()
+    } catch (e) { alert('Rechnungs-Import-Fehler: ' + (e.message || e)) }
+    setIz(false)
+  }
   async function billomatImport() {
     if (!confirm('Kunden aus Billomat per API importieren (inkl. Kundennummer)?')) return
     setBz(true); setBdone(null)
@@ -528,7 +540,13 @@ function ImportTab({ clients, myId, seller, onDone }) {
         {bdone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {bdone.total} Kunden: {bdone.created} neu, {bdone.updated} aktualisiert{bdone.failed ? ', ' + bdone.failed + ' Fehler' : ''}.</div>}
         <button onClick={billomatImport} disabled={bz} style={primary}>{bz ? 'Importiere…' : '⬇ Aus Billomat importieren (API)'}</button>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>② Rechnungen aus Billomat (CSV, einmalig)</div>
+      <div style={{ border: '1.5px solid ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 14, marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>② Rechnungen aus Billomat (API) — {new Date().getFullYear()}</div>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Holt alle Rechnungen des laufenden Jahres direkt aus Billomat — <b>bezahlte und Entwürfe</b>, inkl. Positionen. <b>Rechnungsnummern bleiben erhalten</b>, Kunden werden über die Kundennummer zugeordnet. Bereits importierte werden übersprungen (wiederholbar). Zukünftige Rechnungen werden hier erstellt.</div>
+        {idone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {idone.found} gefunden · {idone.imported} importiert · {idone.skipped} übersprungen{idone.failed ? ' · ' + idone.failed + ' Fehler' : ''}{idone.byStatus ? ' (' + Object.entries(idone.byStatus).map(([k, v]) => v + '× ' + k).join(', ') + ')' : ''}.</div>}
+        <button onClick={billomatInvoices} disabled={iz} style={primary}>{iz ? 'Importiere…' : '⬇ Rechnungen ' + new Date().getFullYear() + ' importieren (API)'}</button>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>③ Rechnungen aus Billomat (CSV, einmalig)</div>
       <div style={{ fontSize: 13, color: MUT, marginBottom: 12, lineHeight: 1.6 }}>Rechnungen aus Billomat als CSV exportieren und hochladen. Bestehende Kunden = <b style={{ color: '#2f7a4f' }}>✓ vorhanden</b>, nur fehlende neu. Bereits importierte Nummern werden übersprungen.</div>
       {done && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2f7a4f', marginBottom: 12 }}>✓ Fertig: {done.imported} Rechnungen, {done.created} neue Kunden, {done.skipped} übersprungen.</div>}
       <input type="file" accept=".csv,text/csv" onChange={onFile} style={{ fontSize: 13, marginBottom: 14 }} />
