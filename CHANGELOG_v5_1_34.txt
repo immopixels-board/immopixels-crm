@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.34 — Diagnose für Service-Role / Import
+## 2026-06-20
+- Neuer „🔧 Diagnose"-Knopf (Rechnungen → Import, neben „Billomat laden").
+- Ruft /api/_diag auf und prüft serverseitig:
+  • Rolle des SUPABASE_SERVICE_ROLE_KEY (muss 'service_role' sein, nicht 'anon')
+  • ob der Key zum richtigen Supabase-Projekt gehört (ref_match)
+  • einen echten Insert-Test in invoices (deckt RLS UND fehlende Spalten auf)
+- Der Key selbst wird NICHT angezeigt — nur Rolle/Projekt/Ergebnis.
+- Dateien: app/api/_diag/route.js, app/rechnungen/page.js
