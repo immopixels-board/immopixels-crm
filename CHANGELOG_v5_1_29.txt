@@ -1,0 +1,24 @@
+# ImmoPixels CRM v5.1.29 — Zahlungseingänge (Phase 1: Datei-Import + Abgleich)
+## 2026-06-17
+Neuer Menüpunkt unter Rechnungen → „Zahlungseingänge".
+
+Was es macht (ohne Drittanbieter, ohne gespeicherte Bank-Zugangsdaten):
+- Sparkasse-Umsatzdatei importieren: CAMT.053 (XML) ODER CSV. Aus dem
+  Online-Banking herunterladen, per Drag&Drop oder Button hochladen.
+- Automatischer Abgleich mit offenen Rechnungen:
+  1) Rechnungs-Nr. im Verwendungszweck + Betrag passt  -> automatisch „bezahlt".
+  2) Nur Betrag + Absender passend                     -> Vorschlag „Zu prüfen"
+     (mit „Zuordnen ✓" bestätigen oder „Ignorieren").
+  3) Sonst bleibt die Rechnung offen.
+- KPIs: Offen gesamt, davon überfällig, Bezahlt diesen Monat, Zu prüfen.
+- Listen: Offene Posten · Zu prüfen · zugeordnete Zahlungen.
+- „Neu abgleichen" rechnet die Zuordnung neu (z. B. nach neuen Rechnungen).
+
+Dateien:
+- app/rechnungen/zahlungen/page.js     (Seite/UI)
+- app/api/bank/import/route.js          (Parser CSV+CAMT, Upsert, Auto-Match)
+- components/RechnungShell.js           (Menüpunkt „Zahlungseingänge")
+
+ERFORDERT DB-MIGRATION (separat ausführen, ÉLES + DEMO) — siehe gesonderte
+SQL. Phase 2 (FinTS-Auto-Sync statt Datei) baut hierauf auf; Abgleich/UI
+bleiben identisch.

@@ -12,6 +12,7 @@ const ACT_BG = '#eceae3'
 const SUB = [
   { id: 'umsatz', label: 'Umsatz', icon: 'ti-chart-bar', href: '/stats' },
   { id: 'ausgang', label: 'Ausgangsrechnungen', icon: 'ti-file-invoice', href: '/rechnungen' },
+  { id: 'zahlungen', label: 'Zahlungseingänge', icon: 'ti-cash-banknote', href: '/rechnungen/zahlungen' },
   { id: 'kunden', label: 'Kunden', icon: 'ti-users', href: '/kunden' },
   { id: 'eingang', label: 'Eingangsrechnungen', icon: 'ti-file-download', href: '/eingangsrechnungen' },
   { id: 'buchhaltung', label: 'Buchhaltung', icon: 'ti-calculator', href: '/buchhaltung' },
