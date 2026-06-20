@@ -490,15 +490,32 @@ function ImportTab({ clients, myId, seller, onDone }) {
   const [rows, setRows] = useState(null); const [head, setHead] = useState([]); const [map, setMap] = useState({}); const [busy, setBusy] = useState(false); const [done, setDone] = useState(null)
   const [bz, setBz] = useState(false); const [bdone, setBdone] = useState(null)
   const [iz, setIz] = useState(false); const [idone, setIdone] = useState(null)
-  async function billomatInvoices() {
-    if (!confirm('Alle Rechnungen aus ' + new Date().getFullYear() + ' aus Billomat importieren (bezahlte + Entwürfe, mit Positionen)? Rechnungsnummern bleiben erhalten, bereits importierte werden übersprungen.')) return
+  const [blist, setBlist] = useState(null); const [bsel, setBsel] = useState(new Set())
+  const YEAR = new Date().getFullYear()
+  async function loadBillomat() {
     setIz(true); setIdone(null)
     try {
-      const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: myId, year: new Date().getFullYear() }) })
+      const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'list', staff_id: myId, year: YEAR }) })
       const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'API-Fehler')
+      if (!j.ok) throw new Error(j.error || j.detail || 'API-Fehler')
+      setBlist(j.invoices || [])
+      setBsel(new Set((j.invoices || []).filter(x => !x.imported).map(x => x.billomat_id)))
+    } catch (e) { alert('Laden fehlgeschlagen: ' + (e.message || e)) }
+    setIz(false)
+  }
+  function toggleSelOne(id) { setBsel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n }) }
+  async function importSelected() {
+    const ids = blist.filter(x => bsel.has(x.billomat_id) && !x.imported).map(x => x.billomat_id)
+    if (!ids.length) { alert('Nichts ausgewählt.'); return }
+    if (!confirm(ids.length + ' Rechnung(en) aus ' + YEAR + ' importieren? Rechnungsnummern bleiben erhalten.')) return
+    setIz(true); setIdone(null)
+    try {
+      const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: myId, year: YEAR, ids, seller }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || j.detail || 'API-Fehler')
       setIdone(j); onDone && onDone()
-    } catch (e) { alert('Rechnungs-Import-Fehler: ' + (e.message || e)) }
+      await loadBillomat()
+    } catch (e) { alert('Import-Fehler: ' + (e.message || e)) }
     setIz(false)
   }
   async function billomatImport() {
@@ -541,10 +558,39 @@ function ImportTab({ clients, myId, seller, onDone }) {
         <button onClick={billomatImport} disabled={bz} style={primary}>{bz ? 'Importiere…' : '⬇ Aus Billomat importieren (API)'}</button>
       </div>
       <div style={{ border: '1.5px solid ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 14, marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>② Rechnungen aus Billomat (API) — {new Date().getFullYear()}</div>
-        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Holt alle Rechnungen des laufenden Jahres direkt aus Billomat — <b>bezahlte und Entwürfe</b>, inkl. Positionen. <b>Rechnungsnummern bleiben erhalten</b>, Kunden werden über die Kundennummer zugeordnet. Bereits importierte werden übersprungen (wiederholbar). Zukünftige Rechnungen werden hier erstellt.</div>
-        {idone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {idone.found} gefunden · {idone.imported} importiert · {idone.skipped} übersprungen{idone.failed ? ' · ' + idone.failed + ' Fehler' : ''}{idone.byStatus ? ' (' + Object.entries(idone.byStatus).map(([k, v]) => v + '× ' + k).join(', ') + ')' : ''}.</div>}
-        <button onClick={billomatInvoices} disabled={iz} style={primary}>{iz ? 'Importiere…' : '⬇ Rechnungen ' + new Date().getFullYear() + ' importieren (API)'}</button>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>② Rechnungen aus Billomat (API) — {YEAR}</div>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Lädt die Rechnungen des Jahres aus Billomat zur <b>Auswahl</b> — du entscheidest, welche importiert werden (bezahlte & Entwürfe, inkl. Positionen). <b>Rechnungsnummern bleiben erhalten</b>. Bereits importierte sind markiert und werden übersprungen.</div>
+        {idone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {idone.imported} importiert · {idone.skipped} übersprungen{idone.failed ? ' · ' + idone.failed + ' Fehler' : ''}{idone.byStatus ? ' (' + Object.entries(idone.byStatus).map(([k, v]) => v + '× ' + k).join(', ') + ')' : ''}.{idone.errors && idone.errors.length ? ' — ' + idone.errors.join(' | ') : ''}</div>}
+        {!blist && <button onClick={loadBillomat} disabled={iz} style={primary}>{iz ? 'Lädt…' : '⬇ Billomat-Rechnungen laden (' + YEAR + ')'}</button>}
+        {blist && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <button onClick={() => setBsel(new Set(blist.filter(x => !x.imported).map(x => x.billomat_id)))} style={{ ...ghostBtn }}>Alle</button>
+              <button onClick={() => setBsel(new Set())} style={{ ...ghostBtn }}>Keine</button>
+              {['draft', 'open', 'overdue', 'paid'].map(st => <button key={st} onClick={() => setBsel(s => { const n = new Set(s); blist.filter(x => !x.imported && x.status === st).forEach(x => n.add(x.billomat_id)); return n })} style={{ ...ghostBtn }}>+ {st}</button>)}
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: MUT }}>{blist.length} gefunden · {bsel.size} gewählt</span>
+            </div>
+            <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid ' + LINE, borderRadius: 8, background: '#fff' }}>
+              {blist.map((x, i) => {
+                const st = STATUS[x.status] || STATUS.open
+                return (
+                  <label key={x.billomat_id} style={{ display: 'grid', gridTemplateColumns: '26px 96px 86px 1fr 90px 96px', gap: 8, alignItems: 'center', padding: '7px 10px', borderTop: i ? '1px solid #f1ead9' : 'none', fontSize: 13, opacity: x.imported ? .5 : 1, cursor: x.imported ? 'default' : 'pointer' }}>
+                    <input type="checkbox" disabled={x.imported} checked={x.imported || bsel.has(x.billomat_id)} onChange={() => toggleSelOne(x.billomat_id)} style={{ width: 15, height: 15, accentColor: GOLD }} />
+                    <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{x.number || '—'}</span>
+                    <span style={{ color: MUT }}>{x.date || '—'}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.client}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '2px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{st.label}</span>
+                    <span style={{ textAlign: 'right', fontWeight: 700 }}>{eur(x.gross)}{x.imported ? ' ✓' : ''}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button onClick={importSelected} disabled={iz || bsel.size === 0} style={primary}>{iz ? 'Importiere…' : 'Ausgewählte importieren (' + bsel.size + ')'}</button>
+              <button onClick={() => { setBlist(null); setBsel(new Set()) }} style={ghostBtn}>Schließen</button>
+            </div>
+          </div>
+        )}
       </div>
       <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>③ Rechnungen aus Billomat (CSV, einmalig)</div>
       <div style={{ fontSize: 13, color: MUT, marginBottom: 12, lineHeight: 1.6 }}>Rechnungen aus Billomat als CSV exportieren und hochladen. Bestehende Kunden = <b style={{ color: '#2f7a4f' }}>✓ vorhanden</b>, nur fehlende neu. Bereits importierte Nummern werden übersprungen.</div>
@@ -608,6 +654,7 @@ const tabBtn = a => ({ padding: '8px 14px', borderRadius: 9, fontSize: 13, fontW
 const toggle = a => ({ padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: a ? GOLD : '#fff', color: a ? '#fff' : MUT })
 const selS = { border: '1px solid ' + LINE, borderRadius: 7, padding: '5px 8px', fontSize: 12, background: '#fff', color: DARK, fontWeight: 700 }
 const primary = { background: GOLD, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
+const ghostBtn = { background: '#fff', border: '1px solid ' + LINE, borderRadius: 8, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: DARK }
 const ghost = { background: '#fff', color: DARK, border: '1px solid ' + LINE, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }
 const mini = { background: 'none', border: '1px solid ' + LINE, borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: DARK, marginLeft: 4 }
 const inp = { width: '100%', border: '1.5px solid ' + LINE, borderRadius: 7, padding: '7px 9px', fontSize: 12, color: DARK, fontFamily: 'Arial', outline: 'none', boxSizing: 'border-box' }

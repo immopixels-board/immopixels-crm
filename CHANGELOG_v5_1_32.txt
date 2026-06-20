@@ -1,0 +1,13 @@
+# ImmoPixels CRM v5.1.32 — Billomat-Import mit Auswahl + Fehleranzeige
+## 2026-06-20
+- Billomat-Rechnungsimport (Rechnungen → Import → ②) jetzt ZWEISTUFIG:
+  1) „Billomat-Rechnungen laden" — zeigt alle Rechnungen des Jahres
+     (Nummer, Datum, Kunde, Status, Betrag), bereits importierte markiert.
+  2) Gewünschte anhaken (Schnellwahl: Alle / Keine / + draft/open/overdue/paid)
+     und nur die AUSGEWÄHLTEN importieren — so kommen keine falschen rein.
+- Import-/API-Fehler werden jetzt im Ergebnis angezeigt (statt still).
+- Hinweis zur Fehlersuche: Schreib-Endpunkte (Bank-Import, Billomat-Import)
+  brauchen den Supabase SERVICE-ROLE-Key in Vercel (SUPABASE_SERVICE_ROLE_KEY),
+  sonst greift Row-Level-Security und nichts wird geschrieben.
+- Dateien: app/api/billomat/invoices/import/route.js, app/rechnungen/page.js
+- Keine neue SQL (gleich wie v5.1.30: invoices.billomat_id).
