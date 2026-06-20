@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.33', date: '2026-06-20', items: ['Billomat-Import zeigt jetzt IMMER das Ergebnis als Meldung (importiert/übersprungen/Fehler inkl. Fehlertext). Wenn nichts geschrieben wird, nennt die Meldung die wahrscheinliche Ursache (fehlende Migration oder fehlender service_role-Key/RLS).'] },
   { ver: 'v5.1.32', date: '2026-06-20', items: ['Billomat-Rechnungsimport mit Auswahl: erst „Billomat-Rechnungen laden", dann gewünschte Rechnungen anhaken (Filter nach Status, bereits importierte sind markiert) und nur die ausgewählten importieren. Fehlermeldungen werden jetzt angezeigt.'] },
   { ver: 'v5.1.31', date: '2026-06-20', items: ['Fix Zahlungseingänge-Import: Sparkasse-CSV wurde nicht erkannt (falsche Betrag-Spalte „Lastschrift Ursprungsbetrag" statt „Betrag", dadurch 0 importiert) + ISO-8859/Latin-1-Dateien (Umlaute) werden jetzt korrekt gelesen + DB-Fehler (z. B. fehlende Migration) wird jetzt angezeigt statt still 0.'] },
   { ver: 'v5.1.30', date: '2026-06-17', items: ['Billomat-Rechnungsimport (API) für das laufende Jahr: Rechnungen → Import → „Rechnungen importieren (API)". Holt bezahlte UND Entwürfe inkl. Positionen direkt aus Billomat, Rechnungsnummern bleiben erhalten, Kunden über Kundennummer zugeordnet, bereits importierte werden übersprungen (wiederholbar).'] },

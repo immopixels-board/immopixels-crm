@@ -497,10 +497,11 @@ function ImportTab({ clients, myId, seller, onDone }) {
     try {
       const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'list', staff_id: myId, year: YEAR }) })
       const j = await r.json()
-      if (!j.ok) throw new Error(j.error || j.detail || 'API-Fehler')
+      if (!j.ok) { alert('Laden fehlgeschlagen:\n' + (j.error || j.detail || JSON.stringify(j))); setIz(false); return }
       setBlist(j.invoices || [])
       setBsel(new Set((j.invoices || []).filter(x => !x.imported).map(x => x.billomat_id)))
-    } catch (e) { alert('Laden fehlgeschlagen: ' + (e.message || e)) }
+      if (!(j.invoices || []).length) alert('Billomat hat 0 Rechnungen für ' + YEAR + ' geliefert.')
+    } catch (e) { alert('Laden-Fehler: ' + (e.message || e)) }
     setIz(false)
   }
   function toggleSelOne(id) { setBsel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n }) }
@@ -512,8 +513,12 @@ function ImportTab({ clients, myId, seller, onDone }) {
     try {
       const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_id: myId, year: YEAR, ids, seller }) })
       const j = await r.json()
-      if (!j.ok) throw new Error(j.error || j.detail || 'API-Fehler')
+      if (!j.ok) { alert('Import-Fehler:\n' + (j.error || j.detail || JSON.stringify(j))); setIz(false); return }
       setIdone(j); onDone && onDone()
+      let msg = `Ergebnis: ${j.imported} importiert · ${j.skipped} übersprungen · ${j.failed || 0} Fehler.`
+      if (j.errors && j.errors.length) msg += '\n\nFehler:\n• ' + j.errors.join('\n• ')
+      if (!j.imported && !j.skipped) msg += '\n\n⚠️ Es wurde NICHTS geschrieben — meist: Migration (paid_at / billomat_id) fehlt ODER SUPABASE_SERVICE_ROLE_KEY in Vercel ist nicht der echte service_role-Key (RLS blockt).'
+      alert(msg)
       await loadBillomat()
     } catch (e) { alert('Import-Fehler: ' + (e.message || e)) }
     setIz(false)

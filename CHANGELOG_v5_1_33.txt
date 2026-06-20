@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.33 — Billomat-Import: lautes Ergebnis/Diagnose
+## 2026-06-20
+- Der Import meldet jetzt IMMER per Dialog: wie viele importiert /
+  übersprungen / fehlgeschlagen, inkl. konkretem Fehlertext pro Rechnung.
+- Wenn 0 geschrieben werden, nennt die Meldung die häufigste Ursache:
+  fehlende DB-Migration (paid_at / billomat_id) ODER falscher
+  SUPABASE_SERVICE_ROLE_KEY in Vercel (RLS blockt das Schreiben).
+- Auch „Laden" meldet jetzt Fehler/0-Ergebnis klar.
+- Datei: app/rechnungen/page.js
