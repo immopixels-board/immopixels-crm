@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.31 — Fix Sparkasse-CSV-Import (Zahlungseingänge)
+## 2026-06-20
+- Bug: echte Sparkasse-Umsatz-CSV ergab „0 importiert".
+  Ursachen behoben:
+  1) Betrag-Spalte: der Matcher traf „Lastschrift Ursprungsbetrag"
+     statt „Betrag" -> alle Beträge 0. Jetzt exakte Spaltennamen zuerst.
+  2) Datei ist ISO-8859-1 (Latin-1). Wird jetzt als Base64 gesendet und
+     serverseitig korrekt dekodiert (UTF-8 mit Latin-1-Fallback) -> Umlaute
+     in Namen/Verwendungszweck stimmen.
+  3) DB-Fehler beim Import (z. B. Tabelle bank_transactions fehlt, weil
+     Migration noch nicht ausgeführt) wird jetzt als Meldung angezeigt
+     statt still „0".
+- Getestet mit echter Datei: 496 Umsätze, 90 Eingänge, 69 mit Rechnungs-Nr.
+- Dateien: app/api/bank/import/route.js, app/rechnungen/zahlungen/page.js
+- Keine neue SQL nötig (gleiche Tabellen wie v5.1.29).

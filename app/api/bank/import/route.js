@@ -30,12 +30,12 @@ function parseCSV(text) {
   if (!lines.length) return []
   const sep = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length ? ';' : ','
   const head = splitLine(lines[0], sep).map(h => nrm(h))
-  const col = (...keys) => head.findIndex(h => keys.some(k => h.includes(k)))
+  const col = (...keys) => { for (const k of keys) { const ix = head.findIndex(h => h === k); if (ix >= 0) return ix } return head.findIndex(h => keys.some(k => h.includes(k))) }
   const iDate = col('buchungstag', 'buchungsdatum', 'datum')
-  const iAmt = col('betrag')
-  const iName = col('beguenstigter', 'zahlungspflichtiger', 'name', 'empfaenger', 'auftraggeber')
+  const iAmt = col('betrag', 'umsatz')
+  const iName = col('beguenstigterzahlungspflichtiger', 'beguenstigter', 'zahlungspflichtiger', 'name', 'empfaenger', 'auftraggeber')
   const iVz = col('verwendungszweck', 'verwendung')
-  const iIban = col('iban', 'kontonummer')
+  const iIban = col('kontonummeriban', 'iban', 'kontonummer')
   if (iDate < 0 || iAmt < 0) return []
   const rows = []
   for (let i = 1; i < lines.length; i++) {
@@ -113,6 +113,9 @@ export async function POST(req) {
   const supabase = sb()
   if (body.rematch) { const m = await autoMatch(supabase); return Response.json({ ok: true, parsed: 0, imported: 0, ...m }) }
   let text = body.text || ''
+  if (!text && body.data) {
+    try { const buf = Buffer.from(body.data, 'base64'); let u = buf.toString('utf8'); if (u.includes('\uFFFD')) u = buf.toString('latin1'); text = u } catch {}
+  }
   if (!text && body.data) { try { text = Buffer.from(body.data, 'base64').toString('utf8') } catch {} }
   if (!text) return Response.json({ ok: false, reason: 'kein Inhalt' })
 
@@ -124,7 +127,8 @@ export async function POST(req) {
   let imported = 0
   try {
     const { data, error } = await supabase.from('bank_transactions').upsert(withHash, { onConflict: 'dedup_hash', ignoreDuplicates: true }).select('id')
-    if (!error && data) imported = data.length
+    if (error) return Response.json({ ok: false, reason: 'DB: ' + error.message + ' — evtl. SQL-Migration (bank_transactions) noch nicht ausgeführt?' })
+    imported = (data || []).length
   } catch (e) { return Response.json({ ok: false, reason: e.message }) }
 
   const m = await autoMatch(supabase)

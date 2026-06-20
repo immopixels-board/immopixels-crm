@@ -28,14 +28,14 @@ export default function ZahlungenPage() {
     setInvoices(inv || []); setMatches(m || [])
   }
 
-  function fileToText(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsText(file) }) }
+  function fileToB64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => { const b = String(r.result); res(b.slice(b.indexOf(',') + 1)) }; r.onerror = rej; r.readAsDataURL(file) }) }
   async function handleFiles(files) {
     const arr = Array.from(files || []); if (!arr.length) return
     setBusy(true); let imp = 0, auto = 0, sugg = 0, errs = []
     for (const f of arr) {
       try {
-        const text = await fileToText(f)
-        const r = await fetch('/api/bank/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
+        const data = await fileToB64(f)
+        const r = await fetch('/api/bank/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data }) })
         const j = await r.json()
         if (j.ok) { imp += j.imported || 0; auto += j.auto || 0; sugg += j.suggested || 0 } else errs.push(f.name + ' — ' + (j.reason || 'Fehler'))
       } catch (e) { errs.push(f.name + ' — ' + (e.message || 'Fehler')) }
