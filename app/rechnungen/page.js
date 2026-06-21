@@ -33,6 +33,7 @@ export default function RechnungenPage() {
   const [editor, setEditor] = useState(null)
   const [settingsModal, setSettingsModal] = useState(false)
   const [mahnModal, setMahnModal] = useState(null)
+  const [sendModal, setSendModal] = useState(null)
   const [busy, setBusy] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [fSearch, setFSearch] = useState('')
@@ -198,6 +199,38 @@ export default function RechnungenPage() {
     setBusy(false)
   }
 
+  function openSend(inv) {
+    const cl = (clients || []).find(x => x.id === inv.client_id)
+    const to = cl?.email || (inv.buyer && inv.buyer.email) || ''
+    const nr = inv.invoice_number || ''
+    const firma = (seller && (seller.company || seller.name)) || 'ImmoPixels'
+    const subject = 'Rechnung ' + nr + ' – ' + firma
+    const body = `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unsere Rechnung ${nr} als PDF.\n\nBei Rückfragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\n${firma}`
+    setSendModal({ inv, to, subject, body, bccSelf: true, sending: false })
+  }
+  async function doSend() {
+    if (!sendModal) return
+    const { inv, to, subject, body, bccSelf } = sendModal
+    if (!to || !/.+@.+\..+/.test(to)) { alert('Bitte eine gültige Empfänger-E-Mail eingeben.'); return }
+    setSendModal(s => ({ ...s, sending: true }))
+    try {
+      const { data: its } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('position')
+      const clientKmTotal = await clientKmFromItems(its || [], inv)
+      const cl0 = (clients || []).find(x => x.id === inv.client_id)
+      const invForPdf = { ...inv, buyer: { ...(inv.buyer || {}), kundennr: (inv.buyer && inv.buyer.kundennr) || cl0?.kundennr || '' } }
+      const bytes = await generateZugferdPdf({ inv: invForPdf, items: its || [], seller, template, clientKmTotal })
+      const u8 = new Uint8Array(bytes); let bin = ''; for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i])
+      const pdfBase64 = btoa(bin)
+      const filename = 'Rechnung ' + (inv.invoice_number || 'Entwurf') + '.pdf'
+      const r = await fetch('/api/invoice/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, subject, text: body, bcc: bccSelf ? (seller?.email || undefined) : undefined, pdfBase64, filename }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Senden fehlgeschlagen')
+      try { await supabase.from('invoices').update({ sent_at: new Date().toISOString(), sent_to: to }).eq('id', inv.id) } catch {}
+      setSendModal(null); await load()
+      alert('✓ Rechnung ' + (inv.invoice_number || '') + ' wurde an ' + to + ' gesendet.')
+    } catch (e) { alert('E-Mail-Fehler: ' + (e.message || e)); setSendModal(s => s && ({ ...s, sending: false })) }
+  }
+
   function openMahnung(inv) {
     const stufe = 1
     const gebuehr = 5
@@ -346,6 +379,7 @@ export default function RechnungenPage() {
                 <div style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{eur(i.total_gross)}</div>
                 <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>
+                  {i.status !== 'draft' && i.status !== 'storno' && <button onClick={() => openSend(i)} disabled={busy} style={{ ...mini, color: i.sent_at ? '#1d9e75' : DARK }} title={i.sent_at ? ('Gesendet an ' + (i.sent_to || '') + ' — erneut senden') : 'Per E-Mail senden'}>{i.sent_at ? '✉ ✓' : '✉ Mail'}</button>}
                   {i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}
                   {(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#54545a' }}>Mahnung</button>}
                   {i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}
@@ -362,6 +396,24 @@ export default function RechnungenPage() {
 
       {settingsModal && <SettingsModal seller={seller} setSeller={setSeller} template={template} setTemplate={setTemplate} onClose={() => setSettingsModal(false)} onSave={saveSettings} />}
       {mahnModal && <MahnungModal m={mahnModal} setM={setMahnModal} busy={busy} onDownload={downloadMahnung} />}
+      {sendModal && (
+        <Modal onClose={() => !sendModal.sending && setSendModal(null)}>
+          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Rechnung per E-Mail senden</div>
+          <div style={{ fontSize: 12, color: MUT, marginBottom: 14 }}>{sendModal.inv.invoice_number} · {sendModal.inv.client_name} · Absender: rechnung@immopixels.de</div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: MUT }}>Empfänger</label>
+          <input value={sendModal.to} onChange={e => setSendModal({ ...sendModal, to: e.target.value })} placeholder="kunde@example.de" style={{ width: '100%', padding: '8px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13, marginTop: 3, marginBottom: 10 }} />
+          <label style={{ fontSize: 12, fontWeight: 700, color: MUT }}>Betreff</label>
+          <input value={sendModal.subject} onChange={e => setSendModal({ ...sendModal, subject: e.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13, marginTop: 3, marginBottom: 10 }} />
+          <label style={{ fontSize: 12, fontWeight: 700, color: MUT }}>Nachricht</label>
+          <textarea value={sendModal.body} onChange={e => setSendModal({ ...sendModal, body: e.target.value })} rows={8} style={{ width: '100%', padding: '8px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13, marginTop: 3, marginBottom: 10, fontFamily: 'inherit', resize: 'vertical' }} />
+          <div style={{ fontSize: 12, color: MUT, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ background: '#f4efe5', borderRadius: 6, padding: '3px 8px' }}>📎 Rechnung {sendModal.inv.invoice_number || 'Entwurf'}.pdf</span> wird automatisch angehängt</div>
+          <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16, cursor: 'pointer' }}><input type="checkbox" checked={sendModal.bccSelf} onChange={e => setSendModal({ ...sendModal, bccSelf: e.target.checked })} style={{ accentColor: GOLD }} /> Kopie an mich (BCC)</label>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={() => setSendModal(null)} disabled={sendModal.sending} style={ghost}>Abbrechen</button>
+            <button onClick={doSend} disabled={sendModal.sending} style={primary}>{sendModal.sending ? 'Sende…' : '✉ Senden'}</button>
+          </div>
+        </Modal>
+      )}
     </Shell>
   )
 }

@@ -1,0 +1,24 @@
+# ImmoPixels CRM v5.1.36 — Rechnungen per E-Mail senden (SMTP / Alfahosting)
+## 2026-06-20
+- Neuer Button „✉ Mail" je Rechnung (Rechnungsliste, bei festgeschriebenen).
+- Öffnet einen Dialog: Empfänger (aus Kundendaten vorbefüllt), Betreff,
+  Nachricht (deutsche Vorlage, editierbar), Option „Kopie an mich (BCC)".
+- Beim Senden wird die Rechnung als PDF (clientseitig erzeugt) angehängt und
+  über SMTP von rechnung@immopixels.de verschickt. Versand wird an der
+  Rechnung vermerkt (sent_at/sent_to → „✉ ✓").
+- Technik: PDF im Browser (kein service_role nötig), Versand-Endpoint
+  app/api/invoice/send (nodemailer, SMTP). Neue Abhängigkeit: nodemailer.
+
+ERFORDERLICH:
+1) DB-Migration (ÉLES + DEMO):
+   ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_at timestamptz;
+   ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to text;
+2) Vercel Environment Variables (Production + Preview):
+   SMTP_HOST = alfa30XX.alfahosting-server.de   (exakt aus Alfahosting-
+               Kundencenter -> Tarifübersicht -> Server-Info; ggf. webXXX...)
+   SMTP_PORT = 465
+   SMTP_USER = rechnung@immopixels.de
+   SMTP_PASS = <Postfach-Passwort>
+   SMTP_FROM_NAME = ImmoPixels            (optional)
+   INVOICE_BCC = rechnung@immopixels.de   (optional, Fallback für Kopie)
+   -> danach Redeploy. nodemailer wird beim Build automatisch installiert.
