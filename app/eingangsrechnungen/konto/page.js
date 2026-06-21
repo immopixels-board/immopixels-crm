@@ -40,7 +40,7 @@ function catOf(tx, rules) {
   return keywordCat(tx.counterparty, tx.purpose)
 }
 const DIV = { yearly: 12, quarterly: 3, monthly: 1 }
-const DEFAULT_PARAMS = { bildPerShoot: 15, kmSelf: 0.20, kmDaniel: 0.30, steuerPct: 22 }
+const DEFAULT_PARAMS = { imagesAvg: 50, pricePerImage: 0.70, kmSelf: 0.20, kmMitarbeiter: 0.30, steuerPct: 22 }
 
 export default function KontoPage() {
   const [loading, setLoading] = useState(true)
@@ -208,7 +208,7 @@ export default function KontoPage() {
           )}
         </>}
 
-        {sec === 'fix' && <FixSection recur={recur} reload={load} monthlyFix={monthlyFix} avgIst={avgIst} />}
+        {sec === 'fix' && <FixSection recur={recur} reload={load} monthlyFix={monthlyFix} avgIst={avgIst} debits={debits} />}
 
         {sec === 'rent' && <RentSection clients={clients} invoices={invoices} params={params} saveParams={saveParams} monthlyFix={monthlyFix} />}
       </div>
@@ -232,9 +232,54 @@ function UncatRow({ x, busy, onSet }) {
   )
 }
 
-function FixSection({ recur, reload, monthlyFix, avgIst }) {
+function FixSection({ recur, reload, monthlyFix, avgIst, debits }) {
   const [nf, setNf] = useState({ label: '', amount: '', interval: 'yearly', category: 'Versicherung' })
   const [busy, setBusy] = useState(false)
+  const [scan, setScan] = useState(null)
+  const [scanning, setScanning] = useState(false)
+
+  async function detect() {
+    setScanning(true); setScan(null)
+    try {
+      const groups = {}
+      for (const x of (debits || [])) {
+        const key = (x.counterparty || 'Unbekannt').trim()
+        if (!key) continue
+        const g = groups[key] || (groups[key] = { name: key, amounts: [], months: new Set(), purposes: new Set() })
+        g.amounts.push(Math.abs(Number(x.amount) || 0)); g.months.add((x.booking_date || '').slice(0, 7))
+        if (x.purpose) g.purposes.add(String(x.purpose).slice(0, 40))
+      }
+      const vendors = Object.values(groups).filter(g => g.amounts.length >= 2).map(g => {
+        const a = g.amounts.slice().sort((x, y) => x - y); const med = a[Math.floor(a.length / 2)]
+        return { name: g.name, count: g.amounts.length, monthsSpan: g.months.size, medAmount: Math.round(med * 100) / 100, purposes: [...g.purposes].slice(0, 4) }
+      }).sort((x, y) => y.count - x.count).slice(0, 80)
+      if (!vendors.length) { alert('Zu wenig wiederkehrende Buchungen erkannt. (Erst Sparkasse-Umsätze importieren.)'); setScanning(false); return }
+      const r = await fetch('/api/kosten-classify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendors }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'KI-Fehler')
+      const byName = Object.fromEntries((j.results || []).map(x => [x.name, x]))
+      const rows = vendors.map(v => { const ai = byName[v.name] || {}; return { name: v.name, count: v.count, monthsSpan: v.monthsSpan, take: true, fix: !!ai.recurring, category: ai.category || 'Sonstiges', interval: ai.interval || 'monthly', amount: ai.amount || v.medAmount } })
+      rows.sort((a, b) => (b.fix - a.fix) || (b.count - a.count))
+      setScan(rows)
+    } catch (e) { alert('Erkennung fehlgeschlagen: ' + (e.message || e)) }
+    setScanning(false)
+  }
+  function upd(i, patch) { setScan(s => s.map((r, j) => j === i ? { ...r, ...patch } : r)) }
+  async function applyScan() {
+    const take = (scan || []).filter(r => r.take)
+    if (!take.length) { alert('Nichts ausgewählt.'); return }
+    setBusy(true); let rules = 0, fix = 0
+    try {
+      for (const r of take) {
+        try { await supabase.from('category_rules').insert({ match_type: 'counterparty', pattern: r.name, category: r.category }); rules++ } catch {}
+        if (r.fix) { try { await supabase.from('recurring_costs').insert({ label: r.name, amount: Number(r.amount) || 0, interval: r.interval, category: r.category }); fix++ } catch {} }
+      }
+      setScan(null); await reload()
+      alert('✓ ' + rules + ' Kategorie-Regeln gespeichert, ' + fix + ' als Fixkosten übernommen.')
+    } catch (e) { alert('Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
   async function add() {
     if (!nf.label || !Number(nf.amount)) { alert('Bezeichnung und Betrag erforderlich'); return }
     setBusy(true)
@@ -254,8 +299,43 @@ function FixSection({ recur, reload, monthlyFix, avgIst }) {
         <Kpi l="Fixkosten / Jahr" v={eur(recur.reduce((s, r) => s + (Number(r.amount) || 0) * (12 / ({ yearly: 12, quarterly: 3, monthly: 1 }[r.interval] || 12)), 0))} />
       </div>
 
-      <div style={card}>
-        <div style={h3}>Neue wiederkehrende Kosten</div>
+      <div style={{ ...card, borderColor: '#d9c79a', background: '#fdfaf2' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>🔍 Aus Kontoauszug erkennen (KI)</div>
+            <div style={{ fontSize: 12, color: MUT, marginTop: 2 }}>Liest die wiederkehrenden Empfänger aus den Sparkasse-Umsätzen, schlägt Kategorie + Abo/Versicherung + Intervall vor (z.B. Generali, PayPal-Surfshark, Mawacon …).</div>
+          </div>
+          {!scan && <button onClick={detect} disabled={scanning} style={primary}>{scanning ? 'Analysiere…' : 'Analysieren'}</button>}
+        </div>
+
+        {scan && <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 70px 1.3fr 56px 1.2fr 90px', gap: 6, padding: '0 4px 6px', fontSize: 10, fontWeight: 700, color: MUT, textTransform: 'uppercase' }}>
+            <div></div><div>Empfänger</div><div style={{ textAlign: 'center' }}>Anz.</div><div>Kategorie</div><div style={{ textAlign: 'center' }}>Fix?</div><div>Intervall</div><div style={{ textAlign: 'right' }}>Betrag</div>
+          </div>
+          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+            {scan.map((r, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '24px 1fr 70px 1.3fr 56px 1.2fr 90px', gap: 6, alignItems: 'center', padding: '6px 4px', borderTop: '1px solid #f1ead9', fontSize: 12.5, opacity: r.take ? 1 : .45 }}>
+                <input type="checkbox" checked={r.take} onChange={e => upd(i, { take: e.target.checked })} style={{ accentColor: GOLD }} />
+                <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                <span style={{ textAlign: 'center', color: MUT }}>{r.count}× / {r.monthsSpan}M</span>
+                <select value={r.category} onChange={e => upd(i, { category: e.target.value })} style={{ ...selStyle, fontSize: 11 }}>{KAT.map(k => <option key={k}>{k}</option>)}</select>
+                <input type="checkbox" checked={r.fix} onChange={e => upd(i, { fix: e.target.checked })} style={{ accentColor: GREEN, justifySelf: 'center' }} title="Als wiederkehrende Fixkosten übernehmen" />
+                <select value={r.interval} disabled={!r.fix} onChange={e => upd(i, { interval: e.target.value })} style={{ ...selStyle, fontSize: 11, opacity: r.fix ? 1 : .4 }}><option value="monthly">monatlich</option><option value="quarterly">vierteljährlich</option><option value="yearly">jährlich</option></select>
+                <input value={r.amount} disabled={!r.fix} onChange={e => upd(i, { amount: e.target.value })} style={{ ...selStyle, textAlign: 'right', fontSize: 11, opacity: r.fix ? 1 : .4 }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+            <button onClick={() => setScan(null)} style={mini}>Abbrechen</button>
+            <div style={{ flex: 1 }} />
+            <span style={{ fontSize: 11, color: MUT }}>„Fix?" = als Fixkosten · sonst nur Kategorie-Regel fürs Konto</span>
+            <button onClick={applyScan} disabled={busy} style={primary}>{busy ? '…' : 'Übernehmen'}</button>
+          </div>
+        </div>}
+      </div>
+
+      <div style={{ ...card, marginTop: 14 }}>
+        <div style={h3}>Neue wiederkehrende Kosten (manuell)</div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 1.4fr auto', gap: 8, alignItems: 'end' }}>
           <div><label style={lbl}>Bezeichnung</label><input value={nf.label} onChange={e => setNf({ ...nf, label: e.target.value })} placeholder="z.B. Kfz-Versicherung" style={inp} /></div>
           <div><label style={lbl}>Betrag €</label><input value={nf.amount} onChange={e => setNf({ ...nf, amount: e.target.value })} placeholder="0,00" style={{ ...inp, textAlign: 'right' }} /></div>
@@ -267,7 +347,7 @@ function FixSection({ recur, reload, monthlyFix, avgIst }) {
 
       <div style={{ ...card, marginTop: 14 }}>
         <div style={h3}>Liste</div>
-        {recur.length === 0 && <div style={{ color: MUT, fontSize: 13 }}>Noch keine Einträge. Beispiele: Kfz-Versicherung (jährlich), Drohnenversicherung (jährlich), Rundfunkbeitrag ARD/ZDF (vierteljährlich), Steuer-Vorauszahlung (vierteljährlich).</div>}
+        {recur.length === 0 && <div style={{ color: MUT, fontSize: 13 }}>Noch keine Einträge. Tipp: oben „Analysieren" nutzt die KI, um Abos/Versicherungen aus dem Kontoauszug zu finden.</div>}
         {recur.map(r => (
           <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 1.2fr 1fr 26px', gap: 8, alignItems: 'center', padding: '9px 0', borderTop: '1px solid #f1ead9', fontSize: 13 }}>
             <span style={{ fontWeight: 700 }}>{r.label}</span>
@@ -285,125 +365,94 @@ function FixSection({ recur, reload, monthlyFix, avgIst }) {
 
 function RentSection({ clients, invoices, params, saveParams, monthlyFix }) {
   const [clientId, setClientId] = useState('')
-  const [mon, setMon] = useState('all')
-  const [sel, setSel] = useState({})        // invoiceId -> true
-  const [drivers, setDrivers] = useState({}) // invoiceId -> 'self'|'daniel'
-  const [kmMap, setKmMap] = useState({})     // invoiceId -> km (loaded)
+  const [invId, setInvId] = useState('')
+  const [driver, setDriver] = useState('self')
+  const [km, setKm] = useState(0)
+  const [kmAuto, setKmAuto] = useState(true)
   const [p, setP] = useState(params)
-
   useEffect(() => { setP(params) }, [params])
 
-  const months = Array.from(new Set(invoices.map(i => (i.invoice_date || '').slice(0, 7)).filter(Boolean))).sort().reverse()
-  const cinv = invoices.filter(i => (!clientId || i.client_id === clientId) && (mon === 'all' || (i.invoice_date || '').slice(0, 7) === mon))
-  // havi nettó összeg (a kiválasztott hónapra v. az ügyfél hónapjára) — fixköltség-arányhoz
-  const monForFix = mon !== 'all' ? mon : null
+  const cinv = invoices.filter(i => !clientId || i.client_id === clientId)
+  const inv = invoices.find(i => i.id === invId) || null
 
-  async function loadKm(inv) {
-    if (kmMap[inv.id] != null) return
-    try {
-      const { data: its } = await supabase.from('invoice_items').select('qty, unit, description').eq('invoice_id', inv.id)
-      let km = 0
-      for (const it of (its || [])) { const u = (it.unit || '').toLowerCase(); const d = (it.description || '').toLowerCase(); if (u === 'km' || /\bkm\b/.test(d)) km += Number(String(it.qty).replace(',', '.')) || 0 }
-      setKmMap(m => ({ ...m, [inv.id]: km }))
-    } catch { setKmMap(m => ({ ...m, [inv.id]: 0 })) }
-  }
-  function toggle(inv) { setSel(s => { const n = { ...s, [inv.id]: !s[inv.id] }; if (n[inv.id]) loadKm(inv); return n }) }
+  useEffect(() => {
+    if (!invId) { setKm(0); setKmAuto(true); return }
+    setKmAuto(true)
+    ;(async () => {
+      try {
+        const { data: its } = await supabase.from('invoice_items').select('qty, unit, description').eq('invoice_id', invId)
+        let k = 0
+        for (const it of (its || [])) { const u = (it.unit || '').toLowerCase(); const d = (it.description || '').toLowerCase(); if (u === 'km' || /\bkm\b/.test(d)) k += Number(String(it.qty).replace(',', '.')) || 0 }
+        setKm(k)
+      } catch { setKm(0) }
+    })()
+  }, [invId])
 
-  const selInv = cinv.filter(i => sel[i.id])
-  // hónap nettó összes (a fixkosten-arányhoz): a kiválasztott hónap összes számlájának nettója
-  function monthNetOf(inv) { const mk = (inv.invoice_date || '').slice(0, 7); return invoices.filter(i => (i.invoice_date || '').slice(0, 7) === mk).reduce((s, i) => s + (Number(i.total_net) || 0), 0) }
+  function monthNetOf(i) { const mk = (i.invoice_date || '').slice(0, 7); return invoices.filter(x => (x.invoice_date || '').slice(0, 7) === mk).reduce((s, x) => s + (Number(x.total_net) || 0), 0) }
+  const pf = patch => saveParams({ ...p, ...patch })
 
-  function calc(inv) {
+  let calc = null
+  if (inv) {
     const netto = Number(inv.total_net) || 0
-    const km = kmMap[inv.id] || 0
-    const rate = (drivers[inv.id] === 'daniel') ? p.kmDaniel : p.kmSelf
-    const fahrt = km * rate
-    const bild = Number(p.bildPerShoot) || 0
+    const rate = driver === 'mitarbeiter' ? Number(p.kmMitarbeiter) : Number(p.kmSelf)
+    const fahrt = (Number(km) || 0) * rate
+    const bild = (Number(p.imagesAvg) || 0) * (Number(p.pricePerImage) || 0)
     const mNet = monthNetOf(inv) || netto
     const fix = mNet > 0 ? monthlyFix * (netto / mNet) : 0
     const vorSteuer = netto - fahrt - bild - fix
     const steuer = Math.max(0, vorSteuer) * (Number(p.steuerPct) || 0) / 100
-    const gewinn = vorSteuer - steuer
-    return { netto, km, rate, fahrt, bild, fix, vorSteuer, steuer, gewinn }
+    calc = { netto, rate, fahrt, bild, fix, vorSteuer, steuer, gewinn: vorSteuer - steuer }
   }
-  const sums = selInv.reduce((a, i) => { const c = calc(i); return { netto: a.netto + c.netto, fahrt: a.fahrt + c.fahrt, bild: a.bild + c.bild, fix: a.fix + c.fix, vorSteuer: a.vorSteuer + c.vorSteuer, steuer: a.steuer + c.steuer, gewinn: a.gewinn + c.gewinn } }, { netto: 0, fahrt: 0, bild: 0, fix: 0, vorSteuer: 0, steuer: 0, gewinn: 0 })
-
-  const pf = patch => saveParams({ ...p, ...patch })
+  const pos = calc && calc.gewinn >= 0
 
   return (
     <>
       <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>Rentabilität pro Fotoshooting</div>
-      <div style={{ fontSize: 13, color: MUT, marginBottom: 16 }}>Kunde wählen → Rechnungen auswählen → Netto-Umsatz vs. alle Kosten (Fahrt nach Fahrer, Bildbearbeitung, anteilige Fixkosten, Einkommensteuer-Rückstellung).</div>
+      <div style={{ fontSize: 13, color: MUT, marginBottom: 16 }}>Kunde &amp; Rechnung wählen — die Kalkulation läuft automatisch: Netto-Umsatz minus Fahrtkosten (km × Satz je Fahrer), Bildbearbeitung (Ø Bilder × Preis), anteilige Fixkosten und Steuer-Rückstellung.</div>
 
       <div style={card}>
         <div style={h3}>Parameter</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-          <div><label style={lbl}>Bildbearbeitung / Shooting €</label><input value={p.bildPerShoot} onChange={e => setP({ ...p, bildPerShoot: e.target.value })} onBlur={() => pf({ bildPerShoot: p.bildPerShoot })} style={{ ...inp, textAlign: 'right' }} /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+          <div><label style={lbl}>Ø Bilder / Shooting</label><input value={p.imagesAvg} onChange={e => setP({ ...p, imagesAvg: e.target.value })} onBlur={() => pf({ imagesAvg: p.imagesAvg })} style={{ ...inp, textAlign: 'right' }} /></div>
+          <div><label style={lbl}>€ / Bild</label><input value={p.pricePerImage} onChange={e => setP({ ...p, pricePerImage: e.target.value })} onBlur={() => pf({ pricePerImage: p.pricePerImage })} style={{ ...inp, textAlign: 'right' }} /></div>
           <div><label style={lbl}>km-Satz ich €</label><input value={p.kmSelf} onChange={e => setP({ ...p, kmSelf: e.target.value })} onBlur={() => pf({ kmSelf: p.kmSelf })} style={{ ...inp, textAlign: 'right' }} /></div>
-          <div><label style={lbl}>km-Satz Daniel €</label><input value={p.kmDaniel} onChange={e => setP({ ...p, kmDaniel: e.target.value })} onBlur={() => pf({ kmDaniel: p.kmDaniel })} style={{ ...inp, textAlign: 'right' }} /></div>
+          <div><label style={lbl}>km-Satz Mitarbeiter €</label><input value={p.kmMitarbeiter} onChange={e => setP({ ...p, kmMitarbeiter: e.target.value })} onBlur={() => pf({ kmMitarbeiter: p.kmMitarbeiter })} style={{ ...inp, textAlign: 'right' }} /></div>
           <div><label style={lbl}>Steuer-Rückstellung %</label><input value={p.steuerPct} onChange={e => setP({ ...p, steuerPct: e.target.value })} onBlur={() => pf({ steuerPct: p.steuerPct })} style={{ ...inp, textAlign: 'right' }} /></div>
         </div>
-        <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Anteilige Fixkosten = Fixkosten/Monat ({eur(monthlyFix)}) × Umsatzanteil dieser Rechnung am Monat.</div>
+        <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Bildbearbeitung = {p.imagesAvg || 0} Bilder × {eur(Number(p.pricePerImage) || 0)} = <b>{eur((Number(p.imagesAvg) || 0) * (Number(p.pricePerImage) || 0))}</b> / Shooting (Ø, nicht immer exakt).</div>
       </div>
 
       <div style={{ ...card, marginTop: 14 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-          <div style={{ flex: 1, minWidth: 200 }}><label style={lbl}>Kunde</label><select value={clientId} onChange={e => { setClientId(e.target.value); setSel({}) }} style={inp}><option value="">— alle Kunden —</option>{clients.map(c => <option key={c.id} value={c.id}>{c.short_name || c.name}</option>)}</select></div>
-          <div style={{ width: 180 }}><label style={lbl}>Monat</label><select value={mon} onChange={e => { setMon(e.target.value); setSel({}) }} style={inp}><option value="all">alle Monate</option>{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}><label style={lbl}>Kunde</label><select value={clientId} onChange={e => { setClientId(e.target.value); setInvId('') }} style={inp}><option value="">— alle Kunden —</option>{clients.map(c => <option key={c.id} value={c.id}>{c.short_name || c.name}</option>)}</select></div>
+          <div style={{ flex: 2, minWidth: 240 }}><label style={lbl}>Rechnung / Shooting</label><select value={invId} onChange={e => setInvId(e.target.value)} style={inp}><option value="">— auswählen —</option>{cinv.slice(0, 300).map(i => <option key={i.id} value={i.id}>{(i.invoice_number || '—') + ' · ' + dDE(i.invoice_date) + ' · ' + i.client_name + ' · ' + eur(i.total_net) + ' netto'}</option>)}</select></div>
         </div>
-
-        {cinv.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: 8 }}>Keine Rechnungen für diese Auswahl.</div>}
-        {cinv.slice(0, 60).map(i => (
-          <label key={i.id} style={{ display: 'grid', gridTemplateColumns: '26px 90px 1fr 110px', gap: 8, alignItems: 'center', padding: '8px 4px', borderTop: '1px solid #f1ead9', fontSize: 13, cursor: 'pointer' }}>
-            <input type="checkbox" checked={!!sel[i.id]} onChange={() => toggle(i)} style={{ accentColor: GOLD }} />
-            <span style={{ fontWeight: 700 }}>{i.invoice_number || '—'}</span>
-            <span style={{ color: MUT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dDE(i.invoice_date)} · {i.client_name}</span>
-            <span style={{ textAlign: 'right', fontWeight: 700 }}>{eur(i.total_net)} <span style={{ color: MUT, fontWeight: 400, fontSize: 11 }}>netto</span></span>
-          </label>
-        ))}
       </div>
 
-      {selInv.length > 0 && (
+      {calc && (
         <div style={{ ...card, marginTop: 14 }}>
-          <div style={h3}>Kalkulation ({selInv.length} Rechnung{selInv.length > 1 ? 'en' : ''})</div>
-          {selInv.map(i => { const c = calc(i); const pos = c.gewinn >= 0; return (
-            <div key={i.id} style={{ borderTop: '1px solid #f1ead9', padding: '12px 2px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                <div style={{ fontWeight: 800 }}>{i.invoice_number} · {i.client_name} <span style={{ color: MUT, fontWeight: 400, fontSize: 12 }}>({dDE(i.invoice_date)})</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                  <span style={{ color: MUT }}>km: {c.km || 0}</span>
-                  <div style={{ display: 'flex', border: '1px solid ' + LINE, borderRadius: 8, overflow: 'hidden' }}>
-                    <button onClick={() => setDrivers(d => ({ ...d, [i.id]: 'self' }))} style={drv(drivers[i.id] !== 'daniel')}>ich ({Number(p.kmSelf).toFixed(2)})</button>
-                    <button onClick={() => setDrivers(d => ({ ...d, [i.id]: 'daniel' }))} style={drv(drivers[i.id] === 'daniel')}>Daniel ({Number(p.kmDaniel).toFixed(2)})</button>
-                  </div>
-                </div>
-              </div>
-              <Row l="Umsatz netto" v={eur(c.netto)} bold />
-              <Row l={'− Fahrtkosten (' + (c.km || 0) + ' km × ' + Number(c.rate).toFixed(2) + ')'} v={'− ' + eur(c.fahrt)} />
-              <Row l="− Bildbearbeitung" v={'− ' + eur(c.bild)} />
-              <Row l="− anteilige Fixkosten" v={'− ' + eur(c.fix)} />
-              <Row l="= Ergebnis vor Steuer" v={eur(c.vorSteuer)} bold />
-              <Row l={'− Steuer-Rückstellung (' + p.steuerPct + '%)'} v={'− ' + eur(c.steuer)} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, padding: '8px 10px', borderRadius: 8, background: pos ? GREENBG : '#fbe9e9' }}>
-                <b style={{ color: pos ? GREENTX : RED }}>= Gewinn nach Steuer</b><b style={{ fontSize: 16, color: pos ? GREENTX : RED }}>{eur(c.gewinn)}</b>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{inv.invoice_number} · {inv.client_name} <span style={{ color: MUT, fontWeight: 400, fontSize: 12 }}>({dDE(inv.invoice_date)})</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ color: MUT }}>km:</span>
+              <input value={km} onChange={e => { setKm(e.target.value); setKmAuto(false) }} style={{ ...inp, width: 70, marginTop: 0, padding: '5px 8px', textAlign: 'right' }} />
+              {kmAuto && <span style={{ fontSize: 10, color: GREEN }}>auto</span>}
+              <div style={{ display: 'flex', border: '1px solid ' + LINE, borderRadius: 8, overflow: 'hidden' }}>
+                <button onClick={() => setDriver('self')} style={drv(driver === 'self')}>ich ({Number(p.kmSelf).toFixed(2)})</button>
+                <button onClick={() => setDriver('mitarbeiter')} style={drv(driver === 'mitarbeiter')}>Mitarbeiter ({Number(p.kmMitarbeiter).toFixed(2)})</button>
               </div>
             </div>
-          ) })}
-
-          {selInv.length > 1 && (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '2px solid ' + DARK }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>Summe ({selInv.length} Shootings)</div>
-              <Row l="Umsatz netto" v={eur(sums.netto)} bold />
-              <Row l="− Fahrtkosten" v={'− ' + eur(sums.fahrt)} />
-              <Row l="− Bildbearbeitung" v={'− ' + eur(sums.bild)} />
-              <Row l="− Fixkosten" v={'− ' + eur(sums.fix)} />
-              <Row l="− Steuer" v={'− ' + eur(sums.steuer)} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, padding: '10px 12px', borderRadius: 8, background: sums.gewinn >= 0 ? GREENBG : '#fbe9e9' }}>
-                <b style={{ color: sums.gewinn >= 0 ? GREENTX : RED }}>Gewinn nach Steuer gesamt</b><b style={{ fontSize: 18, color: sums.gewinn >= 0 ? GREENTX : RED }}>{eur(sums.gewinn)}</b>
-              </div>
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: MUT, marginTop: 12, lineHeight: 1.6 }}>Näherung: Fixkosten-Verteilung nach Umsatzanteil, Steuer pauschal {p.steuerPct}% (Richtwert aus der Buchhaltung). Kein Steuerbescheid — final beim Steuerberater.</div>
+          </div>
+          <Row l="Umsatz netto" v={eur(calc.netto)} bold />
+          <Row l={'\u2212 Fahrtkosten (' + (Number(km) || 0) + ' km \u00d7 ' + Number(calc.rate).toFixed(2) + ')'} v={'\u2212 ' + eur(calc.fahrt)} />
+          <Row l={'\u2212 Bildbearbeitung (' + (p.imagesAvg || 0) + ' \u00d7 ' + eur(Number(p.pricePerImage) || 0) + ')'} v={'\u2212 ' + eur(calc.bild)} />
+          <Row l="\u2212 anteilige Fixkosten" v={'\u2212 ' + eur(calc.fix)} />
+          <Row l="= Ergebnis vor Steuer" v={eur(calc.vorSteuer)} bold />
+          <Row l={'\u2212 Steuer-R\u00fcckstellung (' + p.steuerPct + '%)'} v={'\u2212 ' + eur(calc.steuer)} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: pos ? GREENBG : '#fbe9e9' }}>
+            <b style={{ color: pos ? GREENTX : RED }}>= Gewinn nach Steuer</b><b style={{ fontSize: 18, color: pos ? GREENTX : RED }}>{eur(calc.gewinn)}</b>
+          </div>
+          <div style={{ fontSize: 11, color: MUT, marginTop: 12, lineHeight: 1.6 }}>km wird aus den Fahrtkosten-Positionen der Rechnung gelesen (Quelle Fahrtenbuch/Maps) \u2014 oben \u00fcberschreibbar. „Fahrer" bestimmt den km-Satz. N\u00e4herung, kein Steuerbescheid.</div>
         </div>
       )}
     </>

@@ -1,0 +1,25 @@
+# ImmoPixels CRM v5.1.46 — Rentabilität (Dropdown) + Fixkosten-KI-Erkennung
+## 2026-06-21
+RENTABILITÄT (Eingangsrechnungen → Sparkasse-Konto → Rentabilität)
+- Statt Liste jetzt: Kunde-Dropdown + Rechnung-Dropdown → Kalkulation läuft sofort.
+- Bildbearbeitung = Ø Bilder × € pro Bild (Standard 50 × 0,70 € = 35 €/Shooting,
+  anpassbar — nicht immer exakt).
+- km wird automatisch aus den Fahrtkosten-Positionen der Rechnung gelesen
+  (Quelle Fahrtenbuch/Maps), oben überschreibbar.
+- Fahrer-Schalter „ich / Mitarbeiter" mit je eigenem km-Satz (ich ~0,20,
+  Mitarbeiter ~0,30) — jedes Shooting kann ein anderer fahren.
+- Ergebnis: Netto − Fahrt − Bildbearbeitung − anteilige Fixkosten − Steuer
+  = Gewinn nach Steuer.
+
+FIXKOSTEN — „Aus Kontoauszug erkennen (KI)"
+- Liest die wiederkehrenden Empfänger aus den Sparkasse-Umsätzen und lässt sie
+  von der KI klassifizieren: Kategorie, Abo/Versicherung ja/nein, Intervall,
+  typischer Betrag. (Generali Kranken/Kfz → Versicherung; PayPal-Surfshark/Apple
+  → Software-Abo; Mawacon → Telefon/Internet; EasyPark → Fahrtkosten; AMAZON
+  BUSINESS → Ausrüstung einmalig; Dina Cristian privat → Privatentnahme …)
+- Review-Liste: alles editierbar. „Übernehmen" speichert je Eintrag eine
+  Kategorie-Regel fürs Konto und — wenn „Fix?" gesetzt — eine wiederkehrende
+  Fixkosten-Position.
+- Neuer Endpoint: POST /api/kosten-classify (Claude, braucht ANTHROPIC_API_KEY).
+- Dateien: app/eingangsrechnungen/konto/page.js, app/api/kosten-classify/route.js
+- Keine neue SQL (nutzt bank_transactions, category_rules, recurring_costs, settings).
