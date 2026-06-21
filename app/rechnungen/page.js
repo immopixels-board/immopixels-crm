@@ -388,7 +388,7 @@ export default function RechnungenPage() {
                 <div><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
                 <div style={{ textAlign: 'center' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>{st.label}</span></div>
                 <div style={{ color: MUT, fontSize: 13, whiteSpace: 'nowrap' }}>{i.invoice_date}</div>
-                <div onClick={() => editInvoice(i)} style={{ fontWeight: 700, cursor: 'pointer', color: clickable ? GOLD : DARK, whiteSpace: 'nowrap' }} title={clickable ? 'Entwurf bearbeiten' : 'Rechnung öffnen'}>{i.invoice_number || '—'}</div>
+                <div onClick={() => editInvoice(i)} style={{ fontWeight: 700, cursor: 'pointer', color: clickable ? GOLD : DARK, whiteSpace: 'nowrap' }} title={clickable ? 'Entwurf bearbeiten' : 'Rechnung öffnen / bearbeiten'}>{i.invoice_number || '—'}</div>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.client_name}</div>
                 <div style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{eur(i.total_gross)}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>

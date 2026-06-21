@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.40', date: '2026-06-21', items: ['Festgeschriebene Rechnung nachträglich änderbar: Rechnung öffnen, Positionen/Beträge anpassen und „\u270e Änderungen speichern" \u2014 dieselbe Rechnung wird überschrieben, Nummer und Status bleiben (kein neuer Beleg nötig).'] },
   { ver: 'v5.1.39', date: '2026-06-21', items: ['Neuer Knopf „Erinnerung" bei überfälligen Rechnungen: sendet eine freundliche Zahlungserinnerung per E-Mail (eigene Vorlage, vor der Mahnung), Rechnung als PDF im Anhang. Eigene Betreff-/Text-Vorlage in den E-Mail-Einstellungen. Aktionsknöpfe in der Rechnungsliste brechen jetzt sauber um (nichts ragt mehr aus dem Rahmen).'] },
   { ver: 'v5.1.38', date: '2026-06-20', items: ['Mehr Platzhalter in den E-Mail-Vorlagen: {kunde}, {betrag}, {faellig}, {datum} (zusätzlich zu {nr}, {firma}). Bessere Standard-Vorlage mit Betrag und Zahlungsziel.'] },
   { ver: 'v5.1.37', date: '2026-06-20', items: ['E-Mail-Versand jetzt im CRM einstellbar: Rechnungen → „\u2699 Vorlage & Absender" → Tab „E-Mail / Versand" \u2014 SMTP-Host/Port/Benutzer/Passwort, Absendername, BCC sowie Betreff-, Nachricht- und Signatur/Footer-Vorlage. Kein Vercel-Env mehr nötig (Env bleibt als Fallback).'] },

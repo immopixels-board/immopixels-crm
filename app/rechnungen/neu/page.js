@@ -361,6 +361,7 @@ export default function NeueRechnungPage() {
         {!finalized && <button onClick={async () => { const r = await save(false, false); if (r) { setBusy(false); setSavedMsg('✓ Entwurf gespeichert'); setTimeout(() => setSavedMsg(''), 2500) } }} disabled={busy} style={ghost}>Als Entwurf speichern</button>}
         {savedMsg && <span style={{ fontSize: 13, color: '#2f7a4f', fontWeight: 600 }}>{savedMsg}</span>}
         {!finalized && <button onClick={() => { if (confirm('Festschreiben? Danach unveränderlich + Nummer.')) save(true) }} disabled={busy} style={primary}>{busy ? '…' : 'Festschreiben'}</button>}
+        {finalized && <button onClick={() => { if (confirm('Festgeschriebene Rechnung ' + inv.invoice_number + ' direkt ändern und überschreiben?\n\nNummer und Status bleiben unverändert, Beträge/Positionen werden überschrieben.')) save(false, true) }} disabled={busy} style={primary}>{busy ? '…' : '✎ Änderungen speichern'}</button>}
         {inv.id && <button onClick={delInvoice} disabled={busy} style={{ ...ghost, color: '#b3402f', borderColor: '#e9c9c2' }}>🗑 Löschen</button>}
         <button onClick={() => { window.location.href = '/rechnungen' }} style={ghost}>Schließen</button>
       </div>

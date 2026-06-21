@@ -1,0 +1,9 @@
+# ImmoPixels CRM v5.1.40 — Festgeschriebene Rechnung nachträglich ändern
+## 2026-06-21
+- Eine bereits festgeschriebene Rechnung kann jetzt direkt bearbeitet werden:
+  Rechnung öffnen (Nummer anklicken) → Positionen/Beträge ändern →
+  „✎ Änderungen speichern".
+- Es wird DIESELBE Rechnung überschrieben — Rechnungsnummer und Status
+  bleiben unverändert (kein neuer Beleg, keine Storno nötig).
+- Datei: app/rechnungen/neu/page.js (+ Tooltip in der Liste).
+- Keine SQL.
