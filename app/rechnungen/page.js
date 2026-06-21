@@ -32,6 +32,8 @@ export default function RechnungenPage() {
   const [seller, setSeller] = useState(DEFAULT_SELLER)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [emailCfg, setEmailCfg] = useState(DEFAULT_EMAIL)
+  const [prevYearSum, setPrevYearSum] = useState(null)
+  const [loadingPrev, setLoadingPrev] = useState(false)
   const [editor, setEditor] = useState(null)
   const [settingsModal, setSettingsModal] = useState(false)
   const [mahnModal, setMahnModal] = useState(null)
@@ -58,6 +60,8 @@ export default function RechnungenPage() {
     if (s2?.value) { try { setTemplate({ ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }) } catch {} }
     const { data: s3 } = await supabase.from('settings').select('value').eq('key', 'invoice_email').maybeSingle()
     if (s3?.value) { try { setEmailCfg({ ...DEFAULT_EMAIL, ...JSON.parse(s3.value) }) } catch {} }
+    const { data: s4 } = await supabase.from('settings').select('value').eq('key', 'kpi_prevyear').maybeSingle()
+    if (s4?.value) { try { setPrevYearSum(JSON.parse(s4.value)) } catch {} }
     await reload()
     // előtöltés kártyáról
     setLoading(false)
@@ -76,6 +80,19 @@ export default function RechnungenPage() {
     setSettingsModal(false)
   }
 
+  async function fetchPrevYear() {
+    const py = new Date().getFullYear() - 1
+    setLoadingPrev(true)
+    try {
+      const r = await fetch('/api/billomat/invoices/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'sum', year: py, staff_id: myId }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Billomat-Fehler')
+      const val = { year: py, sum: j.sum, count: j.count, at: new Date().toISOString() }
+      setPrevYearSum(val)
+      await supabase.from('settings').upsert({ key: 'kpi_prevyear', value: JSON.stringify(val) }, { onConflict: 'key' })
+    } catch (e) { alert('Billomat ' + py + ' laden fehlgeschlagen: ' + (e.message || e)) }
+    setLoadingPrev(false)
+  }
   function buyerFromClient(c) {
     if (!c) return {}
     return { company: c.name || '', contact: [c.contact_firstname, c.contact_lastname].filter(Boolean).join(' '), address: c.addr || '', email: c.contact_email || c.email || '', phone: c.contact_tel || c.tel || '', kundennr: c.kundennr || '' }
@@ -339,11 +356,20 @@ export default function RechnungenPage() {
                 <div style={{ fontSize: 12, color: MUT }}>{eur(sm)}</div>
               </div>
             ) })}
-            {(() => { const g = statusSummary.filter(x => x.s !== 'storno').reduce((a, x) => ({ count: a.count + x.count, sum: a.sum + x.sum }), { count: 0, sum: 0 }); return (
-              <div onClick={() => setFStatus('all')} style={{ background: fStatus === 'all' ? GOLD : '#2a2a28', border: '1px solid ' + (fStatus === 'all' ? GOLD : '#2a2a28'), borderRadius: 10, padding: '12px 14px', cursor: 'pointer', transition: 'all .12s' }}>
-                <div style={{ fontSize: 12, color: '#fff', fontWeight: 700, opacity: .85 }}>Gesamt</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginTop: 2 }}>{g.count}</div>
-                <div style={{ fontSize: 12, color: '#fff', opacity: .85 }}>{eur(g.sum)}</div>
+            {(() => { const py = curY - 1; const cyList = invoices.filter(i => i.status !== 'storno' && (i.invoice_date || '').slice(0, 4) === String(curY)); const cySum = cyList.reduce((a, i) => a + (i.total_gross || 0), 0); return (
+              <div style={{ background: '#2a2a28', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '8px 13px', borderBottom: '1px solid rgba(255,255,255,.12)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#fff', fontWeight: 700, opacity: .65 }}>{py} · Billomat</span>
+                    {prevYearSum && <button onClick={fetchPrevYear} disabled={loadingPrev} title="Aus Billomat neu laden" style={{ background: 'none', border: 'none', color: '#fff', opacity: .6, cursor: 'pointer', fontSize: 12, padding: 0 }}>{loadingPrev ? '…' : '⟳'}</button>}
+                  </div>
+                  {prevYearSum ? <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginTop: 1 }}>{eur(prevYearSum.sum)}</div>
+                    : <button onClick={fetchPrevYear} disabled={loadingPrev} style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: '#2a2a28', background: '#e9c46a', border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer' }}>{loadingPrev ? 'lädt…' : 'aus Billomat laden'}</button>}
+                </div>
+                <div onClick={() => setFStatus('all')} style={{ padding: '8px 13px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 11, color: '#fff', fontWeight: 700, opacity: .65 }}>{curY}</span>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginTop: 1 }}>{eur(cySum)}</div>
+                </div>
               </div>
             ) })()}
           </div>

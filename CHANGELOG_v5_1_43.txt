@@ -1,0 +1,12 @@
+# ImmoPixels CRM v5.1.43 — Gesamt-Kachel: Vorjahr (Billomat) + laufendes Jahr
+## 2026-06-21
+- Die „Gesamt"-Kachel (Rechnungen-Tab) ist jetzt zweigeteilt:
+  • OBEN: Summe des Vorjahres (z.B. 2025) — direkt aus Billomat abrufbar
+    („aus Billomat laden"). Es wird NUR die Summe geholt, keine Rechnungen.
+    Der Wert wird gecacht (settings „kpi_prevyear"), ⟳ lädt neu.
+  • UNTEN: Summe des laufenden Jahres ({curY}) aus den CRM-Rechnungen
+    (ohne Storno).
+- Neuer Endpoint-Modus: POST /api/billomat/invoices/import {mode:'sum', year}.
+  Liest nur, schreibt nichts (kein service_role-Problem).
+- Dateien: app/rechnungen/page.js, app/api/billomat/invoices/import/route.js
+- Keine SQL (nutzt settings-Tabelle).

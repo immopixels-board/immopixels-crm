@@ -55,6 +55,12 @@ export async function POST(req) {
   if (yr.error) return NextResponse.json({ ok: false, error: 'Billomat /invoices hiba', status: yr.error.status, detail: yr.error.detail }, { status: 502 })
   const yInvs = yr.invoices
 
+  if (mode === 'sum') {
+    const live = yInvs.filter(iv => { const s = String(iv.status || '').toUpperCase(); return s !== 'CANCELED' && s !== 'CANCELLED' && s !== 'DRAFT' })
+    const sum = live.reduce((s, iv) => s + numf(iv.total_gross), 0)
+    return NextResponse.json({ ok: true, year, count: live.length, sum: r2(sum) })
+  }
+
   if (mode === 'list') {
     const list = yInvs.map(iv => ({
       billomat_id: String(iv.id),

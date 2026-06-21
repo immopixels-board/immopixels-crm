@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.43', date: '2026-06-21', items: ['Gesamt-Kachel geteilt: oben die Vorjahres-Summe (z.B. 2025) direkt aus Billomat abrufbar (nur Summe, keine Rechnungen), darunter das laufende Jahr aus dem CRM. Vorjahreswert wird gecacht.'] },
   { ver: 'v5.1.42', date: '2026-06-21', items: ['Eingangsrechnungen: neue Kategorien Finanzamt, Arzt und Bildbearbeiter. „Michael Photo" wird automatisch als Bildbearbeiter erkannt (ebenso Finanzamt/Arzt per Schlagwort).'] },
   { ver: 'v5.1.41', date: '2026-06-21', items: ['Neue „Gesamt"-Kachel bei den Rechnungen: Summe und Anzahl von Entwurf + Offen + Überfällig + Bezahlt (ohne Storniert).'] },
   { ver: 'v5.1.40', date: '2026-06-21', items: ['Festgeschriebene Rechnung nachträglich änderbar: Rechnung öffnen, Positionen/Beträge anpassen und „\u270e Änderungen speichern" \u2014 dieselbe Rechnung wird überschrieben, Nummer und Status bleiben (kein neuer Beleg nötig).'] },
