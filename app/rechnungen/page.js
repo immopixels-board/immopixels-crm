@@ -331,7 +331,7 @@ export default function RechnungenPage() {
 
       {tab === 'rechnungen' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10, marginBottom: 16 }}>
             {statusSummary.map(({ s, count, sum: sm }) => { const st = STATUS[s]; return (
               <div key={s} onClick={() => setFStatus(fStatus === s ? 'all' : s)} style={{ background: fStatus === s ? st.bg : '#fff', border: '1px solid ' + (fStatus === s ? st.c : LINE), borderRadius: 10, padding: '12px 14px', cursor: 'pointer', transition: 'all .12s' }}>
                 <div style={{ fontSize: 12, color: st.c, fontWeight: 600 }}>{st.label}</div>
@@ -339,6 +339,13 @@ export default function RechnungenPage() {
                 <div style={{ fontSize: 12, color: MUT }}>{eur(sm)}</div>
               </div>
             ) })}
+            {(() => { const g = statusSummary.filter(x => x.s !== 'storno').reduce((a, x) => ({ count: a.count + x.count, sum: a.sum + x.sum }), { count: 0, sum: 0 }); return (
+              <div onClick={() => setFStatus('all')} style={{ background: fStatus === 'all' ? GOLD : '#2a2a28', border: '1px solid ' + (fStatus === 'all' ? GOLD : '#2a2a28'), borderRadius: 10, padding: '12px 14px', cursor: 'pointer', transition: 'all .12s' }}>
+                <div style={{ fontSize: 12, color: '#fff', fontWeight: 700, opacity: .85 }}>Gesamt</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginTop: 2 }}>{g.count}</div>
+                <div style={{ fontSize: 12, color: '#fff', opacity: .85 }}>{eur(g.sum)}</div>
+              </div>
+            ) })()}
           </div>
 
           <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, padding: 14, marginBottom: 14 }}>

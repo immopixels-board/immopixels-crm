@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.41', date: '2026-06-21', items: ['Neue „Gesamt"-Kachel bei den Rechnungen: Summe und Anzahl von Entwurf + Offen + Überfällig + Bezahlt (ohne Storniert).'] },
   { ver: 'v5.1.40', date: '2026-06-21', items: ['Festgeschriebene Rechnung nachträglich änderbar: Rechnung öffnen, Positionen/Beträge anpassen und „\u270e Änderungen speichern" \u2014 dieselbe Rechnung wird überschrieben, Nummer und Status bleiben (kein neuer Beleg nötig).'] },
   { ver: 'v5.1.39', date: '2026-06-21', items: ['Neuer Knopf „Erinnerung" bei überfälligen Rechnungen: sendet eine freundliche Zahlungserinnerung per E-Mail (eigene Vorlage, vor der Mahnung), Rechnung als PDF im Anhang. Eigene Betreff-/Text-Vorlage in den E-Mail-Einstellungen. Aktionsknöpfe in der Rechnungsliste brechen jetzt sauber um (nichts ragt mehr aus dem Rahmen).'] },
   { ver: 'v5.1.38', date: '2026-06-20', items: ['Mehr Platzhalter in den E-Mail-Vorlagen: {kunde}, {betrag}, {faellig}, {datum} (zusätzlich zu {nr}, {firma}). Bessere Standard-Vorlage mit Betrag und Zahlungsziel.'] },

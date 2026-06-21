@@ -1,0 +1,6 @@
+# ImmoPixels CRM v5.1.41 — „Gesamt"-Kachel bei den Rechnungen
+## 2026-06-21
+- Bei den Status-Kacheln (Rechnungen-Tab) gibt es jetzt eine 6. Kachel
+  „Gesamt": Anzahl + Summe von Entwurf + Offen + Überfällig + Bezahlt
+  (Storniert ausgenommen). Klick zeigt alle Rechnungen.
+- Datei: app/rechnungen/page.js. Keine SQL.
