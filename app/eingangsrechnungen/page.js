@@ -197,6 +197,11 @@ export default function EingangsrechnungenPage() {
     <RechnungShell active="eingang">
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          <span style={{ padding: '8px 15px', borderRadius: 9, border: '1px solid ' + DARK, background: DARK, color: '#fff', fontSize: 13, fontWeight: 700 }}>📥 Belege</span>
+          <a href="/eingangsrechnungen/konto" style={{ padding: '8px 15px', borderRadius: 9, border: '1px solid ' + LINE, background: '#fff', color: MUT, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🏦 Sparkasse-Konto &amp; Rentabilität</a>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 800, color: DARK }}>Eingangsrechnungen</div>

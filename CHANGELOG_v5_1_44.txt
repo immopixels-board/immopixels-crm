@@ -1,0 +1,43 @@
+# ImmoPixels CRM v5.1.44 — Sparkasse-Konto, Fixkosten & Rentabilität
+## 2026-06-21
+Neue Seite unter Eingangsrechnungen (Reiter „🏦 Sparkasse-Konto & Rentabilität"),
+one-page mit 3 Abschnitten:
+
+1) SPARKASSE-KONTO
+   - Alle Bank-Ausgaben pro Monat kategorisiert (Donut + Kategorie-Liste, %, Belege).
+   - „Zu kategorisieren": unsichere Buchungen → Kategorie wählen, optional als
+     REGEL für alle gleichen Empfänger speichern → ähnliche landen automatisch dort.
+   - Reihenfolge der Zuordnung: manuelle Kategorie → gelernte Regel → Stichwort.
+
+2) FIXKOSTEN (wiederkehrend)
+   - Jährliche / vierteljährliche / monatliche Kosten erfassen (Kfz-/Drohnen-
+     Versicherung, ARD/ZDF, Steuer-Vorauszahlung …) → automatisch auf den Monat
+     umgerechnet → realistischer Ø-Monatswert.
+
+3) RENTABILITÄT pro Fotoshooting
+   - Kunde aus Dropdown + Monat → Rechnungen auswählen.
+   - Rechnung: Netto-Umsatz − Fahrtkosten (km aus den Positionen × Satz je Fahrer:
+     ich ~0,20 / Daniel ~0,30, umschaltbar) − Bildbearbeitung − anteilige Fixkosten
+     (nach Umsatzanteil) − Steuer-Rückstellung (%) = Gewinn nach Steuer.
+   - Parameter speicherbar (settings „kosten_params").
+
+Dateien: app/eingangsrechnungen/konto/page.js (neu), app/eingangsrechnungen/page.js (Reiter)
+
+ERFORDERLICHE SQL (ÉLES + DEMO):
+  ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS category text;
+
+  CREATE TABLE IF NOT EXISTS category_rules (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_type text NOT NULL DEFAULT 'counterparty',
+    pattern text NOT NULL, category text NOT NULL,
+    created_at timestamptz DEFAULT now());
+  ALTER TABLE category_rules ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY cr_auth ON category_rules FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+  CREATE TABLE IF NOT EXISTS recurring_costs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    label text NOT NULL, amount numeric NOT NULL DEFAULT 0,
+    interval text NOT NULL DEFAULT 'yearly', category text, note text,
+    created_at timestamptz DEFAULT now());
+  ALTER TABLE recurring_costs ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY rc_auth ON recurring_costs FOR ALL TO authenticated USING (true) WITH CHECK (true);

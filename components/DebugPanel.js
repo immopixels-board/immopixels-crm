@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.44', date: '2026-06-21', items: ['Neu unter Eingangsrechnungen: „Sparkasse-Konto & Rentabilität" (one-page). 1) Konto: alle Bank-Ausgaben kategorisiert (Donut + Liste), „Zu kategorisieren" mit Lern-Regel (eine Kategorie für einen Empfänger → alle gleichen automatisch). 2) Fixkosten: jährliche/vierteljährliche Kosten auf den Monat umgerechnet (Ø-Ausgaben). 3) Rentabilität: Kunde + Rechnung wählen → Netto-Umsatz minus Fahrtkosten (km × Satz je Fahrer: ich/Daniel), Bildbearbeitung, anteilige Fixkosten und Steuer-Rückstellung → Gewinn pro Shooting.'] },
   { ver: 'v5.1.43', date: '2026-06-21', items: ['Gesamt-Kachel geteilt: oben die Vorjahres-Summe (z.B. 2025) direkt aus Billomat abrufbar (nur Summe, keine Rechnungen), darunter das laufende Jahr aus dem CRM. Vorjahreswert wird gecacht.'] },
   { ver: 'v5.1.42', date: '2026-06-21', items: ['Eingangsrechnungen: neue Kategorien Finanzamt, Arzt und Bildbearbeiter. „Michael Photo" wird automatisch als Bildbearbeiter erkannt (ebenso Finanzamt/Arzt per Schlagwort).'] },
   { ver: 'v5.1.41', date: '2026-06-21', items: ['Neue „Gesamt"-Kachel bei den Rechnungen: Summe und Anzahl von Entwurf + Offen + Überfällig + Bezahlt (ohne Storniert).'] },
