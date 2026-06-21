@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const KATEGORIEN = ['Ausrüstung', 'Software', 'Fahrtkosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Reisekosten', 'Sonstiges']
+const KATEGORIEN = ['Ausrüstung', 'Software', 'Bildbearbeiter', 'Fahrtkosten', 'Reisekosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Finanzamt', 'Arzt', 'Sonstiges']
 
 export async function POST(req) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -48,7 +48,7 @@ Format:
 Regeln:
 - TANKKARTEN-SAMMELRECHNUNG (z.B. DKV): typ="eingangsrechnung", kategorie="Fahrtkosten", sammelrechnung=true. WICHTIG: netto/ust/brutto NICHT aus einzelnen Tankvorgängen rechnen, sondern aus der GESAMTSUMME unten (Felder "TOTAL", "Gesamtwert", "Umsatzsteuerstatistik" / "Gesamtsumme"). positionen = Anzahl der Tankvorgänge.
 - "lieferant" ist der Absender (z.B. DKV Euro Service, Adobe, Calumet) — niemals ImmoPixels.
-- Kategorie sinnvoll wählen: Software (Adobe/Abos), Ausrüstung (Kameras/Technik), Fahrtkosten (Tanken/Sprit/Tankkarte), Material / Druck, Büro, Marketing, Versicherung, Reisekosten (Hotel/Bahn), sonst Sonstiges.
+- Kategorie sinnvoll wählen: Software (Adobe/Abos), Bildbearbeiter (externe Bildbearbeitung/Retusche, z.B. „Michael Photo"), Ausrüstung (Kameras/Technik), Fahrtkosten (Tanken/Sprit/Tankkarte), Material / Druck, Büro, Marketing, Versicherung, Reisekosten (Hotel/Bahn), Finanzamt (Steuer/Finanzamt), Arzt (Praxis/Arzt), sonst Sonstiges.
 - USt-Voranmeldung/Übermittlungsprotokoll: belegart="USt-VA", kennzahlen z.B. {"ust_vorauszahlung": Zahl, "faelligkeit": "YYYY-MM-DD"}.
 - BWA: belegart="BWA", kennzahlen z.B. {"ergebnis_monat": Zahl, "ergebnis_kumuliert": Zahl, "erloese_monat": Zahl}.
 - SuSa: belegart="SuSa", kennzahlen kann leer sein {}.
@@ -79,6 +79,9 @@ Regeln:
         parsed.kategorie = 'Fahrtkosten'
         if (/\bdkv\b|euro service|tankkarte/.test(blob)) parsed.sammelrechnung = true
       }
+      else if (/michael ?photo|michaelphoto/.test(blob)) parsed.kategorie = 'Bildbearbeiter'
+      else if (/finanzamt|steuerkasse|steuernummer.*finanzamt|bundeszentralamt für steuern/.test(blob)) parsed.kategorie = 'Finanzamt'
+      else if (/\barzt\b|zahnarzt|hausarzt|facharzt|ärztlich|dr\.? med|\bpraxis\b|\bklinik\b|medizinisch/.test(blob)) parsed.kategorie = 'Arzt'
     } catch {}
     return NextResponse.json({ ok: true, data: parsed, raw: parsed })
   } catch (e) {

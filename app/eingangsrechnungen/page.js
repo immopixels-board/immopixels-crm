@@ -7,7 +7,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const ACC = '#6b6b6e', DARK = '#2a2a28', MUT = '#8a8278', LINE = '#ece4d6', GREEN = '#2f7a4f', AMBER = '#a36a1f'
 const eur = n => (Number(n) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 function kiOf(r) { const x = r && r.ki_raw; if (!x) return {}; if (typeof x === 'string') { try { return JSON.parse(x) } catch { return {} } } return x }
-const KATEGORIEN = ['Ausrüstung', 'Software', 'Fahrtkosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Reisekosten', 'Sonstiges']
+const KATEGORIEN = ['Ausrüstung', 'Software', 'Bildbearbeiter', 'Fahrtkosten', 'Reisekosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Finanzamt', 'Arzt', 'Sonstiges']
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 const STATUS = { zu_pruefen: { label: 'Zu prüfen', c: AMBER, bg: '#fdf3e2' }, bestaetigt: { label: 'Bestätigt', c: GREEN, bg: '#eaf3de' }, exportiert: { label: 'Exportiert', c: '#185fa5', bg: '#e6f1fb' } }
 

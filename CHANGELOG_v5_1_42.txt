@@ -1,0 +1,10 @@
+# ImmoPixels CRM v5.1.42 — Eingangsrechnungen: neue Kategorien
+## 2026-06-21
+- Neue Kategorien: Finanzamt, Arzt, Bildbearbeiter.
+- Automatische Erkennung (deterministisch, nach OCR):
+  • „Michael Photo" -> Bildbearbeiter
+  • Finanzamt / Steuerkasse -> Finanzamt
+  • Arzt / Zahnarzt / Praxis / Klinik -> Arzt
+- KI-Prompt erweitert, damit die KI die neuen Kategorien selbst nutzt.
+- Dateien: app/eingangsrechnungen/page.js, app/api/eingangsrechnung-ocr/route.js
+- Keine SQL.
