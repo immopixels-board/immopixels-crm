@@ -1,0 +1,50 @@
+# ImmoPixels CRM v5.1.48 — Rentabilität pro Fotoshooting (Vollkosten, netto)
+## 2026-06-21
+
+Alles netto. Kunde + Monatsrechnung wählen → vollständige Deckungs- und
+Gewinnrechnung für genau dieses Shooting-Paket.
+
+DIREKTE KOSTEN (treffen den Kunden direkt)
+- Fahrtkosten: km pro Fahrer getrennt (ich / Mitarbeiter) mit eigenem km-Satz,
+  zusammengerechnet. km wird aus den Rechnungspositionen vorbefüllt (Quelle
+  Fahrtenbuch/Maps) und ist aufteilbar/überschreibbar.
+- Bildbearbeitung: aus der importierten Bildbearbeiter-Rechnung — Summe der
+  Positionen, deren Beschreibung den Kundennamen enthält, im Kostenmonat
+  (tatsächliche Kosten, kein Durchschnitt mehr). Mit Positionsliste.
+
+GEMEINKOSTEN (nach Umsatzanteil umgelegt — Hybrid)
+- Pool/Monat = Personal (Bank, Kategorie „Personal") + Fixkosten amortisiert
+  (recurring_costs, jährlich/vierteljährlich → Monat) + sonstige Betriebskosten
+  (Bank), OHNE Bildbearbeiter, Kraftstoff/Fahrt, Privatentnahme, Steuern.
+- Umsatzanteil = Rechnung netto / Σ aller Rechnungen des Rechnungsmonats.
+- Jede Komponente einzeln ausgewiesen.
+
+STEUERN (netto, Näherung)
+- Gewerbesteuer = 3,5 % × Hebesatz.
+- Einkommensteuer = Grenzsteuersatz, abzgl. GewSt-Anrechnung (§35 EStG, 3,8×
+  Messbetrag).
+- = Gewinn nach Steuer + Kennzahlen (Direkte Kosten / Gemeinkosten / Steuer /
+  Netto-Marge).
+
+IMPORT „🎨 Bildbearbeiter-Rechnung"
+- PDF/Bild hochladen → KI-Parser (/api/bildbearbeiter-parse, Claude) liest die
+  Positionen (Datum, Beschreibung, Menge, Preis). Kunde aus dem Positionstext,
+  Shooting-Monat aus dem Namen (26_05_09 → 2026-05). Vorschau pro Kunde.
+  Re-Import desselben Rechnungsmonats überschreibt.
+
+Kostenmonat: standardmäßig Rechnungsmonat − 1 (Shootings des Vormonats),
+per ‹ › verschiebbar.
+
+DATEIEN: app/eingangsrechnungen/konto/page.js, app/api/bildbearbeiter-parse/route.js
+
+SQL (BITTE auf ÉLES + DEMO ausführen):
+  CREATE TABLE IF NOT EXISTS bildbearbeiter_positionen (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    monat text, rechnung_monat text, datum date, beschreibung text,
+    menge numeric DEFAULT 0, einzelpreis numeric DEFAULT 0, betrag numeric DEFAULT 0,
+    client_key text, created_at timestamptz DEFAULT now()
+  );
+  ALTER TABLE bildbearbeiter_positionen ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY bbp_auth ON bildbearbeiter_positionen FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+Hinweis: KI-Parser braucht ANTHROPIC_API_KEY in Vercel.
