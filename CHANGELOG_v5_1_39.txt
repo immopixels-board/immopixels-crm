@@ -1,0 +1,15 @@
+# ImmoPixels CRM v5.1.39 — Zahlungserinnerung + Layout-Fix Aktionsknöpfe
+## 2026-06-21
+- Bei ÜBERFÄLLIGEN Rechnungen neuer Knopf „Erinnerung": sendet eine
+  freundliche Zahlungserinnerung per E-Mail (vor der Mahnung), mit der
+  Rechnung als PDF im Anhang. Danach wie gehabt „Mahnung".
+- Eigene Vorlagen dafür unter „⚙ Vorlage & Absender" → „E-Mail / Versand":
+  Betreff-Vorlage (Erinnerung) + Nachricht-Vorlage (Erinnerung), mit den
+  Platzhaltern {nr}/{firma}/{kunde}/{betrag}/{faellig}/{datum}.
+- Versand wird vermerkt (reminded_at → „Erinnert ✓").
+- Design: Aktionsspalte breiter + Buttons brechen sauber um (flex-wrap),
+  nichts ragt mehr über den Rahmen hinaus.
+- Datei: app/rechnungen/page.js
+
+ERFORDERT DB-MIGRATION (ÉLES + DEMO):
+  ALTER TABLE invoices ADD COLUMN IF NOT EXISTS reminded_at timestamptz;

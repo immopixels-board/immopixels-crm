@@ -18,7 +18,7 @@ const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open:
 
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
 const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: 'Zufrieden? Wir freuen uns über Ihre Google-Bewertung!', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [], startAddress: 'Gartenstr. 2, 67310 Hettenleidelheim', kmRate: 0.29 }
-const DEFAULT_EMAIL = { host: '', port: 465, user: 'rechnung@immopixels.de', pass: '', fromName: 'ImmoPixels', bcc: '', subject: 'Rechnung {nr} – {firma}', body: 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihren Auftrag. Anbei erhalten Sie die Rechnung {nr} vom {datum} über {betrag} als PDF.\n\nBitte überweisen Sie den Betrag bis zum {faellig} auf das in der Rechnung angegebene Konto.\n\nBei Rückfragen stehen wir Ihnen gerne zur Verfügung.', signature: 'Mit freundlichen Grüßen\nImmoPixels e.K.\nGartenstr. 2, 67310 Hettenleidelheim\nrechnung@immopixels.de · www.immopixels.de' }
+const DEFAULT_EMAIL = { host: '', port: 465, user: 'rechnung@immopixels.de', pass: '', fromName: 'ImmoPixels', bcc: '', subject: 'Rechnung {nr} – {firma}', body: 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihren Auftrag. Anbei erhalten Sie die Rechnung {nr} vom {datum} über {betrag} als PDF.\n\nBitte überweisen Sie den Betrag bis zum {faellig} auf das in der Rechnung angegebene Konto.\n\nBei Rückfragen stehen wir Ihnen gerne zur Verfügung.', signature: 'Mit freundlichen Grüßen\nImmoPixels e.K.\nGartenstr. 2, 67310 Hettenleidelheim\nrechnung@immopixels.de · www.immopixels.de', reminderSubject: 'Zahlungserinnerung zur Rechnung {nr}', reminderBody: 'Sehr geehrte Damen und Herren,\n\nsicher ist es nur ein Versehen: Unsere Rechnung {nr} vom {datum} über {betrag} war am {faellig} fällig und ist bei uns bisher noch nicht eingegangen.\n\nWir möchten Sie freundlich bitten, den offenen Betrag in den nächsten Tagen auf das in der Rechnung angegebene Konto zu überweisen. Die Rechnung finden Sie zur Erinnerung nochmals im Anhang.\n\nSollte sich Ihre Zahlung mit dieser E-Mail überschnitten haben, betrachten Sie diese bitte als gegenstandslos.\n\nVielen Dank!' }
 
 export default function RechnungenPage() {
   const [loading, setLoading] = useState(true)
@@ -204,26 +204,26 @@ export default function RechnungenPage() {
     setBusy(false)
   }
 
-  function openSend(inv) {
+  function buildSend(inv, kind) {
     const cl = (clients || []).find(x => x.id === inv.client_id)
     const to = cl?.email || (inv.buyer && inv.buyer.email) || ''
     const nr = inv.invoice_number || ''
     const firma = (seller && (seller.name || seller.company)) || emailCfg.fromName || 'ImmoPixels'
     const dF = s => s ? new Date(s).toLocaleDateString('de-DE') : ''
     const rep = s => String(s || '')
-      .replace(/\{nr\}/g, nr)
-      .replace(/\{firma\}/g, firma)
-      .replace(/\{kunde\}/g, inv.client_name || '')
-      .replace(/\{betrag\}/g, eur(inv.total_gross))
-      .replace(/\{faellig\}/g, dF(inv.due_date))
-      .replace(/\{datum\}/g, dF(inv.invoice_date))
-    const subject = rep(emailCfg.subject || DEFAULT_EMAIL.subject)
-    const body = rep(emailCfg.body || DEFAULT_EMAIL.body) + (emailCfg.signature ? '\n\n' + emailCfg.signature : '')
-    setSendModal({ inv, to, subject, body, bccSelf: true, sending: false })
+      .replace(/\{nr\}/g, nr).replace(/\{firma\}/g, firma).replace(/\{kunde\}/g, inv.client_name || '')
+      .replace(/\{betrag\}/g, eur(inv.total_gross)).replace(/\{faellig\}/g, dF(inv.due_date)).replace(/\{datum\}/g, dF(inv.invoice_date))
+    const subjTpl = kind === 'reminder' ? (emailCfg.reminderSubject || DEFAULT_EMAIL.reminderSubject) : (emailCfg.subject || DEFAULT_EMAIL.subject)
+    const bodyTpl = kind === 'reminder' ? (emailCfg.reminderBody || DEFAULT_EMAIL.reminderBody) : (emailCfg.body || DEFAULT_EMAIL.body)
+    const subject = rep(subjTpl)
+    const body = rep(bodyTpl) + (emailCfg.signature ? '\n\n' + emailCfg.signature : '')
+    setSendModal({ inv, kind, to, subject, body, bccSelf: true, sending: false })
   }
+  function openSend(inv) { buildSend(inv, 'invoice') }
+  function openReminder(inv) { buildSend(inv, 'reminder') }
   async function doSend() {
     if (!sendModal) return
-    const { inv, to, subject, body, bccSelf } = sendModal
+    const { inv, to, subject, body, bccSelf, kind } = sendModal
     if (!to || !/.+@.+\..+/.test(to)) { alert('Bitte eine gültige Empfänger-E-Mail eingeben.'); return }
     setSendModal(s => ({ ...s, sending: true }))
     try {
@@ -238,9 +238,10 @@ export default function RechnungenPage() {
       const r = await fetch('/api/invoice/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, subject, text: body, bcc: bccSelf ? (emailCfg.bcc || seller?.email || undefined) : undefined, pdfBase64, filename, smtp: { host: emailCfg.host, port: emailCfg.port, user: emailCfg.user, pass: emailCfg.pass, fromName: emailCfg.fromName } }) })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Senden fehlgeschlagen')
-      try { await supabase.from('invoices').update({ sent_at: new Date().toISOString(), sent_to: to }).eq('id', inv.id) } catch {}
+      const upd = kind === 'reminder' ? { reminded_at: new Date().toISOString() } : { sent_at: new Date().toISOString(), sent_to: to }
+      try { await supabase.from('invoices').update(upd).eq('id', inv.id) } catch {}
       setSendModal(null); await load()
-      alert('✓ Rechnung ' + (inv.invoice_number || '') + ' wurde an ' + to + ' gesendet.')
+      alert((kind === 'reminder' ? '✓ Zahlungserinnerung zu ' + (inv.invoice_number || '') : '✓ Rechnung ' + (inv.invoice_number || '')) + ' wurde an ' + to + ' gesendet.')
     } catch (e) { alert('E-Mail-Fehler: ' + (e.message || e)); setSendModal(s => s && ({ ...s, sending: false })) }
   }
 
@@ -370,7 +371,7 @@ export default function RechnungenPage() {
           </div>
 
           <div style={{ background: '#fff', border: '1px solid ' + LINE, borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', background: '#faf8f4', fontSize: 11, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.03em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '34px 120px 100px 120px 1fr 120px 270px', gap: 8, padding: '11px 16px', background: '#faf8f4', fontSize: 11, fontWeight: 700, color: MUT, textTransform: 'uppercase', letterSpacing: '.03em' }}>
               <div><input type="checkbox" checked={selected.size === filteredInvoices.length && filteredInvoices.length > 0} onChange={() => setSelected(s => s.size === filteredInvoices.length ? new Set() : new Set(filteredInvoices.map(i => i.id)))} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
               <div style={{ textAlign: 'center' }}>Status</div><div>Datum</div><div>Nummer</div><div>Kunde</div><div style={{ textAlign: 'right' }}>Betrag</div><div style={{ textAlign: 'right' }}>Aktion</div>
             </div>
@@ -383,17 +384,18 @@ export default function RechnungenPage() {
                   <span style={{ fontSize: 11, color: MUT, whiteSpace: 'nowrap' }}>{agg.count} {agg.count === 1 ? 'Rechnung' : 'Rechnungen'} · {eur(agg.sum)}</span>
                 </div>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: '34px 130px 110px 130px 1fr 130px 230px', gap: 8, padding: '11px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, background: sel ? '#faf8f4' : 'transparent' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '34px 120px 100px 120px 1fr 120px 270px', gap: 8, padding: '11px 16px', borderTop: '1px solid ' + LINE, alignItems: 'center', fontSize: 14, background: sel ? '#faf8f4' : 'transparent' }}>
                 <div><input type="checkbox" checked={sel} onChange={() => toggleSel(i.id)} style={{ width: 15, height: 15, accentColor: GOLD, cursor: 'pointer' }} /></div>
                 <div style={{ textAlign: 'center' }}><span style={{ fontSize: 11, fontWeight: 700, color: st.c, background: st.bg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>{st.label}</span></div>
                 <div style={{ color: MUT, fontSize: 13, whiteSpace: 'nowrap' }}>{i.invoice_date}</div>
                 <div onClick={() => editInvoice(i)} style={{ fontWeight: 700, cursor: 'pointer', color: clickable ? GOLD : DARK, whiteSpace: 'nowrap' }} title={clickable ? 'Entwurf bearbeiten' : 'Rechnung öffnen'}>{i.invoice_number || '—'}</div>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.client_name}</div>
                 <div style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{eur(i.total_gross)}</div>
-                <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                   <button onClick={() => downloadPdf(i)} disabled={busy} style={mini}>PDF</button>
                   {i.status !== 'draft' && i.status !== 'storno' && <button onClick={() => openSend(i)} disabled={busy} style={{ ...mini, color: i.sent_at ? '#1d9e75' : DARK }} title={i.sent_at ? ('Gesendet an ' + (i.sent_to || '') + ' — erneut senden') : 'Per E-Mail senden'}>{i.sent_at ? '✉ ✓' : '✉ Mail'}</button>}
                   {i.status === 'draft' && <button onClick={() => editInvoice(i)} style={mini}>Bearb.</button>}
+                  {i.status === 'overdue' && <button onClick={() => openReminder(i)} disabled={busy} style={{ ...mini, color: i.reminded_at ? '#1d9e75' : '#ba7517' }} title={i.reminded_at ? ('Erinnerung gesendet' + (i.reminded_at ? '' : '') + ' — erneut senden') : 'Freundliche Zahlungserinnerung senden'}>{i.reminded_at ? 'Erinnert ✓' : 'Erinnerung'}</button>}
                   {(i.status === 'open' || i.status === 'overdue') && <button onClick={() => openMahnung(i)} disabled={busy} style={{ ...mini, color: '#54545a' }}>Mahnung</button>}
                   {i.status !== 'draft' && i.status !== 'storno' && !i.storno_of && <button onClick={() => storno(i)} disabled={busy} style={{ ...mini, color: '#b3402f' }}>Storno</button>}
                   <button onClick={() => delInvoices([i.id])} disabled={busy} style={{ ...mini, color: '#b3402f' }}>🗑</button>
@@ -411,7 +413,7 @@ export default function RechnungenPage() {
       {mahnModal && <MahnungModal m={mahnModal} setM={setMahnModal} busy={busy} onDownload={downloadMahnung} />}
       {sendModal && (
         <Modal onClose={() => !sendModal.sending && setSendModal(null)}>
-          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Rechnung per E-Mail senden</div>
+          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>{sendModal.kind === 'reminder' ? 'Zahlungserinnerung senden' : 'Rechnung per E-Mail senden'}</div>
           <div style={{ fontSize: 12, color: MUT, marginBottom: 14 }}>{sendModal.inv.invoice_number} · {sendModal.inv.client_name} · Absender: rechnung@immopixels.de</div>
           <label style={{ fontSize: 12, fontWeight: 700, color: MUT }}>Empfänger</label>
           <input value={sendModal.to} onChange={e => setSendModal({ ...sendModal, to: e.target.value })} placeholder="kunde@example.de" style={{ width: '100%', padding: '8px 10px', border: '1px solid ' + LINE, borderRadius: 8, fontSize: 13, marginTop: 3, marginBottom: 10 }} />
@@ -560,6 +562,9 @@ function SettingsModal({ seller, setSeller, template, setTemplate, emailCfg, set
           <div style={{ marginTop: 12 }}><label style={LBL}>Betreff-Vorlage</label><input value={emailCfg.subject || ''} onChange={e => ec({ subject: e.target.value })} placeholder="Rechnung {nr} – {firma}" style={inp} /></div>
           <div style={{ marginTop: 10 }}><label style={LBL}>Nachricht-Vorlage</label><textarea value={emailCfg.body || ''} onChange={e => ec({ body: e.target.value })} rows={4} style={{ ...inp, fontFamily: 'inherit', resize: 'vertical' }} /></div>
           <div style={{ marginTop: 10 }}><label style={LBL}>Signatur / Footer</label><textarea value={emailCfg.signature || ''} onChange={e => ec({ signature: e.target.value })} rows={4} style={{ ...inp, fontFamily: 'inherit', resize: 'vertical' }} /></div>
+          <div style={{ borderTop: '1px solid ' + LINE, margin: '14px 0 10px', paddingTop: 10, fontSize: 12, fontWeight: 800, color: '#9a6a1a' }}>Zahlungserinnerung (vor der Mahnung)</div>
+          <div><label style={LBL}>Betreff-Vorlage (Erinnerung)</label><input value={emailCfg.reminderSubject || ''} onChange={e => ec({ reminderSubject: e.target.value })} placeholder="Zahlungserinnerung zur Rechnung {nr}" style={inp} /></div>
+          <div style={{ marginTop: 10 }}><label style={LBL}>Nachricht-Vorlage (Erinnerung)</label><textarea value={emailCfg.reminderBody || ''} onChange={e => ec({ reminderBody: e.target.value })} rows={5} style={{ ...inp, fontFamily: 'inherit', resize: 'vertical' }} /></div>
           <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Platzhalter: <b>{'{nr}'}</b> Rechnungsnummer · <b>{'{firma}'}</b> Firmenname · <b>{'{kunde}'}</b> Kundenname · <b>{'{betrag}'}</b> Bruttobetrag · <b>{'{faellig}'}</b> Fälligkeitsdatum · <b>{'{datum}'}</b> Rechnungsdatum. Die Signatur wird unter die Nachricht gesetzt.</div>
           <div style={{ fontSize: 11, color: '#9a6a1a', background: '#faf0dd', borderRadius: 8, padding: '8px 11px', marginTop: 10 }}>Hinweis: Das Passwort wird in den CRM-Einstellungen gespeichert. Wenn du das lieber vermeidest, lass das Feld leer und hinterlege SMTP_PASS (und ggf. Host/User) als Environment-Variable in Vercel.</div>
         </>
