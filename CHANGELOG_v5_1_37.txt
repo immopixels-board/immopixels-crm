@@ -1,0 +1,13 @@
+# ImmoPixels CRM v5.1.37 — E-Mail/SMTP im CRM konfigurierbar + Footer
+## 2026-06-20
+- Rechnungen → „⚙ Vorlage & Absender" hat einen neuen Tab „E-Mail / Versand":
+  • SMTP-Server (Host), Port, Benutzer (E-Mail), Passwort, Absendername, BCC
+  • Betreff-Vorlage, Nachricht-Vorlage, Signatur/Footer
+  • Platzhalter {nr} (Rechnungsnummer) und {firma} (Firmenname)
+- Diese Werte werden im CRM gespeichert (settings-Key „invoice_email") und
+  beim Senden an den Versand-Endpoint übergeben.
+- Vercel-Env (SMTP_*) bleibt als Fallback, falls Felder leer sind.
+  Empfehlung: Passwort entweder im CRM ODER als SMTP_PASS in Vercel.
+- Dateien: app/rechnungen/page.js, app/api/invoice/send/route.js
+- Keine neue SQL (nutzt vorhandene settings-Tabelle). sent_at/sent_to aus
+  v5.1.36 weiterhin erforderlich.

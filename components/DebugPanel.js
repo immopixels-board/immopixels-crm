@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.38', date: '2026-06-20', items: ['Mehr Platzhalter in den E-Mail-Vorlagen: {kunde}, {betrag}, {faellig}, {datum} (zusätzlich zu {nr}, {firma}). Bessere Standard-Vorlage mit Betrag und Zahlungsziel.'] },
+  { ver: 'v5.1.37', date: '2026-06-20', items: ['E-Mail-Versand jetzt im CRM einstellbar: Rechnungen → „\u2699 Vorlage & Absender" → Tab „E-Mail / Versand" \u2014 SMTP-Host/Port/Benutzer/Passwort, Absendername, BCC sowie Betreff-, Nachricht- und Signatur/Footer-Vorlage. Kein Vercel-Env mehr nötig (Env bleibt als Fallback).'] },
   { ver: 'v5.1.36', date: '2026-06-20', items: ['Rechnungen per E-Mail senden: in der Rechnungsliste „\u2709 Mail" \u2014 verschickt die Rechnung als PDF von rechnung@immopixels.de (Alfahosting-SMTP). Empfänger (aus Kundendaten), Betreff & Text editierbar, optional Kopie an dich (BCC). Gesendete sind markiert.'] },
   { ver: 'v5.1.35', date: '2026-06-20', items: ['Ausgaben-Ansicht: unter Zahlungseingänge gibt es jetzt einen Umschalter „Ausgaben" — Bank-Belastungen aus den importierten Umsätzen nach Kategorie gruppiert (pro Monat), mit „Beleg vorhanden/fehlt". DKV/Tanken zählt jetzt fix als Fahrtkosten (auch in der KI-Erkennung der Eingangsrechnungen).'] },
   { ver: 'v5.1.34', date: '2026-06-20', items: ['Diagnose-Knopf beim Billomat-Import: prüft serverseitig, ob der service_role-Key korrekt ist (Rolle + richtiges Projekt) und ob ein Insert in invoices klappt — zeigt die genaue Ursache, ohne den Key preiszugeben.'] },

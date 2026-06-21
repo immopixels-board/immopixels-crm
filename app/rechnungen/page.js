@@ -18,6 +18,7 @@ const STATUS = { draft: { label: 'Entwurf', c: '#8a8278', bg: '#efece4' }, open:
 
 const DEFAULT_SELLER = { name: 'ImmoPixels e.K.', street: 'Gartenstr. 2', zip: '67310', city: 'Hettenleidelheim', vatId: 'DE351098294', taxNo: '', iban: 'DE65672500201003013371', bic: 'SOLADES1HDB', bank: 'Sparkasse Heidelberg', phone: '+49 176 41576629', email: 'rechnung@immopixels.de', web: 'www.immopixels.de', kleinunternehmer: false }
 const DEFAULT_TEMPLATE = { intro: 'Hiermit stellen wir Ihnen die folgenden Positionen in Rechnung.', closing: 'Vielen Dank für die Zusammenarbeit!', reviewText: 'Zufrieden? Wir freuen uns über Ihre Google-Bewertung!', reviewUrl: '', bookingUrl: 'https://immopixels.de/booking/', qrUrl: '', logoUrl: '', footerLinks: [], startAddress: 'Gartenstr. 2, 67310 Hettenleidelheim', kmRate: 0.29 }
+const DEFAULT_EMAIL = { host: '', port: 465, user: 'rechnung@immopixels.de', pass: '', fromName: 'ImmoPixels', bcc: '', subject: 'Rechnung {nr} – {firma}', body: 'Sehr geehrte Damen und Herren,\n\nvielen Dank für Ihren Auftrag. Anbei erhalten Sie die Rechnung {nr} vom {datum} über {betrag} als PDF.\n\nBitte überweisen Sie den Betrag bis zum {faellig} auf das in der Rechnung angegebene Konto.\n\nBei Rückfragen stehen wir Ihnen gerne zur Verfügung.', signature: 'Mit freundlichen Grüßen\nImmoPixels e.K.\nGartenstr. 2, 67310 Hettenleidelheim\nrechnung@immopixels.de · www.immopixels.de' }
 
 export default function RechnungenPage() {
   const [loading, setLoading] = useState(true)
@@ -30,6 +31,7 @@ export default function RechnungenPage() {
   const [myId, setMyId] = useState(null)
   const [seller, setSeller] = useState(DEFAULT_SELLER)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
+  const [emailCfg, setEmailCfg] = useState(DEFAULT_EMAIL)
   const [editor, setEditor] = useState(null)
   const [settingsModal, setSettingsModal] = useState(false)
   const [mahnModal, setMahnModal] = useState(null)
@@ -54,6 +56,8 @@ export default function RechnungenPage() {
     if (s1?.value) { try { setSeller({ ...DEFAULT_SELLER, ...JSON.parse(s1.value) }) } catch {} }
     const { data: s2 } = await supabase.from('settings').select('value').eq('key', 'invoice_template').maybeSingle()
     if (s2?.value) { try { setTemplate({ ...DEFAULT_TEMPLATE, ...JSON.parse(s2.value) }) } catch {} }
+    const { data: s3 } = await supabase.from('settings').select('value').eq('key', 'invoice_email').maybeSingle()
+    if (s3?.value) { try { setEmailCfg({ ...DEFAULT_EMAIL, ...JSON.parse(s3.value) }) } catch {} }
     await reload()
     // előtöltés kártyáról
     setLoading(false)
@@ -68,6 +72,7 @@ export default function RechnungenPage() {
   async function saveSettings() {
     await supabase.from('settings').upsert({ key: 'invoice_seller', value: JSON.stringify(seller) }, { onConflict: 'key' })
     await supabase.from('settings').upsert({ key: 'invoice_template', value: JSON.stringify(template) }, { onConflict: 'key' })
+    await supabase.from('settings').upsert({ key: 'invoice_email', value: JSON.stringify(emailCfg) }, { onConflict: 'key' })
     setSettingsModal(false)
   }
 
@@ -203,9 +208,17 @@ export default function RechnungenPage() {
     const cl = (clients || []).find(x => x.id === inv.client_id)
     const to = cl?.email || (inv.buyer && inv.buyer.email) || ''
     const nr = inv.invoice_number || ''
-    const firma = (seller && (seller.company || seller.name)) || 'ImmoPixels'
-    const subject = 'Rechnung ' + nr + ' – ' + firma
-    const body = `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unsere Rechnung ${nr} als PDF.\n\nBei Rückfragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\n${firma}`
+    const firma = (seller && (seller.name || seller.company)) || emailCfg.fromName || 'ImmoPixels'
+    const dF = s => s ? new Date(s).toLocaleDateString('de-DE') : ''
+    const rep = s => String(s || '')
+      .replace(/\{nr\}/g, nr)
+      .replace(/\{firma\}/g, firma)
+      .replace(/\{kunde\}/g, inv.client_name || '')
+      .replace(/\{betrag\}/g, eur(inv.total_gross))
+      .replace(/\{faellig\}/g, dF(inv.due_date))
+      .replace(/\{datum\}/g, dF(inv.invoice_date))
+    const subject = rep(emailCfg.subject || DEFAULT_EMAIL.subject)
+    const body = rep(emailCfg.body || DEFAULT_EMAIL.body) + (emailCfg.signature ? '\n\n' + emailCfg.signature : '')
     setSendModal({ inv, to, subject, body, bccSelf: true, sending: false })
   }
   async function doSend() {
@@ -222,7 +235,7 @@ export default function RechnungenPage() {
       const u8 = new Uint8Array(bytes); let bin = ''; for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i])
       const pdfBase64 = btoa(bin)
       const filename = 'Rechnung ' + (inv.invoice_number || 'Entwurf') + '.pdf'
-      const r = await fetch('/api/invoice/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, subject, text: body, bcc: bccSelf ? (seller?.email || undefined) : undefined, pdfBase64, filename }) })
+      const r = await fetch('/api/invoice/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to, subject, text: body, bcc: bccSelf ? (emailCfg.bcc || seller?.email || undefined) : undefined, pdfBase64, filename, smtp: { host: emailCfg.host, port: emailCfg.port, user: emailCfg.user, pass: emailCfg.pass, fromName: emailCfg.fromName } }) })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Senden fehlgeschlagen')
       try { await supabase.from('invoices').update({ sent_at: new Date().toISOString(), sent_to: to }).eq('id', inv.id) } catch {}
@@ -394,7 +407,7 @@ export default function RechnungenPage() {
 
       {tab === 'import' && <ImportTab clients={clients} myId={myId} seller={seller} onDone={reload} />}
 
-      {settingsModal && <SettingsModal seller={seller} setSeller={setSeller} template={template} setTemplate={setTemplate} onClose={() => setSettingsModal(false)} onSave={saveSettings} />}
+      {settingsModal && <SettingsModal seller={seller} setSeller={setSeller} template={template} setTemplate={setTemplate} emailCfg={emailCfg} setEmailCfg={setEmailCfg} onClose={() => setSettingsModal(false)} onSave={saveSettings} />}
       {mahnModal && <MahnungModal m={mahnModal} setM={setMahnModal} busy={busy} onDownload={downloadMahnung} />}
       {sendModal && (
         <Modal onClose={() => !sendModal.sending && setSendModal(null)}>
@@ -479,10 +492,11 @@ function InvoiceEditor({ ed, setEd, clients, seller, busy, buyerFromClient, onCl
   )
 }
 
-function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSave }) {
+function SettingsModal({ seller, setSeller, template, setTemplate, emailCfg, setEmailCfg, onClose, onSave }) {
   const [t, setT] = useState('absender')
   const ss = patch => setSeller(p => ({ ...p, ...patch }))
   const st = patch => setTemplate(p => ({ ...p, ...patch }))
+  const ec = patch => setEmailCfg(p => ({ ...p, ...patch }))
   const sf = (k, lbl, ph) => <div><label style={LBL}>{lbl}</label><input value={seller[k] || ''} onChange={e => ss({ [k]: e.target.value })} style={inp} placeholder={ph} /></div>
   const tf = (k, lbl, ph) => <div><label style={LBL}>{lbl}</label><input value={template[k] || ''} onChange={e => st({ [k]: e.target.value })} style={inp} placeholder={ph} /></div>
   const links = template.footerLinks || []
@@ -492,8 +506,9 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         <button onClick={() => setT('absender')} style={tabBtn(t === 'absender')}>Absender</button>
         <button onClick={() => setT('vorlage')} style={tabBtn(t === 'vorlage')}>Vorlage / Werbung</button>
+        <button onClick={() => setT('email')} style={tabBtn(t === 'email')}>E-Mail / Versand</button>
       </div>
-      {t === 'absender' ? (
+      {t === 'absender' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1/-1' }}>{sf('name', 'Firmenname', 'ImmoPixels e.K.')}</div>
@@ -506,7 +521,8 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 13, cursor: 'pointer' }}><input type="checkbox" checked={!!seller.kleinunternehmer} onChange={e => ss({ kleinunternehmer: e.target.checked })} />Kleinunternehmer (§ 19 UStG)</label>
         </>
-      ) : (
+      )}
+      {t === 'vorlage' && (
         <>
           {tf('logoUrl', 'Logo-URL (PNG/JPG)', 'https://…/logo.png')}
           <div style={{ marginTop: 10 }}>{tf('intro', 'Einleitungstext')}</div>
@@ -528,6 +544,24 @@ function SettingsModal({ seller, setSeller, template, setTemplate, onClose, onSa
             <button onClick={() => st({ footerLinks: [...links, { label: '', url: '' }] })} style={ghost}>+ Link</button>
           </div>
           <div style={{ fontSize: 11, color: MUT, marginTop: 10 }}>Die QR-Code Ziel-URL wird automatisch als QR-Code am Rechnungsende eingebettet (Werbefläche).</div>
+        </>
+      )}
+      {t === 'email' && (
+        <>
+          <div style={{ fontSize: 12, color: MUT, marginBottom: 12, lineHeight: 1.6 }}>SMTP-Zugang deines Postfachs (Alfahosting). Server findest du im Alfahosting-Kundencenter → Tarifübersicht → Server-Info (z.&nbsp;B. alfa30XX.alfahosting-server.de). Diese Angaben werden im CRM gespeichert.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+            <div><label style={LBL}>SMTP-Server (Host)</label><input value={emailCfg.host || ''} onChange={e => ec({ host: e.target.value })} placeholder="alfa30XX.alfahosting-server.de" style={inp} /></div>
+            <div><label style={LBL}>Port</label><input value={emailCfg.port || 465} onChange={e => ec({ port: Number(e.target.value) || 465 })} placeholder="465" style={inp} /></div>
+            <div><label style={LBL}>Benutzer (E-Mail)</label><input value={emailCfg.user || ''} onChange={e => ec({ user: e.target.value })} placeholder="rechnung@immopixels.de" style={inp} /></div>
+            <div><label style={LBL}>Passwort</label><input type="password" value={emailCfg.pass || ''} onChange={e => ec({ pass: e.target.value })} placeholder="Postfach-Passwort" style={inp} /></div>
+            <div><label style={LBL}>Absendername</label><input value={emailCfg.fromName || ''} onChange={e => ec({ fromName: e.target.value })} placeholder="ImmoPixels" style={inp} /></div>
+            <div><label style={LBL}>Kopie an (BCC)</label><input value={emailCfg.bcc || ''} onChange={e => ec({ bcc: e.target.value })} placeholder="rechnung@immopixels.de" style={inp} /></div>
+          </div>
+          <div style={{ marginTop: 12 }}><label style={LBL}>Betreff-Vorlage</label><input value={emailCfg.subject || ''} onChange={e => ec({ subject: e.target.value })} placeholder="Rechnung {nr} – {firma}" style={inp} /></div>
+          <div style={{ marginTop: 10 }}><label style={LBL}>Nachricht-Vorlage</label><textarea value={emailCfg.body || ''} onChange={e => ec({ body: e.target.value })} rows={4} style={{ ...inp, fontFamily: 'inherit', resize: 'vertical' }} /></div>
+          <div style={{ marginTop: 10 }}><label style={LBL}>Signatur / Footer</label><textarea value={emailCfg.signature || ''} onChange={e => ec({ signature: e.target.value })} rows={4} style={{ ...inp, fontFamily: 'inherit', resize: 'vertical' }} /></div>
+          <div style={{ fontSize: 11, color: MUT, marginTop: 8 }}>Platzhalter: <b>{'{nr}'}</b> Rechnungsnummer · <b>{'{firma}'}</b> Firmenname · <b>{'{kunde}'}</b> Kundenname · <b>{'{betrag}'}</b> Bruttobetrag · <b>{'{faellig}'}</b> Fälligkeitsdatum · <b>{'{datum}'}</b> Rechnungsdatum. Die Signatur wird unter die Nachricht gesetzt.</div>
+          <div style={{ fontSize: 11, color: '#9a6a1a', background: '#faf0dd', borderRadius: 8, padding: '8px 11px', marginTop: 10 }}>Hinweis: Das Passwort wird in den CRM-Einstellungen gespeichert. Wenn du das lieber vermeidest, lass das Feld leer und hinterlege SMTP_PASS (und ggf. Host/User) als Environment-Variable in Vercel.</div>
         </>
       )}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>

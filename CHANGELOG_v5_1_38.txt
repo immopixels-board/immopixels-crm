@@ -1,0 +1,7 @@
+# ImmoPixels CRM v5.1.38 — E-Mail-Vorlagen: mehr Platzhalter
+## 2026-06-20
+- E-Mail-Vorlagen (Betreff/Nachricht/Signatur) unterstützen jetzt:
+  {nr} Rechnungsnummer · {firma} Firmenname · {kunde} Kundenname ·
+  {betrag} Bruttobetrag · {faellig} Fälligkeitsdatum · {datum} Rechnungsdatum.
+- Bessere Standard-Nachricht (mit Betrag und Zahlungsziel).
+- Datei: app/rechnungen/page.js. Keine SQL.
