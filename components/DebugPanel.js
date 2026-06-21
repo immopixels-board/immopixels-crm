@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 
 const CHANGELOGS = [
+  { ver: 'v5.1.35', date: '2026-06-20', items: ['Ausgaben-Ansicht: unter Zahlungseingänge gibt es jetzt einen Umschalter „Ausgaben" — Bank-Belastungen aus den importierten Umsätzen nach Kategorie gruppiert (pro Monat), mit „Beleg vorhanden/fehlt". DKV/Tanken zählt jetzt fix als Fahrtkosten (auch in der KI-Erkennung der Eingangsrechnungen).'] },
   { ver: 'v5.1.34', date: '2026-06-20', items: ['Diagnose-Knopf beim Billomat-Import: prüft serverseitig, ob der service_role-Key korrekt ist (Rolle + richtiges Projekt) und ob ein Insert in invoices klappt — zeigt die genaue Ursache, ohne den Key preiszugeben.'] },
   { ver: 'v5.1.33', date: '2026-06-20', items: ['Billomat-Import zeigt jetzt IMMER das Ergebnis als Meldung (importiert/übersprungen/Fehler inkl. Fehlertext). Wenn nichts geschrieben wird, nennt die Meldung die wahrscheinliche Ursache (fehlende Migration oder fehlender service_role-Key/RLS).'] },
   { ver: 'v5.1.32', date: '2026-06-20', items: ['Billomat-Rechnungsimport mit Auswahl: erst „Billomat-Rechnungen laden", dann gewünschte Rechnungen anhaken (Filter nach Status, bereits importierte sind markiert) und nur die ausgewählten importieren. Fehlermeldungen werden jetzt angezeigt.'] },

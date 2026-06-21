@@ -1,0 +1,17 @@
+# ImmoPixels CRM v5.1.35 — Ausgaben-Ansicht + DKV als Fahrtkosten
+## 2026-06-20
+- Zahlungseingänge-Seite hat jetzt einen Umschalter: „Zahlungseingänge | Ausgaben".
+- Ausgaben: dieselben importierten Bank-Umsätze (Belastungen, Betrag < 0)
+  werden NACH KATEGORIE gruppiert (pro Monat, mit Balken & Summen):
+  Fahrtkosten (DKV/Tanken), Software/Abos, Telefon/Internet, Versicherung,
+  Steuern/Finanzamt, Ausrüstung, Material/Druck, Marketing, Personal,
+  Privatentnahme/Übertrag, Bankgebühren, Miete/Nebenkosten, Sonstiges.
+- Kategorien werden automatisch aus Empfänger + Verwendungszweck erkannt (Regeln).
+- Pro Buchung: „Beleg ✓" wenn es eine Eingangsrechnung mit gleichem Betrag gibt,
+  sonst „Beleg fehlt".
+- DKV / Tankkarte / Tanken wird jetzt ZUVERLÄSSIG als Fahrtkosten geführt —
+  sowohl in der Ausgaben-Kategorisierung als auch in der KI-Erkennung der
+  Eingangsrechnungen (deterministische Überschreibung im OCR).
+- Dateien: app/rechnungen/zahlungen/page.js, app/api/eingangsrechnung-ocr/route.js
+- Keine neue SQL (nutzt bank_transactions + eingangsrechnungen).
+- Hinweis: zeigt erst Daten, wenn der Umsatz-Import schreibt (service_role-Key!).

@@ -72,6 +72,14 @@ Regeln:
     let parsed
     try { parsed = JSON.parse(clean) } catch { return NextResponse.json({ ok: false, error: 'parse', raw: txt }, { status: 200 }) }
     if (!parsed.typ) parsed.typ = 'eingangsrechnung'
+    // Determinisztikus felülírás: DKV / tankkártya → mindig Fahrtkosten (útiköltség)
+    try {
+      const blob = (String(parsed.lieferant || '') + ' ' + JSON.stringify(parsed)).toLowerCase()
+      if (/\bdkv\b|euro service|tankkarte|tankkarten|tankstelle|kraftstoff|treibstoff|\baral\b|\bshell\b|\besso\b|total energies|\bjet\b/.test(blob)) {
+        parsed.kategorie = 'Fahrtkosten'
+        if (/\bdkv\b|euro service|tankkarte/.test(blob)) parsed.sammelrechnung = true
+      }
+    } catch {}
     return NextResponse.json({ ok: true, data: parsed, raw: parsed })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message || 'fetch error' }, { status: 500 })
