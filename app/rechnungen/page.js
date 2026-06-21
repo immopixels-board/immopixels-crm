@@ -615,6 +615,7 @@ function ImportTab({ clients, myId, seller, onDone }) {
   const [bz, setBz] = useState(false); const [bdone, setBdone] = useState(null)
   const [iz, setIz] = useState(false); const [idone, setIdone] = useState(null)
   const [blist, setBlist] = useState(null); const [bsel, setBsel] = useState(new Set())
+  const [cklist, setCklist] = useState(null); const [cksel, setCksel] = useState(new Set()); const [ckz, setCkz] = useState(false); const [ckdone, setCkdone] = useState(null)
   const YEAR = new Date().getFullYear()
   async function loadBillomat() {
     setIz(true); setIdone(null)
@@ -646,6 +647,36 @@ function ImportTab({ clients, myId, seller, onDone }) {
       await loadBillomat()
     } catch (e) { alert('Import-Fehler: ' + (e.message || e)) }
     setIz(false)
+  }
+  const normN = s => (s || '').trim().toLowerCase()
+  async function loadBillomatClients() {
+    setCkz(true); setCkdone(null)
+    try {
+      const r = await fetch('/api/billomat/clients'); const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'API-Fehler')
+      const list = (j.clients || []).filter(b => b.name).map(b => ({ ...b, imported: !!clients.find(c => (c.billomat_client_id && String(c.billomat_client_id) === String(b.billomat_id)) || normN(c.name) === normN(b.name)) }))
+      setCklist(list)
+      setCksel(new Set(list.filter(x => !x.imported).map(x => x.billomat_id)))
+      if (!list.length) alert('Billomat hat 0 Kunden geliefert.')
+    } catch (e) { alert('Laden-Fehler: ' + (e.message || e)) }
+    setCkz(false)
+  }
+  function toggleCk(id) { setCksel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n }) }
+  async function importSelectedClients() {
+    const pick = (cklist || []).filter(b => cksel.has(b.billomat_id) && !b.imported)
+    if (!pick.length) { alert('Nichts ausgewählt.'); return }
+    if (!confirm(pick.length + ' Kunde(n) aus Billomat importieren?')) return
+    setCkz(true); let created = 0, failed = 0
+    try {
+      for (const b of pick) {
+        const addr = [b.street, [b.zip, b.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+        const row = { name: b.name, addr: addr || null, email: b.email || null, tel: b.phone || null, contact_firstname: b.first_name || null, contact_lastname: b.last_name || null, kundennr: b.kundennr || null, billomat_client_id: b.billomat_id || null }
+        const { error } = await supabase.from('clients').insert(row); error ? failed++ : created++
+      }
+      setCkdone({ created, failed }); onDone && onDone()
+      await loadBillomatClients()
+    } catch (e) { alert('Import-Fehler: ' + (e.message || e)) }
+    setCkz(false)
   }
   async function billomatImport() {
     if (!confirm('Kunden aus Billomat per API importieren (inkl. Kundennummer)?')) return
@@ -681,10 +712,29 @@ function ImportTab({ clients, myId, seller, onDone }) {
   return (
     <Card title="Kunden & Rechnungen importieren">
       <div style={{ border: '1.5px solid ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 14, marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>① Kunden aus Billomat (API) — empfohlen</div>
-        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Holt alle Kunden direkt aus Billomat — <b>inkl. Kundennummer</b>, Adresse, E-Mail, Telefon. Bestehende werden aktualisiert, fehlende neu angelegt. Kein CSV nötig.</div>
-        {bdone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {bdone.total} Kunden: {bdone.created} neu, {bdone.updated} aktualisiert{bdone.failed ? ', ' + bdone.failed + ' Fehler' : ''}.</div>}
-        <button onClick={billomatImport} disabled={bz} style={primary}>{bz ? 'Importiere…' : '⬇ Aus Billomat importieren (API)'}</button>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>① Kunden aus Billomat (API) — auswählbar</div>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 10, lineHeight: 1.6 }}>Erst laden, dann nur die gewünschten Kunden importieren (inkl. <b>Kundennummer</b>, Adresse, E-Mail, Telefon). Bereits vorhandene sind deaktiviert.</div>
+        {ckdone && <div style={{ background: '#e6f3ec', border: '1px solid #b6dcc4', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#2f7a4f', marginBottom: 10 }}>✓ {ckdone.created} Kunden importiert{ckdone.failed ? ', ' + ckdone.failed + ' Fehler' : ''}.</div>}
+        {!cklist && <button onClick={loadBillomatClients} disabled={ckz} style={primary}>{ckz ? 'Lädt…' : '⬇ Billomat-Kunden laden'}</button>}
+        {cklist && <>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setCksel(new Set(cklist.filter(x => !x.imported).map(x => x.billomat_id)))} style={ghostBtn}>Alle</button>
+            <button onClick={() => setCksel(new Set())} style={ghostBtn}>Keine</button>
+            <span style={{ fontSize: 12, color: MUT }}>{cksel.size} ausgewählt · {cklist.length} gesamt ({cklist.filter(x => x.imported).length} schon da)</span>
+            <div style={{ flex: 1 }} />
+            <button onClick={importSelectedClients} disabled={ckz || cksel.size === 0} style={primary}>{ckz ? '…' : 'Ausgewählte importieren (' + cksel.size + ')'}</button>
+          </div>
+          <div style={{ maxHeight: 340, overflowY: 'auto', border: '1px solid ' + LINE, borderRadius: 8, background: '#fff' }}>
+            {cklist.map((b, i) => (
+              <label key={b.billomat_id || i} style={{ display: 'grid', gridTemplateColumns: '26px 1fr 110px 1.3fr', gap: 8, alignItems: 'center', padding: '7px 10px', borderTop: i ? '1px solid #f1ead9' : 'none', fontSize: 13, opacity: b.imported ? .5 : 1, cursor: b.imported ? 'default' : 'pointer' }}>
+                <input type="checkbox" disabled={b.imported} checked={cksel.has(b.billomat_id)} onChange={() => toggleCk(b.billomat_id)} style={{ accentColor: GOLD }} />
+                <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}{b.imported && <span style={{ fontSize: 10, color: '#2f7a4f', marginLeft: 6 }}>✓ vorhanden</span>}</span>
+                <span style={{ color: MUT, fontSize: 12 }}>{b.kundennr ? ('Nr. ' + b.kundennr) : ''}</span>
+                <span style={{ color: MUT, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[[b.zip, b.city].filter(Boolean).join(' '), b.email].filter(Boolean).join(' · ')}</span>
+              </label>
+            ))}
+          </div>
+        </>}
       </div>
       <div style={{ border: '1.5px solid ' + GOLD, background: '#fdfaf3', borderRadius: 10, padding: 14, marginBottom: 18 }}>
         <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>② Rechnungen aus Billomat (API) — {YEAR}</div>

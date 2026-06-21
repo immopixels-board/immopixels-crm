@@ -1,0 +1,8 @@
+# ImmoPixels CRM v5.1.45 — Billomat-Kunden auswählbar importieren
+## 2026-06-21
+- Rechnungen → Import → ① „Kunden aus Billomat": jetzt zweistufig.
+  • „Billomat-Kunden laden" zeigt die Liste (Name, Kundennummer, Ort, E-Mail).
+  • Bereits vorhandene Kunden sind deaktiviert/markiert.
+  • Alle / Keine, dann „Ausgewählte importieren (n)" — nur die markierten.
+- Import läuft browserseitig (clients.insert), kein service_role nötig.
+- Datei: app/rechnungen/page.js. Keine SQL (clients hat billomat_client_id/kundennr).
