@@ -10,6 +10,7 @@ export async function POST(req) {
   if (!apiKey) return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY fehlt' }, { status: 500 })
   let body; try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'bad json' }, { status: 400 }) }
   const vendors = Array.isArray(body.vendors) ? body.vendors.slice(0, 120) : []
+  const KATS = (Array.isArray(body.categories) && body.categories.length) ? body.categories.slice(0, 200) : KAT
   if (!vendors.length) return NextResponse.json({ ok: true, results: [] })
 
   const prompt = `Du bist Buchhaltungs-Assistent eines Immobilienfotografie-Unternehmens (e.K., Deutschland).
@@ -19,7 +20,7 @@ Eingabe = Liste von Empfängern mit Verwendungszwecken, Anzahl Buchungen, Monats
 
 Für jeden Empfänger liefere:
 { "name": <exakt der Eingabe-name>,
-  "category": <eine aus: ${KAT.join(', ')}>,
+  "category": <eine aus: ${KATS.join(', ')}>,
   "recurring": <true wenn es eine wiederkehrende Fixkostenzahlung ist (Abo/Versicherung/Miete/Beitrag/Steuer-Vorauszahlung), sonst false>,
   "interval": <"monthly" | "quarterly" | "yearly"> (nur sinnvoll wenn recurring),
   "amount": <typischer Betrag pro Intervall als Zahl> }
@@ -51,7 +52,7 @@ ${vendors.map(v => `- name="${String(v.name).slice(0, 60)}" | zwecke="${(v.purpo
     const txt = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim()
     const clean = txt.replace(/```json|```/g, '').trim()
     let parsed; try { parsed = JSON.parse(clean) } catch { return NextResponse.json({ ok: false, error: 'parse', raw: txt.slice(0, 400) }, { status: 200 }) }
-    const results = (Array.isArray(parsed) ? parsed : []).map(x => ({ name: x.name, category: KAT.includes(x.category) ? x.category : 'Sonstiges', recurring: !!x.recurring, interval: ['monthly', 'quarterly', 'yearly'].includes(x.interval) ? x.interval : 'monthly', amount: Number(x.amount) || 0 }))
+    const results = (Array.isArray(parsed) ? parsed : []).map(x => ({ name: x.name, category: KATS.includes(x.category) ? x.category : 'Sonstiges', recurring: !!x.recurring, interval: ['monthly', 'quarterly', 'yearly'].includes(x.interval) ? x.interval : 'monthly', amount: Number(x.amount) || 0 }))
     return NextResponse.json({ ok: true, results })
   } catch (e) { return NextResponse.json({ ok: false, error: e.message || 'fetch error' }, { status: 500 }) }
 }

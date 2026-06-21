@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import RechnungShell from '../../../components/RechnungShell'
 
@@ -12,18 +12,43 @@ const eur0 = n => Math.round(Number(n) || 0).toLocaleString('de-DE') + ' €'
 const dDE = s => s ? new Date(s).toLocaleDateString('de-DE') : '—'
 const MONN = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
-const KAT = ['Personal', 'Ausrüstung', 'Bildbearbeiter', 'Software', 'Fahrtkosten', 'Reisekosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Finanzamt', 'Steuern', 'Miete', 'Bankgebühren', 'Privatentnahme', 'Arzt', 'Sonstiges']
-const CAT_COLOR = { 'Personal': '#6b6b6e', 'Ausrüstung': '#b07d3a', 'Bildbearbeiter': '#1d9e75', 'Software': '#b3402f', 'Fahrtkosten': '#a3672d', 'Reisekosten': '#3b6ea5', 'Material / Druck': '#8a6d3b', 'Büro': '#5f7d52', 'Marketing': '#c0517a', 'Versicherung': '#5f7d52', 'Finanzamt': '#185fa5', 'Steuern': '#2f6f8f', 'Miete': '#8a5cab', 'Bankgebühren': '#7a7a7a', 'Privatentnahme': '#9a8c6a', 'Arzt': '#b0584f', 'Sonstiges': '#b9b2a4' }
-const CAT_ICON = { 'Personal': '👥', 'Ausrüstung': '📷', 'Bildbearbeiter': '🎨', 'Software': '💻', 'Fahrtkosten': '⛽', 'Reisekosten': '✈️', 'Material / Druck': '🖨️', 'Büro': '🗂️', 'Marketing': '📣', 'Versicherung': '🛡️', 'Finanzamt': '🏛️', 'Steuern': '🧾', 'Miete': '🏠', 'Bankgebühren': '🏦', 'Privatentnahme': '↪️', 'Arzt': '⚕️', 'Sonstiges': '•' }
+const BASE_CATS = ['Personal', 'Ausrüstung', 'Bildbearbeiter', 'Software', 'Abo', 'Leasing', 'Fahrtkosten', 'Reisekosten', 'Material / Druck', 'Büro', 'Marketing', 'Versicherung', 'Finanzamt', 'Steuern', 'Miete', 'Bankgebühren', 'Privatentnahme', 'Arzt', 'Sonstiges']
+const DEFAULT_SUBS = { 'Versicherung': ['Kfz', 'Kranken', 'Drohne', 'Betriebshaftpflicht', 'Rechtsschutz'], 'Abo': ['Internet', 'Telefon', 'Software-Abo', 'Streaming'], 'Leasing': ['Kfz', 'Technik'], 'Fahrtkosten': ['Tanken', 'Parken', 'Maut'] }
+const SEP = ' › '
+function flatCats(userCats) {
+  const out = []
+  for (const top of BASE_CATS) {
+    out.push(top)
+    for (const sub of (DEFAULT_SUBS[top] || [])) out.push(top + SEP + sub)
+  }
+  for (const u of (userCats || [])) { const v = u.parent ? (u.parent + SEP + u.name) : u.name; if (v && !out.includes(v)) out.push(v) }
+  return out
+}
+const topOf = c => String(c || '').split(SEP)[0]
+const CAT_COLOR = { 'Personal': '#6b6b6e', 'Ausrüstung': '#b07d3a', 'Bildbearbeiter': '#1d9e75', 'Software': '#b3402f', 'Abo': '#c0517a', 'Leasing': '#7a6a3a', 'Fahrtkosten': '#a3672d', 'Reisekosten': '#3b6ea5', 'Material / Druck': '#8a6d3b', 'Büro': '#5f7d52', 'Marketing': '#c0517a', 'Versicherung': '#5f7d52', 'Finanzamt': '#185fa5', 'Steuern': '#2f6f8f', 'Miete': '#8a5cab', 'Bankgebühren': '#7a7a7a', 'Privatentnahme': '#9a8c6a', 'Arzt': '#b0584f', 'Sonstiges': '#b9b2a4' }
+const CAT_ICON = { 'Personal': '👥', 'Ausrüstung': '📷', 'Bildbearbeiter': '🎨', 'Software': '💻', 'Abo': '🔄', 'Leasing': '🚗', 'Fahrtkosten': '⛽', 'Reisekosten': '✈️', 'Material / Druck': '🖨️', 'Büro': '🗂️', 'Marketing': '📣', 'Versicherung': '🛡️', 'Finanzamt': '🏛️', 'Steuern': '🧾', 'Miete': '🏠', 'Bankgebühren': '🏦', 'Privatentnahme': '↪️', 'Arzt': '⚕️', 'Sonstiges': '•' }
+const colorOf = c => CAT_COLOR[topOf(c)] || '#b9b2a4'
+const iconOf = c => CAT_ICON[topOf(c)] || '•'
 
 const KEYRULES = [
   [/michael ?photo|michaelphoto|retusche|bildbearbeitung/, 'Bildbearbeiter'],
-  [/\bdkv\b|euro service|tankkarte|tankstelle|kraftstoff|\baral\b|\bshell\b|\besso\b|total ?energies|\bjet\b|sprit|tanken/, 'Fahrtkosten'],
+  [/leasing|leasingrate|santander|alphabet leasing|sixt leasing|vw leasing|ald automotive/, 'Leasing'],
+  [/surfshark|\bvpn\b|netflix|spotify|disney|streaming/, 'Abo' + SEP + 'Streaming'],
+  [/mawacon|telekom|vodafone|\bo2\b|1&1|1und1|internet|dsl|glasfaser/, 'Abo' + SEP + 'Internet'],
+  [/mobilfunk|prepaid|congstar|aldi talk|handyvertrag/, 'Abo' + SEP + 'Telefon'],
+  [/apple ?services|apple\.com\/bill|google one|icloud/, 'Abo' + SEP + 'Software-Abo'],
+  [/\bdkv\b|euro service|tankkarte|tankstelle|kraftstoff|\baral\b|\bshell\b|\besso\b|total ?energies|\bjet\b|sprit|tanken/, 'Fahrtkosten' + SEP + 'Tanken'],
+  [/easypark|parkster|parken|parkhaus|\bpark\b/, 'Fahrtkosten' + SEP + 'Parken'],
   [/adobe|vercel|supabase|\bgoogle\b|microsoft|openai|anthropic|figma|canva|dropbox|notion|\babo\b|software|lizenz/, 'Software'],
   [/gehalt|lohn|\bpersonal\b|minijob|sozialvers|krankenkasse|\belias\b|\bdaniel\b|bene|kutscha/, 'Personal'],
   [/finanzamt|steuerkasse/, 'Finanzamt'],
   [/umsatzsteuer|\bsteuer\b|vorauszahlung|ust-/, 'Steuern'],
-  [/versicherung|allianz|\bhuk\b|\baxa\b|ergo|gothaer|provinzial|signal iduna/, 'Versicherung'],
+  [/kfz.?versicherung|kfz.?vers|auto.?versicherung/, 'Versicherung' + SEP + 'Kfz'],
+  [/kranken.?versicherung|kranken.?vers|\bkv\b.?beitrag/, 'Versicherung' + SEP + 'Kranken'],
+  [/drohn|drohnenversicherung|haftpflicht.?drohne/, 'Versicherung' + SEP + 'Drohne'],
+  [/betriebshaftpflicht|betriebs.?vers/, 'Versicherung' + SEP + 'Betriebshaftpflicht'],
+  [/rechtsschutz/, 'Versicherung' + SEP + 'Rechtsschutz'],
+  [/versicherung|allianz|\bhuk\b|\baxa\b|ergo|gothaer|provinzial|signal iduna|generali/, 'Versicherung'],
   [/miete|pacht|nebenkosten|stadtwerke|\bstrom\b|\bgas\b/, 'Miete'],
   [/gebühr|gebuehr|entgelt|kontoführ|kontofuehr|kartenpreis/, 'Bankgebühren'],
   [/dina cristian|übertrag|uebertrag|umbuchung|privatentnahme|\bprivat\b/, 'Privatentnahme'],
@@ -51,6 +76,8 @@ export default function KontoPage() {
   const [invoices, setInvoices] = useState([])
   const [clients, setClients] = useState([])
   const [params, setParams] = useState(DEFAULT_PARAMS)
+  const [userCats, setUserCats] = useState([])
+  const [catModal, setCatModal] = useState(false)
   const [sec, setSec] = useState('konto')
   const [mon, setMon] = useState(() => new Date().toISOString().slice(0, 7))
   const [openCat, setOpenCat] = useState(null)
@@ -59,7 +86,7 @@ export default function KontoPage() {
   async function load() {
     const { data: t } = await supabase.from('bank_transactions').select('id, booking_date, amount, counterparty, purpose, category').order('booking_date', { ascending: false }).limit(4000)
     setTx(t || [])
-    const { data: bg } = await supabase.from('eingangsrechnungen').select('id, lieferant, brutto, datum, kategorie').limit(3000)
+    const { data: bg } = await supabase.from('eingangsrechnungen').select('id, lieferant, brutto, datum, kategorie, bank_tx_id, datei_url, typ, rechnungsnr').limit(3000)
     setBelege(bg || [])
     try { const { data: rl } = await supabase.from('category_rules').select('*'); setRules(rl || []) } catch {}
     try { const { data: rc } = await supabase.from('recurring_costs').select('*').order('amount', { ascending: false }); setRecur(rc || []) } catch {}
@@ -69,11 +96,24 @@ export default function KontoPage() {
     setClients(cl || [])
     const { data: ps } = await supabase.from('settings').select('value').eq('key', 'kosten_params').maybeSingle()
     if (ps?.value) { try { setParams({ ...DEFAULT_PARAMS, ...JSON.parse(ps.value) }) } catch {} }
+    const { data: cs } = await supabase.from('settings').select('value').eq('key', 'expense_categories').maybeSingle()
+    if (cs?.value) { try { setUserCats(JSON.parse(cs.value) || []) } catch {} }
     setLoading(false)
   }
   useEffect(() => { load() }, [])
 
   async function saveParams(p) { setParams(p); try { await supabase.from('settings').upsert({ key: 'kosten_params', value: JSON.stringify(p) }, { onConflict: 'key' }) } catch {} }
+  async function addCat(name, parent) {
+    const n = (name || '').trim(); if (!n) return
+    const next = [...userCats, { name: n, parent: parent || null }]
+    setUserCats(next)
+    try { await supabase.from('settings').upsert({ key: 'expense_categories', value: JSON.stringify(next) }, { onConflict: 'key' }) } catch {}
+  }
+  async function delCat(idx) {
+    const next = userCats.filter((_, i) => i !== idx)
+    setUserCats(next)
+    try { await supabase.from('settings').upsert({ key: 'expense_categories', value: JSON.stringify(next) }, { onConflict: 'key' }) } catch {}
+  }
 
   async function setCategory(row, cat, applyAll) {
     setBusy(true)
@@ -91,6 +131,7 @@ export default function KontoPage() {
   if (loading) return <RechnungShell active="eingang"><div style={{ padding: 60, textAlign: 'center', color: MUT }}>Lädt…</div></RechnungShell>
 
   const [yy, mm] = mon.split('-').map(Number)
+  const catList = flatCats(userCats)
   const shiftMon = d => { const dt = new Date(yy, mm - 1 + d, 1); setMon(dt.toISOString().slice(0, 7)); setOpenCat(null) }
   const debits = tx.filter(x => Number(x.amount) < 0)
   const credits = tx.filter(x => Number(x.amount) > 0)
@@ -104,7 +145,7 @@ export default function KontoPage() {
   for (const x of monDebits) { const c = catOf(x, rules); (groups[c] = groups[c] || { sum: 0, items: [] }); groups[c].sum += Math.abs(x.amount); groups[c].items.push(x) }
   const cats = Object.entries(groups).sort((a, b) => b[1].sum - a[1].sum)
   // donut conic-gradient
-  let acc = 0; const segs = cats.map(([c, g]) => { const from = acc / (ausgaben || 1) * 100; acc += g.sum; const to = acc / (ausgaben || 1) * 100; return (CAT_COLOR[c] || '#b9b2a4') + ' ' + from.toFixed(2) + '% ' + to.toFixed(2) + '%' })
+  let acc = 0; const segs = cats.map(([c, g]) => { const from = acc / (ausgaben || 1) * 100; acc += g.sum; const to = acc / (ausgaben || 1) * 100; return colorOf(c) + ' ' + from.toFixed(2) + '% ' + to.toFixed(2) + '%' })
   const conic = 'conic-gradient(' + (segs.length ? segs.join(',') : '#eee 0 100%') + ')'
   // bizonytalanok: amik kulcsszó-fallbackből Sonstiges-be esnek ÉS nincs kézi/szabály
   const uncategorized = monDebits.filter(x => !x.category && catOf(x, rules) === 'Sonstiges')
@@ -122,8 +163,11 @@ export default function KontoPage() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           <a href="/eingangsrechnungen" style={subtab(false)}>📥 Belege</a>
           <button onClick={() => setSec('konto')} style={subtab(sec === 'konto')}>🏦 Sparkasse-Konto</button>
+          <button onClick={() => setSec('abgleich')} style={subtab(sec === 'abgleich')}>🧾 Abgleich</button>
           <button onClick={() => setSec('fix')} style={subtab(sec === 'fix')}>🔁 Fixkosten</button>
           <button onClick={() => setSec('rent')} style={subtab(sec === 'rent')}>📈 Rentabilität</button>
+          <div style={{ flex: 1 }} />
+          <button onClick={() => setCatModal(true)} style={{ ...subtab(false), border: '1px solid ' + LINE }}>🏷️ Kategorien</button>
         </div>
 
         {sec === 'konto' && <>
@@ -150,7 +194,7 @@ export default function KontoPage() {
             <div style={{ background: '#fff8ec', border: '1px solid #f0d68a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: '#7a5a10', marginBottom: 4 }}>⚠ Zu kategorisieren ({uncategorized.length})</div>
               <div style={{ fontSize: 12, color: '#7a5a10', marginBottom: 12 }}>Kategorie wählen — optional als Regel für alle gleichen Empfänger speichern, dann landen ähnliche automatisch dort.</div>
-              {uncategorized.slice(0, 20).map(x => <UncatRow key={x.id} x={x} busy={busy} onSet={setCategory} />)}
+              {uncategorized.slice(0, 20).map(x => <UncatRow key={x.id} x={x} busy={busy} onSet={setCategory} catList={catList} />)}
             </div>
           )}
 
@@ -174,10 +218,10 @@ export default function KontoPage() {
                 return (
                   <div key={c} style={{ borderTop: '1px solid #f1ead9', padding: '11px 2px' }}>
                     <div onClick={() => setOpenCat(open ? null : c)} style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }}>
-                      <span style={{ width: 30, height: 30, borderRadius: 8, background: (CAT_COLOR[c] || '#ccc') + '22', color: CAT_COLOR[c] || '#777', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{CAT_ICON[c] || '•'}</span>
+                      <span style={{ width: 30, height: 30, borderRadius: 8, background: colorOf(c) + '22', color: colorOf(c), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{iconOf(c)}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{c}</div>
-                        <div style={{ height: 6, background: '#f0eada', borderRadius: 4, marginTop: 5 }}><div style={{ height: '100%', width: Math.max(3, g.sum / (ausgaben || 1) * 100) + '%', background: CAT_COLOR[c] || GOLD, borderRadius: 4 }} /></div>
+                        <div style={{ height: 6, background: '#f0eada', borderRadius: 4, marginTop: 5 }}><div style={{ height: '100%', width: Math.max(3, g.sum / (ausgaben || 1) * 100) + '%', background: colorOf(c), borderRadius: 4 }} /></div>
                       </div>
                       {hasBeleg(g.items[0]?.amount) ? <span style={{ ...belegTag, color: GREENTX, background: GREENBG }}>Beleg ✓</span> : <span style={{ ...belegTag, color: AMBERTX, background: AMBERBG }}>Beleg?</span>}
                       <div style={{ textAlign: 'right' }}><div style={{ fontSize: 15, fontWeight: 800 }}>− {eur(g.sum)}</div><div style={{ fontSize: 11, color: MUT }}>{g.items.length} · {Math.round(g.sum / (ausgaben || 1) * 100)}%</div></div>
@@ -188,7 +232,7 @@ export default function KontoPage() {
                         <span style={{ color: MUT, minWidth: 64 }}>{dDE(it.booking_date)}</span>
                         <span style={{ fontWeight: 600, maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.counterparty || '—'}</span>
                         <span style={{ color: MUT, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(it.purpose || '').slice(0, 50)}</span>
-                        <select value={it.category || c} onChange={e => setCategory(it, e.target.value, false)} style={{ ...selStyle, fontSize: 11, padding: '3px 6px' }}>{KAT.map(k => <option key={k}>{k}</option>)}</select>
+                        <select value={it.category || c} onChange={e => setCategory(it, e.target.value, false)} style={{ ...selStyle, fontSize: 11, padding: '3px 6px' }}>{catList.map(k => <option key={k}>{k}</option>)}</select>
                         <b style={{ minWidth: 78, textAlign: 'right' }}>− {eur(Math.abs(it.amount))}</b>
                       </div>
                     ))}</div>}
@@ -208,15 +252,19 @@ export default function KontoPage() {
           )}
         </>}
 
-        {sec === 'fix' && <FixSection recur={recur} reload={load} monthlyFix={monthlyFix} avgIst={avgIst} debits={debits} />}
+        {sec === 'fix' && <FixSection recur={recur} reload={load} monthlyFix={monthlyFix} avgIst={avgIst} debits={debits} catList={catList} />}
+
+        {sec === 'abgleich' && <AbgleichSection tx={tx} belege={belege} reload={load} catList={catList} />}
 
         {sec === 'rent' && <RentSection clients={clients} invoices={invoices} params={params} saveParams={saveParams} monthlyFix={monthlyFix} />}
+
+        {catModal && <CatModal userCats={userCats} onAdd={addCat} onDel={delCat} onClose={() => setCatModal(false)} />}
       </div>
     </RechnungShell>
   )
 }
 
-function UncatRow({ x, busy, onSet }) {
+function UncatRow({ x, busy, onSet, catList }) {
   const [cat, setCat] = useState('Sonstiges')
   const [all, setAll] = useState(true)
   return (
@@ -225,14 +273,14 @@ function UncatRow({ x, busy, onSet }) {
       <span style={{ fontWeight: 700, minWidth: 140 }}>{x.counterparty || '—'}</span>
       <span style={{ color: MUT, flex: 1, minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(x.purpose || '').slice(0, 60)}</span>
       <b style={{ minWidth: 80, textAlign: 'right' }}>− {eur(Math.abs(x.amount))}</b>
-      <select value={cat} onChange={e => setCat(e.target.value)} style={selStyle}>{KAT.map(k => <option key={k}>{k}</option>)}</select>
+      <select value={cat} onChange={e => setCat(e.target.value)} style={selStyle}>{catList.map(k => <option key={k}>{k}</option>)}</select>
       <label style={{ fontSize: 11, color: MUT, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={all} onChange={e => setAll(e.target.checked)} /> alle „{(x.counterparty || '').slice(0, 14)}"</label>
       <button disabled={busy} onClick={() => onSet(x, cat, all)} style={{ ...primary, padding: '5px 10px', fontSize: 12 }}>OK</button>
     </div>
   )
 }
 
-function FixSection({ recur, reload, monthlyFix, avgIst, debits }) {
+function FixSection({ recur, reload, monthlyFix, avgIst, debits, catList }) {
   const [nf, setNf] = useState({ label: '', amount: '', interval: 'yearly', category: 'Versicherung' })
   const [busy, setBusy] = useState(false)
   const [scan, setScan] = useState(null)
@@ -254,7 +302,7 @@ function FixSection({ recur, reload, monthlyFix, avgIst, debits }) {
         return { name: g.name, count: g.amounts.length, monthsSpan: g.months.size, medAmount: Math.round(med * 100) / 100, purposes: [...g.purposes].slice(0, 4) }
       }).sort((x, y) => y.count - x.count).slice(0, 80)
       if (!vendors.length) { alert('Zu wenig wiederkehrende Buchungen erkannt. (Erst Sparkasse-Umsätze importieren.)'); setScanning(false); return }
-      const r = await fetch('/api/kosten-classify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendors }) })
+      const r = await fetch('/api/kosten-classify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendors, categories: catList }) })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'KI-Fehler')
       const byName = Object.fromEntries((j.results || []).map(x => [x.name, x]))
@@ -318,7 +366,7 @@ function FixSection({ recur, reload, monthlyFix, avgIst, debits }) {
                 <input type="checkbox" checked={r.take} onChange={e => upd(i, { take: e.target.checked })} style={{ accentColor: GOLD }} />
                 <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                 <span style={{ textAlign: 'center', color: MUT }}>{r.count}× / {r.monthsSpan}M</span>
-                <select value={r.category} onChange={e => upd(i, { category: e.target.value })} style={{ ...selStyle, fontSize: 11 }}>{KAT.map(k => <option key={k}>{k}</option>)}</select>
+                <select value={r.category} onChange={e => upd(i, { category: e.target.value })} style={{ ...selStyle, fontSize: 11 }}>{catList.map(k => <option key={k}>{k}</option>)}</select>
                 <input type="checkbox" checked={r.fix} onChange={e => upd(i, { fix: e.target.checked })} style={{ accentColor: GREEN, justifySelf: 'center' }} title="Als wiederkehrende Fixkosten übernehmen" />
                 <select value={r.interval} disabled={!r.fix} onChange={e => upd(i, { interval: e.target.value })} style={{ ...selStyle, fontSize: 11, opacity: r.fix ? 1 : .4 }}><option value="monthly">monatlich</option><option value="quarterly">vierteljährlich</option><option value="yearly">jährlich</option></select>
                 <input value={r.amount} disabled={!r.fix} onChange={e => upd(i, { amount: e.target.value })} style={{ ...selStyle, textAlign: 'right', fontSize: 11, opacity: r.fix ? 1 : .4 }} />
@@ -340,7 +388,7 @@ function FixSection({ recur, reload, monthlyFix, avgIst, debits }) {
           <div><label style={lbl}>Bezeichnung</label><input value={nf.label} onChange={e => setNf({ ...nf, label: e.target.value })} placeholder="z.B. Kfz-Versicherung" style={inp} /></div>
           <div><label style={lbl}>Betrag €</label><input value={nf.amount} onChange={e => setNf({ ...nf, amount: e.target.value })} placeholder="0,00" style={{ ...inp, textAlign: 'right' }} /></div>
           <div><label style={lbl}>Intervall</label><select value={nf.interval} onChange={e => setNf({ ...nf, interval: e.target.value })} style={inp}><option value="yearly">jährlich</option><option value="quarterly">vierteljährlich</option><option value="monthly">monatlich</option></select></div>
-          <div><label style={lbl}>Kategorie</label><select value={nf.category} onChange={e => setNf({ ...nf, category: e.target.value })} style={inp}>{KAT.map(k => <option key={k}>{k}</option>)}</select></div>
+          <div><label style={lbl}>Kategorie</label><select value={nf.category} onChange={e => setNf({ ...nf, category: e.target.value })} style={inp}>{catList.map(k => <option key={k}>{k}</option>)}</select></div>
           <button disabled={busy} onClick={add} style={primary}>+ Hinzufügen</button>
         </div>
       </div>
@@ -456,6 +504,144 @@ function RentSection({ clients, invoices, params, saveParams, monthlyFix }) {
         </div>
       )}
     </>
+  )
+}
+
+function AbgleichSection({ tx, belege, reload, catList }) {
+  const [mon, setMon] = useState(() => new Date().toISOString().slice(0, 7))
+  const [busy, setBusy] = useState(false)
+  const [assignFor, setAssignFor] = useState(null)
+  const [uploadFor, setUploadFor] = useState(null)
+  const fileRef = useRef(null)
+
+  const [yy, mm] = mon.split('-').map(Number)
+  const shift = d => { const dt = new Date(yy, mm - 1 + d, 1); setMon(dt.toISOString().slice(0, 7)); setAssignFor(null) }
+  const debits = (tx || []).filter(x => Number(x.amount) < 0 && (x.booking_date || '').slice(0, 7) === mon).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+  const bel = (belege || []).filter(b => b.typ !== 'buchhaltung')
+  const linkedBy = {}; for (const b of bel) if (b.bank_tx_id) linkedBy[b.bank_tx_id] = b
+  const freeBelege = bel.filter(b => !b.bank_tx_id)
+  const near = amt => freeBelege.filter(b => Math.abs((Math.abs(Number(b.brutto) || 0)) - (Math.abs(Number(amt) || 0))) < 0.01).sort((a, b) => (b.datum || '').localeCompare(a.datum || ''))
+  function st(d) { if (linkedBy[d.id]) return { k: 'linked', b: linkedBy[d.id] }; const m = near(d.amount); if (m.length) return { k: 'suggest', b: m[0] }; return { k: 'missing' } }
+  const rows = debits.map(d => ({ d, s: st(d) }))
+  const linkedCount = rows.filter(r => r.s.k === 'linked').length
+  const total = debits.reduce((s, d) => s + Math.abs(d.amount), 0)
+  const missingSum = rows.filter(r => r.s.k !== 'linked').reduce((s, r) => s + Math.abs(r.d.amount), 0)
+  const orphans = freeBelege.filter(b => (b.datum || '').slice(0, 7) === mon)
+
+  async function link(debit, belegId) { setBusy(true); try { await supabase.from('eingangsrechnungen').update({ bank_tx_id: debit.id }).eq('id', belegId); setAssignFor(null); await reload() } catch (e) { alert('Fehler: ' + (e.message || e)) } setBusy(false) }
+  async function unlink(beleg) { setBusy(true); try { await supabase.from('eingangsrechnungen').update({ bank_tx_id: null }).eq('id', beleg.id); await reload() } catch {} setBusy(false) }
+  function pickFile(debit) { setUploadFor(debit); setTimeout(() => fileRef.current && fileRef.current.click(), 0) }
+  async function onFile(e) {
+    const f = e.target.files && e.target.files[0]; const debit = uploadFor; e.target.value = ''
+    if (!f || !debit) return
+    setBusy(true)
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f) })
+      const up = await fetch('/api/beleg-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf', name: f.name, folder: 'eingang' }) })
+      const uj = await up.json(); if (!uj.ok) throw new Error(uj.error || 'Upload fehlgeschlagen')
+      let kat = 'Sonstiges', lief = debit.counterparty || null
+      try { const oc = await fetch('/api/eingangsrechnung-ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: b64, mediaType: f.type || 'application/pdf' }) }); const oj = await oc.json(); if (oj.ok && oj.data) { kat = oj.data.kategorie || kat; lief = oj.data.lieferant || lief } } catch {}
+      const payload = { typ: 'eingangsrechnung', lieferant: lief, datum: debit.booking_date, brutto: Math.abs(Number(debit.amount) || 0), netto: 0, ust: 0, ust_satz: 19, kategorie: kat, status: 'zu_pruefen', datei_name: f.name, datei_url: uj.url, bank_tx_id: debit.id }
+      const { error } = await supabase.from('eingangsrechnungen').insert(payload); if (error) throw error
+      setUploadFor(null); await reload()
+    } catch (e) { alert('Fehler: ' + (e.message || e)) }
+    setBusy(false)
+  }
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: 'none' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>Beleg-Abgleich</div>
+          <div style={{ fontSize: 13, color: MUT }}>Jede Bank-Belastung mit dem passenden Beleg verknüpfen — fehlende hochladen oder zuordnen.</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => shift(-1)} style={navBtn}>‹</button>
+          <span style={{ fontSize: 14, fontWeight: 700, minWidth: 120, textAlign: 'center' }}>{MONN[mm - 1]} {yy}</span>
+          <button onClick={() => shift(1)} style={navBtn}>›</button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+        <Kpi l="Belege-Quote" v={debits.length ? Math.round(linkedCount / debits.length * 100) + ' %' : '—'} c={linkedCount === debits.length && debits.length ? GREEN : DARK} />
+        <Kpi l="Mit Beleg" v={linkedCount + ' / ' + debits.length} />
+        <Kpi l="Ohne Beleg (Betrag)" v={eur0(missingSum)} c={missingSum ? AMBER : GREEN} />
+      </div>
+
+      <div style={card}>
+        {rows.length === 0 && <div style={{ color: MUT, fontSize: 13, padding: 8 }}>Keine Belastungen in diesem Monat. (Erst Sparkasse-Umsätze importieren.)</div>}
+        {rows.map(({ d, s }) => (
+          <div key={d.id} style={{ borderTop: '1px solid #f1ead9', padding: '10px 2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, flexWrap: 'wrap' }}>
+              <span style={{ color: MUT, minWidth: 64 }}>{dDE(d.booking_date)}</span>
+              <span style={{ fontWeight: 700, minWidth: 130, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.counterparty || '—'}</span>
+              <span style={{ color: MUT, flex: 1, minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(d.purpose || '').slice(0, 50)}</span>
+              <b style={{ minWidth: 90, textAlign: 'right' }}>− {eur(Math.abs(d.amount))}</b>
+              {s.k === 'linked' && <span style={{ ...belegTag, color: GREENTX, background: GREENBG, display: 'inline-flex', gap: 5, alignItems: 'center' }}>Beleg ✓ {s.b.datei_url && <a href={s.b.datei_url} target="_blank" rel="noreferrer" style={{ color: GREENTX }}>↗</a>}<span onClick={() => unlink(s.b)} style={{ cursor: 'pointer', opacity: .6 }} title="Verknüpfung lösen">✕</span></span>}
+              {s.k === 'suggest' && <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ ...belegTag, color: '#185fa5', background: '#e3edf6' }}>Vorschlag</span><button disabled={busy} onClick={() => link(d, s.b.id)} style={{ ...mini, color: GREENTX, borderColor: '#b6dcc4' }}>✓ {s.b.lieferant || s.b.rechnungsnr || 'Beleg'} übernehmen</button><button onClick={() => setAssignFor(assignFor === d.id ? null : d.id)} style={mini}>andere</button></span>}
+              {s.k === 'missing' && <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ ...belegTag, color: AMBERTX, background: AMBERBG }}>Beleg fehlt</span>{near(d.amount).length > 0 && <button onClick={() => setAssignFor(assignFor === d.id ? null : d.id)} style={mini}>zuordnen</button>}<button disabled={busy} onClick={() => pickFile(d)} style={{ ...mini, color: GOLD }}>⬆ hochladen</button></span>}
+            </div>
+            {assignFor === d.id && (
+              <div style={{ marginTop: 8, marginLeft: 74, padding: 10, background: '#faf7f1', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: MUT, fontWeight: 700, marginBottom: 6 }}>Vorhandenen Beleg zuordnen (gleicher Betrag zuerst):</div>
+                {[...near(d.amount), ...freeBelege.filter(b => !near(d.amount).includes(b))].slice(0, 12).map(b => (
+                  <div key={b.id} onClick={() => link(d, b.id)} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 4px', borderTop: '1px solid #efe7d6', fontSize: 12.5, cursor: 'pointer' }}>
+                    <span style={{ color: MUT, minWidth: 64 }}>{dDE(b.datum)}</span>
+                    <span style={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.lieferant || b.rechnungsnr || 'Beleg'}</span>
+                    <b>{eur(b.brutto)}</b>
+                    {Math.abs((Math.abs(Number(b.brutto) || 0)) - Math.abs(d.amount)) < 0.01 && <span style={{ fontSize: 10, color: GREENTX }}>passt</span>}
+                  </div>
+                ))}
+                {freeBelege.length === 0 && <div style={{ fontSize: 12, color: MUT }}>Keine freien Belege — bitte hochladen.</div>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {orphans.length > 0 && (
+        <div style={{ ...card, marginTop: 14 }}>
+          <div style={h3}>Belege ohne Buchung ({orphans.length}) — {MONN[mm - 1]}</div>
+          <div style={{ fontSize: 12, color: MUT, marginBottom: 8 }}>Hochgeladene Belege, die noch keiner Bank-Belastung zugeordnet sind.</div>
+          {orphans.slice(0, 20).map(b => (
+            <div key={b.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 2px', borderTop: '1px solid #f1ead9', fontSize: 12.5 }}>
+              <span style={{ color: MUT, minWidth: 64 }}>{dDE(b.datum)}</span>
+              <span style={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.lieferant || b.rechnungsnr || 'Beleg'}{b.datei_url && <a href={b.datei_url} target="_blank" rel="noreferrer" style={{ marginLeft: 6, color: GOLD }}>↗</a>}</span>
+              <b>{eur(b.brutto)}</b>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: MUT, marginTop: 12, lineHeight: 1.6 }}>„Vorschlag" = ein vorhandener Beleg hat denselben Betrag. „Hochladen" legt den Beleg an und verknüpft ihn direkt mit dieser Buchung (mit KI-Kategorie). Quelle: Sparkasse-Umsätze + erfasste Eingangsrechnungen.</div>
+    </>
+  )
+}
+
+function CatModal({ userCats, onAdd, onDel, onClose }) {
+  const [name, setName] = useState('')
+  const [parent, setParent] = useState('')
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '50px 16px', zIndex: 200, overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 22, width: '100%', maxWidth: 520 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Kategorien verwalten</div>
+        <div style={{ fontSize: 12, color: MUT, marginBottom: 16 }}>Eigene Kategorien oder Unterkategorien hinzufügen (z.B. Versicherung › Hausrat). Sie erscheinen überall in den Auswahllisten und werden von der KI berücksichtigt.</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.2fr auto', gap: 8, alignItems: 'end', marginBottom: 16 }}>
+          <div><label style={lbl}>Name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="z.B. Hausrat" style={inp} /></div>
+          <div><label style={lbl}>Übergeordnet (optional)</label><select value={parent} onChange={e => setParent(e.target.value)} style={inp}><option value="">— Hauptkategorie —</option>{BASE_CATS.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+          <button onClick={() => { onAdd(name, parent); setName('') }} style={primary}>+ Hinzufügen</button>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: MUT, textTransform: 'uppercase', marginBottom: 8 }}>Eigene Kategorien</div>
+        {(!userCats || userCats.length === 0) && <div style={{ fontSize: 13, color: MUT }}>Noch keine eigenen Kategorien. Die Standard-Kategorien (inkl. Versicherung-Unterkategorien, Leasing, Abo) sind immer verfügbar.</div>}
+        {(userCats || []).map((c, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderTop: '1px solid #f1ead9', fontSize: 13 }}>
+            <span style={{ flex: 1 }}>{c.parent ? <span><span style={{ color: MUT }}>{c.parent} › </span><b>{c.name}</b></span> : <b>{c.name}</b>}</span>
+            <button onClick={() => onDel(i)} style={{ ...mini, color: RED }}>✕</button>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}><button onClick={onClose} style={primary}>Fertig</button></div>
+      </div>
+    </div>
   )
 }
 

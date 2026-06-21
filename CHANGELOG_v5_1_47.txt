@@ -1,0 +1,34 @@
+# ImmoPixels CRM v5.1.47 — Kategorien mit Unterkategorien + Beleg-Abgleich
+## 2026-06-21
+
+KATEGORIEN — erweiterbar, mit Unterkategorien
+- Neue Hauptkategorien: Leasing, Abo.
+- Standard-Unterkategorien:
+  • Versicherung › Kfz / Kranken / Drohne / Betriebshaftpflicht / Rechtsschutz
+  • Abo › Internet / Telefon / Software-Abo / Streaming
+  • Leasing › Kfz / Technik
+  • Fahrtkosten › Tanken / Parken / Maut
+- „🏷️ Kategorien" (oben rechts): eigene Kategorien/Unterkategorien hinzufügen
+  oder löschen. Gespeichert in settings 'expense_categories'.
+- Diese Liste erscheint in ALLEN Auswahllisten (Konto, Fixkosten, Abgleich)
+  und wird an die KI-Klassifizierung übergeben.
+- Keyword-Regeln erweitert: Leasing/Santander, Surfshark→Streaming,
+  Mawacon/Telekom→Internet, Mobilfunk→Telefon, Apple Services→Software-Abo,
+  EasyPark→Parken, Generali Kfz/Kranken → Versicherung-Unterkategorie.
+
+ABGLEICH — neuer Tab „🧾 Abgleich"
+- Monatsansicht: jede Bank-Belastung (Soll) mit Status:
+  • „Beleg ✓" = verknüpfter Beleg (Link öffnen / lösen)
+  • „Vorschlag" = ein vorhandener Beleg hat denselben Betrag → 1 Klick übernehmen
+  • „Beleg fehlt" → „zuordnen" (vorhandenen Beleg wählen, gleicher Betrag zuerst)
+    ODER „⬆ hochladen" (Datei → Upload + KI-Kategorie → automatisch verknüpft).
+- KPIs: Belege-Quote, Mit Beleg (n/n), Ohne Beleg (Betrag).
+- „Belege ohne Buchung": hochgeladene Belege ohne zugeordnete Belastung.
+- Verknüpfung über eingangsrechnungen.bank_tx_id.
+
+DATEIEN: app/eingangsrechnungen/konto/page.js, app/api/kosten-classify/route.js
+
+SQL (BITTE auf ÉLES + DEMO ausführen):
+  ALTER TABLE eingangsrechnungen ADD COLUMN IF NOT EXISTS bank_tx_id uuid;
+
+Hinweis: KI-Funktionen brauchen ANTHROPIC_API_KEY in Vercel.
